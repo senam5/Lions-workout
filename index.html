@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions Weight Room</title>
+<style>
+  :root {
+    --purple: #26215C;
+    --purple-mid: #534AB7;
+    --purple-light: #EEEDFE;
+    --purple-text: #3C3489;
+    --green-light: #E1F5EE;
+    --green-text: #085041;
+    --amber-light: #FAEEDA;
+    --amber-text: #633806;
+    --gray-50: #F8F8F7;
+    --gray-100: #F0EFEB;
+    --gray-300: #D3D1C7;
+    --gray-500: #888780;
+    --gray-700: #444441;
+    --gray-900: #1A1A18;
+    --text: #1A1A18;
+    --text-muted: #5F5E5A;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.2);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--text); min-height: 100vh; }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; position: relative; }
+  .screen { display: none; padding: 24px 20px 40px; min-height: 100vh; }
+  .screen.active { display: block; }
+
+  /* Header */
+  .app-header { background: var(--purple); color: white; padding: 16px 20px 14px; display: flex; align-items: center; gap: 12px; }
+  .app-header .logo { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
+  .app-header .logo span { opacity: 0.6; font-weight: 400; }
+  .back-btn { background: none; border: none; color: white; cursor: pointer; padding: 4px; display: flex; align-items: center; gap: 4px; font-size: 14px; opacity: 0.8; }
+  .back-btn:hover { opacity: 1; }
+
+  /* Typography */
+  h2 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+
+  /* Buttons */
+  .btn { display: block; width: 100%; padding: 13px 16px; border: 1px solid var(--border-strong); background: white; color: var(--text); border-radius: var(--radius); font-size: 15px; cursor: pointer; text-align: center; margin-bottom: 10px; font-weight: 500; transition: background 0.15s; }
+  .btn:hover { background: var(--gray-50); }
+  .btn-primary { background: var(--purple); color: white; border-color: var(--purple); }
+  .btn-primary:hover { background: var(--purple-text); border-color: var(--purple-text); }
+  .btn-sm { display: inline-block; width: auto; padding: 8px 14px; font-size: 13px; margin-bottom: 0; }
+  .btn-ghost { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; padding: 4px 0; display: inline-flex; align-items: center; gap: 4px; }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* Cards */
+  .card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+
+  /* Badges */
+  .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 600; margin-bottom: 10px; letter-spacing: 0.03em; }
+  .badge-player { background: var(--green-light); color: var(--green-text); }
+  .badge-ash { background: var(--purple-light); color: var(--purple-text); }
+
+  /* Player list */
+  .player-chip { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; cursor: pointer; background: white; transition: background 0.15s; }
+  .player-chip:hover { background: var(--gray-50); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--purple-light); color: var(--purple-text); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .player-name { font-size: 15px; font-weight: 500; }
+  .player-loc { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .chevron { margin-left: auto; color: var(--gray-300); font-size: 18px; }
+
+  /* Confirm card */
+  .confirm-card { border: 2px solid var(--purple-mid); border-radius: var(--radius); padding: 0; margin-bottom: 16px; overflow: hidden; }
+  .confirm-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .confirm-row:last-child { border-bottom: none; }
+  .confirm-label { font-size: 13px; color: var(--text-muted); }
+  .confirm-val { font-size: 14px; font-weight: 600; color: var(--text); }
+
+  /* Chips */
+  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { padding: 7px 14px; border: 1px solid var(--border-strong); border-radius: 99px; font-size: 13px; cursor: pointer; background: white; color: var(--text); font-weight: 500; transition: all 0.15s; }
+  .chip:hover { background: var(--gray-50); }
+  .chip.active { background: var(--purple); color: white; border-color: var(--purple); }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; margin-top: 16px; }
+
+  /* Exercise cards */
+  .ex-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; background: white; }
+  .ex-prep { font-size: 12px; color: var(--amber-text); background: var(--amber-light); border-radius: 4px; padding: 3px 8px; display: inline-block; margin-bottom: 8px; font-weight: 500; }
+  .ex-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .ex-detail { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .ex-note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .note-box { background: var(--gray-100); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6; border-left: 3px solid var(--purple-mid); }
+
+  /* Timer */
+  .timer-wrap { display: flex; flex-direction: column; align-items: center; padding: 24px 0 16px; }
+  .timer-exercise { font-size: 14px; color: var(--text-muted); margin-bottom: 4px; text-align: center; }
+  .timer-set { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+  .timer-display { font-size: 72px; font-weight: 700; color: var(--text); letter-spacing: -3px; line-height: 1; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+  .timer-status { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+  .progress-bar { height: 5px; background: var(--gray-100); border-radius: 3px; overflow: hidden; margin-bottom: 20px; width: 100%; }
+  .progress-fill { height: 100%; background: var(--purple-mid); border-radius: 3px; transition: width 0.5s linear; }
+  .timer-done { font-size: 18px; font-weight: 600; color: var(--green-text); background: var(--green-light); padding: 12px 24px; border-radius: var(--radius); margin-bottom: 16px; text-align: center; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--gray-900); color: white; padding: 10px 20px; border-radius: 99px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 999; }
+  .toast.show { opacity: 1; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 32px; color: var(--text-muted); font-size: 14px; }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--purple-mid); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Home hero */
+  .home-hero { background: var(--purple); color: white; margin: -24px -20px 24px; padding: 32px 20px 28px; }
+  .home-hero h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .home-hero p { font-size: 14px; opacity: 0.7; }
+  .home-hero .lion { font-size: 36px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen active" style="padding-top:0">
+    <div class="home-hero">
+      <div class="lion">🦁</div>
+      <h1>Lions Weight Room</h1>
+      <p>Ash's training program</p>
+    </div>
+    <button class="btn btn-primary" onclick="goTo('screen-players')">▶ Start my session</button>
+    <button class="btn" onclick="goTo('screen-ash')">⚙ Ash — view roster</button>
+  </div>
+
+  <!-- PLAYERS -->
+  <div id="screen-players" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" onclick="goTo('screen-home')">← Back</button>
+      <div class="logo">Lions <span>/ Players</span></div>
+    </div>
+    <h2>Who are you?</h2>
+    <p class="sub">Select your name to see your session</p>
+    <div id="player-list"></div>
+    <div class="divider"></div>
+    <button class="btn-ghost" onclick="addPlayerPrompt()">+ Add my name</button>
+  </div>
+
+  <!-- CONFIRM -->
+  <div id="screen-confirm" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" onclick="goTo('screen-players')">← Players</button>
+      <div class="logo">Lions <span>/ Session</span></div>
+    </div>
+    <span class="badge badge-player" id="confirm-badge"></span>
+    <h2>Your session</h2>
+    <p class="sub">Confirm or adjust before starting</p>
+    <div class="confirm-card">
+      <div class="confirm-row"><span class="confirm-label">Group</span><span class="confirm-val" id="ci-group"></span></div>
+      <div class="confirm-row" id="ci-phase-row"><span class="confirm-label">Phase</span><span class="confirm-val" id="ci-phase"></span></div>
+      <div class="confirm-row"><span class="confirm-label">Week</span><span class="confirm-val" id="ci-week"></span></div>
+      <div class="confirm-row"><span class="confirm-label">Day</span><span class="confirm-val" id="ci-day"></span></div>
+    </div>
+    <button class="btn btn-primary" onclick="launchSession()">▶ Let's go</button>
+    <button class="btn" id="adjust-btn">✎ Adjust</button>
+  </div>
+
+  <!-- ADJUST -->
+  <div id="screen-adjust" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" id="adjust-back-btn">← Back</button>
+      <div class="logo">Lions <span>/ Adjust</span></div>
+    </div>
+    <h2>Adjust session</h2>
+    <p class="sub">Tap to change any parameter</p>
+    <div class="section-label">Group</div>
+    <div class="chip-row" id="adj-group"></div>
+    <div id="adj-phase-wrap">
+      <div class="section-label">Phase</div>
+      <div class="chip-row" id="adj-phase"></div>
+    </div>
+    <div class="section-label">Week</div>
+    <div class="chip-row" id="adj-week"></div>
+    <div class="section-label">Day</div>
+    <div class="chip-row" id="adj-day"></div>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="confirmAdjust()">Confirm</button>
+  </div>
+
+  <!-- SESSION -->
+  <div id="screen-session" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" onclick="goTo('screen-players')">← Players</button>
+      <div class="logo">Lions <span>/ Workout</span></div>
+    </div>
+    <div id="session-header"></div>
+    <div id="session-content"></div>
+    <div class="divider"></div>
+    <button class="btn btn-primary" onclick="finishSession()" id="finish-btn">✓ Done — save & advance</button>
+  </div>
+
+  <!-- TIMER -->
+  <div id="screen-timer" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" onclick="stopTimer()">✕ Close</button>
+      <div class="logo">Lions <span>/ Timer</span></div>
+    </div>
+    <div id="timer-content"></div>
+  </div>
+
+  <!-- ASH ROSTER -->
+  <div id="screen-ash" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" onclick="goTo('screen-home')">← Back</button>
+      <div class="logo">Lions <span>/ Roster</span></div>
+    </div>
+    <span class="badge badge-ash">Ash</span>
+    <h2>Roster</h2>
+    <p class="sub">Live progression — pulled from Google Sheets</p>
+    <div id="ash-roster"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+// Paste your Google Apps Script Web App URL here after setup:
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxgC8fvs0dStswxHYxCpLNSWnGSQALuqjP6W6UN_GsLuEEH8bI2Nf9CK3kG9pKMvWosAw/exec';
+// ──────────────────────────────────────────────────────────
+
+const DEFAULTS = [
+  {name:'Zachary Morin',group:'A',phase:1,week:1,day:'upper'},
+  {name:'Noah Verville',group:'A',phase:1,week:1,day:'upper'},
+  {name:'Thomas Lemay',group:'C',phase:null,week:1,day:'upper'},
+  {name:'William Warford',group:'A',phase:2,week:1,day:'upper'},
+  {name:'Antoine Bergeron',group:'A',phase:1,week:1,day:'upper'},
+  {name:'Léo Lemaire-Martin',group:'A',phase:1,week:2,day:'upper'},
+  {name:'Albert Pomerleau',group:'C',phase:null,week:1,day:'upper'},
+  {name:"Liam O'Farrell",group:'C',phase:null,week:1,day:'upper'},
+  {name:'Thomas Bédard',group:'A',phase:1,week:1,day:'upper'},
+  {name:'Justin Bouffard',group:'A',phase:1,week:1,day:'upper'},
+  {name:'Lucas Godbout-Cech',group:'C',phase:null,week:1,day:'upper'},
+  {name:'Olivier Gagné',group:'C',phase:null,week:1,day:'upper'},
+  {name:'David Vergara',group:'C',phase:null,week:1,day:'upper'},
+  {name:'Antoine Bissonnette',group:'C',phase:null,week:1,day:'upper'},
+  {name:'Aidan Chebariak',group:'B',phase:null,week:1,day:'upper'},
+  {name:'Alex Bédard',group:'A',phase:1,week:1,day:'upper'}
+];
+
+const SK = 'lions_workout_v1';
+let data = JSON.parse(localStorage.getItem(SK) || 'null');
+if (!data) { data = {players: JSON.parse(JSON.stringify(DEFAULTS))}; save(); }
+DEFAULTS.forEach(dp => { if (!data.players.find(p => p.name === dp.name)) data.players.push({...dp}); });
+save();
+
+function save() { localStorage.setItem(SK, JSON.stringify(data)); }
+
+let currentIdx = null, timerInterval = null, timerState = {}, pending = {};
+
+// ─── PROGRAM DATA ─────────────────────────────────────────
+const PROGRAM = {
+  C: {
+    upper: { exercises: [
+      {prep:'Butterfly 30 reps, no weight', name:'DB Thrusters', sets:3, reps:15, note:'Hanging stretch 1 min after'},
+      {prep:'Butterfly 30 reps, no weight', name:'DB Bench Press', sets:3, reps:15, note:'Hanging stretch 1 min after'},
+      {prep:'Butterfly 30 reps, no weight', name:'DB Row', sets:3, reps:15, note:'Hanging stretch 1 min after'},
+      {name:'Plank', sets:3, time:60},
+      {name:'Side Plank', sets:2, time:60},
+      {name:'Superman', sets:3, time:60}
+    ], weekNote: 'Week 2+: aim 10% heavier each week' },
+    lower: { exercises: [
+      {prep:'Fire Hydrant 60 reps', name:'DB Thrusters', sets:3, reps:15, note:'Hip flexor stretch 1 min each side'},
+      {prep:'Fire Hydrant 60 reps', name:'Leg Extension', sets:3, reps:15, note:'Hip flexor stretch 1 min each side'},
+      {prep:'Fire Hydrant 60 reps', name:'Leg Curl Machine', sets:3, reps:15, note:'Hip flexor stretch 1 min each side'},
+      {name:'Cat Calf Raise', sets:3, reps:15},
+      {name:'Wall Tibia Raise', sets:3, reps:15}
+    ], weekNote: 'Week 2+: aim 10% heavier each week' }
+  },
+  B: {
+    upper: { exercises: [
+      {prep:'Butterfly 30 reps, no weight', name:'DB Thrusters + Pike Push-Ups (superset)', sets:3, reps:10, supersetReps:15, note:'Hanging stretch 1 min'},
+      {prep:'Butterfly 30 reps, no weight', name:'DB Bench Press + Dips (superset)', sets:3, reps:10, supersetReps:15, note:'Hanging stretch 1 min'},
+      {prep:'Butterfly 30 reps, no weight', name:'DB Row + Chin-Ups (superset)', sets:3, reps:10, supersetReps:15, note:'Hanging stretch 1 min'},
+      {name:'Plank + Marches', sets:3, time:60, note:'1 min plank + 1 min marches'},
+      {name:'Superman', sets:3, time:60}
+    ], weekNote: w => w==2 ? 'Week 2: 2×15 all sequences' : w==3 ? 'Week 3: 1 heavy-duty set' : null },
+    lower: { exercises: [
+      {prep:'Fire Hydrant 60 reps', name:'Squat', sets:3, reps:10, note:'Hip flexor stretch 1 min each side'},
+      {prep:'Fire Hydrant 60 reps', name:'Reverse Lunges', sets:3, reps:10, note:'Hip flexor stretch 1 min each side'},
+      {prep:'Fire Hydrant 60 reps', name:'Romanian Deadlift', sets:3, reps:10, note:'Hip flexor stretch 1 min each side'},
+      {name:'Calf Raises', sets:3, reps:10},
+      {name:'Tibia Raise', sets:3, reps:10}
+    ], weekNote: w => w==2 ? 'Week 2: 2×15' : w==3 ? 'Week 3: 1 heavy-duty set' : null }
+  },
+  A: {
+    1: {
+      upper: { exercises: [
+        {prep:'Butterfly 30 reps, 3 lbs', name:'Push-Up Hold', sets:3, time: w => w==1?30:w==2?60:90, note:'Hanging stretch 1 min'},
+        {prep:'Butterfly 30 reps, 3 lbs', name:'Chin-Up Hold', sets:3, time: w => w==1?30:w==2?60:90, note:'Hanging stretch 1 min'},
+        {prep:'Butterfly 30 reps, 3 lbs', name:'Pike Hold', sets:3, time: w => w==1?30:w==2?60:90, note:'Hanging stretch 1 min'},
+        {name:'Plank', sets:3, time: w => w==1?30:w==2?60:90},
+        {name:'Side Plank', sets:2, time: w => w==1?30:w==2?60:90},
+        {name:'Superman Hold', sets:3, time: w => w==1?30:w==2?60:90}
+      ], weekNote: w => `Time under tension: ${w==1?30:w==2?60:90}s` },
+      lower: { exercises: [
+        {prep:'Fire Hydrant 60 reps', name:'Wall Squat', sets:3, time: w => w==1?60:w==2?90:120, note:'Hip flexor stretch 1 min each side'},
+        {prep:'Fire Hydrant 60 reps', name:'Lunge Hold', sets:3, time: w => w==1?60:w==2?90:120, note:'Hip flexor stretch 1 min each side'},
+        {prep:'Fire Hydrant 60 reps', name:'Romanian DL Hold', sets:3, time: w => w==1?60:w==2?90:120, note:'Hip flexor stretch 1 min each side'},
+        {name:'Calf Raise', sets:3, time: w => w==1?60:w==2?90:120},
+        {name:'Tibia Raise', sets:3, time: w => w==1?60:w==2?90:120}
+      ], weekNote: w => `Time under tension: ${w==1?60:w==2?90:120}s` }
+    },
+    2: {
+      upper: { exercises: [
+        {prep:'Butterfly 30 reps, 5 lbs', name:'Push-Up Hold + Reps', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hanging stretch 1 min'},
+        {prep:'Butterfly 30 reps, 5 lbs', name:'Chin-Up Hold + Reps', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hanging stretch 1 min'},
+        {prep:'Butterfly 30 reps, 5 lbs', name:'Pike Hold + Reps', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hanging stretch 1 min'},
+        {name:'Plank + KB Drag', sets:1, time:30, reps:30},
+        {name:'Side Plank + Side Raises', sets:1, time:30, reps:10},
+        {name:'Superman + Pumps', sets:1, time:30, reps:10}
+      ], weekNote: w => `Hold ${w==1?30:w==2?20:10}s then ${w==1?10:w==2?7:5} reps` },
+      lower: { exercises: [
+        {prep:'Fire Hydrant 60 reps', name:'Squat — 3s eccentric', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hip flexor stretch 1 min each side'},
+        {prep:'Fire Hydrant 60 reps', name:'Lunges', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hip flexor stretch 1 min each side'},
+        {prep:'Fire Hydrant 60 reps', name:'Romanian DL', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hip flexor stretch 1 min each side'},
+        {name:'Calf Hold + Reps', sets:1, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5},
+        {name:'Tibia Hold + Reps', sets:1, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5}
+      ], weekNote: w => `Hold ${w==1?30:w==2?20:10}s then ${w==1?10:w==2?7:5} reps` }
+    },
+    3: {
+      upper: { exercises: [
+        {prep:'Butterfly 30 reps, 5 lbs', name:'Dynamic Box Push-Ups + Elastic V-Ups', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hanging stretch 1 min'},
+        {prep:'Butterfly 30 reps, 5 lbs', name:'Alt. Dynamic Chin Pull-Ups + Elastic V-Ups', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hanging stretch 1 min'},
+        {prep:'Butterfly 30 reps, 5 lbs', name:'Ball Smash + Elastic V-Ups', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hanging stretch 1 min'},
+        {name:'Rock Climber', sets:1, time:60, note:'All out'},
+        {name:'Superman Pumps', sets:1, time:60, note:'All out'}
+      ], weekNote: w => `${w==1?10:w==2?8:6} reps per exercise` },
+      lower: { exercises: [
+        {prep:'Fire Hydrant 60 reps', name:'Squat + Box Jump (Floor is Lava)', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hip flexor stretch each side'},
+        {prep:'Fire Hydrant 60 reps', name:'Lunges + Jumping Knee', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hip flexor stretch each side'},
+        {prep:'Fire Hydrant 60 reps', name:'KB Swing + Bronco Jump', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hip flexor stretch each side'},
+        {name:'Calf Raise + Single Leg Land & Jump', sets:1, reps: w => w==1?10:w==2?8:6, note:'Floor is Lava — calf stretch after'},
+        {name:'Tibia Raise', sets:1, reps:'max'}
+      ], weekNote: w => `${w==1?10:w==2?8:6} reps per exercise` }
+    }
+  }
+};
+
+// ─── HELPERS ──────────────────────────────────────────────
+function R(v, w) { return typeof v === 'function' ? v(w) : v; }
+function initials(n) { return n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
+function locStr(p) {
+  const g = p.group==='A' ? `Group A · Phase ${p.phase}` : p.group==='B' ? 'Group B' : 'Group C';
+  return `${g} · Week ${p.week} · ${p.day==='upper'?'Upper':'Lower'} body`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-players') renderPlayers();
+  if (id === 'screen-ash') loadRoster();
+}
+
+// ─── PLAYERS SCREEN ───────────────────────────────────────
+function renderPlayers() {
+  document.getElementById('player-list').innerHTML = data.players.map((p,i) => `
+    <div class="player-chip" onclick="selectPlayer(${i})">
+      <div class="avatar">${initials(p.name)}</div>
+      <div style="flex:1">
+        <div class="player-name">${p.name}</div>
+        <div class="player-loc">${locStr(p)}</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>`).join('');
+}
+
+function addPlayerPrompt() {
+  const name = prompt('Enter your name:');
+  if (name && name.trim()) {
+    data.players.push({name:name.trim(), group:'C', phase:null, week:1, day:'upper'});
+    save(); renderPlayers();
+  }
+}
+
+// ─── CONFIRM / ADJUST ─────────────────────────────────────
+function nextSession(p) {
+  let {group, phase, week, day} = p;
+  if (day === 'upper') return {group, phase, week, day:'lower'};
+  if (week < 3) return {group, phase, week:week+1, day:'upper'};
+  if (group==='A' && phase < 3) return {group, phase:phase+1, week:1, day:'upper'};
+  if (group==='A' && phase===3) return {group:'B', phase:null, week:1, day:'upper'};
+  if (group==='B') return {group:'C', phase:null, week:1, day:'upper'};
+  return {group, phase, week:1, day:'upper'};
+}
+
+function selectPlayer(idx) {
+  currentIdx = idx;
+  pending = {...nextSession(data.players[idx])};
+  showConfirm(data.players[idx].name, pending);
+}
+
+function showConfirm(name, sug) {
+  document.getElementById('confirm-badge').textContent = name;
+  document.getElementById('ci-group').textContent = sug.group==='A'?'Group A':sug.group==='B'?'Group B':'Group C';
+  const pr = document.getElementById('ci-phase-row');
+  if (sug.group==='A') { pr.style.display='flex'; document.getElementById('ci-phase').textContent=`Phase ${sug.phase}`; }
+  else { pr.style.display='none'; }
+  document.getElementById('ci-week').textContent = `Week ${sug.week}`;
+  document.getElementById('ci-day').textContent = sug.day==='upper' ? 'Upper body' : 'Lower body';
+  document.getElementById('adjust-btn').onclick = openAdjust;
+  goTo('screen-confirm');
+}
+
+function openAdjust() {
+  document.getElementById('adj-group').innerHTML = ['C','B','A'].map(g =>
+    `<span class="chip${pending.group===g?' active':''}" onclick="adjGroup('${g}')">${g==='A'?'Group A':g==='B'?'Group B':'Group C'}</span>`).join('');
+  document.getElementById('adj-phase-wrap').style.display = pending.group==='A' ? 'block' : 'none';
+  renderAdjPhase(); renderAdjWeek(); renderAdjDay();
+  document.getElementById('adjust-back-btn').onclick = () => showConfirm(data.players[currentIdx].name, pending);
+  goTo('screen-adjust');
+}
+function adjGroup(g) {
+  pending.group = g;
+  if (g==='A' && !pending.phase) pending.phase = 1;
+  if (g!=='A') pending.phase = null;
+  document.querySelectorAll('#adj-group .chip').forEach(c => c.classList.toggle('active',
+    (g==='A'&&c.textContent==='Group A')||(g==='B'&&c.textContent==='Group B')||(g==='C'&&c.textContent==='Group C')));
+  document.getElementById('adj-phase-wrap').style.display = g==='A' ? 'block' : 'none';
+  renderAdjPhase();
+}
+function renderAdjPhase() { if(pending.group!=='A') return; document.getElementById('adj-phase').innerHTML=[1,2,3].map(ph=>`<span class="chip${pending.phase===ph?' active':''}" onclick="adjPhase(${ph})">Phase ${ph}</span>`).join(''); }
+function adjPhase(ph) { pending.phase=ph; renderAdjPhase(); }
+function renderAdjWeek() { document.getElementById('adj-week').innerHTML=[1,2,3].map(w=>`<span class="chip${pending.week===w?' active':''}" onclick="adjWeek(${w})">Week ${w}</span>`).join(''); }
+function adjWeek(w) { pending.week=w; renderAdjWeek(); }
+function renderAdjDay() { document.getElementById('adj-day').innerHTML=[{v:'upper',l:'Upper body'},{v:'lower',l:'Lower body'}].map(d=>`<span class="chip${pending.day===d.v?' active':''}" onclick="adjDay('${d.v}')">${d.l}</span>`).join(''); }
+function adjDay(d) { pending.day=d; renderAdjDay(); }
+function confirmAdjust() { showConfirm(data.players[currentIdx].name, pending); }
+
+// ─── SESSION ──────────────────────────────────────────────
+function launchSession() {
+  Object.assign(data.players[currentIdx], pending);
+  save();
+  renderSessionScreen(data.players[currentIdx]);
+  goTo('screen-session');
+}
+
+function renderSessionScreen(p) {
+  const w = p.week;
+  let exData;
+  if (p.group==='C') exData = PROGRAM.C[p.day];
+  else if (p.group==='B') exData = PROGRAM.B[p.day];
+  else exData = PROGRAM.A[p.phase][p.day];
+
+  document.getElementById('session-header').innerHTML = `
+    <span class="badge badge-player">${p.name}</span>
+    <h2>${p.day==='upper'?'Upper body':'Lower body'}</h2>
+    <p class="sub">${p.group==='A'?`Group A · Phase ${p.phase}`:p.group==='B'?'Group B':'Group C'} · Week ${w}</p>`;
+
+  const wn = exData.weekNote ? R(exData.weekNote, w) : null;
+  let html = wn ? `<div class="note-box">ℹ ${wn}</div>` : '';
+
+  exData.exercises.forEach(ex => {
+    const t = ex.time ? R(ex.time, w) : null;
+    const r = ex.reps !== undefined && ex.reps !== 'max' ? R(ex.reps, w) : ex.reps;
+    const sets = ex.sets || 1;
+    let details = '';
+    if (t && r) details = `${sets} set${sets>1?'s':''} · ${t}s hold + ${r} reps`;
+    else if (t) details = `${sets} set${sets>1?'s':''} · ${t}s`;
+    else if (r === 'max') details = `${sets} set${sets>1?'s':''} · max reps`;
+    else if (r) details = `${sets} set${sets>1?'s':''} × ${r} reps`;
+    if (ex.supersetReps) details += ` + ${ex.supersetReps} reps (superset)`;
+    html += `<div class="ex-card">
+      ${ex.prep ? `<div class="ex-prep">→ ${ex.prep}</div>` : ''}
+      <div class="ex-name">${ex.name}</div>
+      <div class="ex-detail">${details}</div>
+      ${ex.note ? `<div class="ex-note">⏱ ${ex.note}</div>` : ''}
+      ${t ? `<button class="btn btn-sm" style="margin-top:10px" onclick="launchTimer('${ex.name.replace(/'/g,"\\'")}',${t},${sets})">▶ Start ${t}s timer</button>` : ''}
+    </div>`;
+  });
+  document.getElementById('session-content').innerHTML = html;
+}
+
+function finishSession() {
+  const p = data.players[currentIdx];
+  const btn = document.getElementById('finish-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  logToSheet(p).then(() => {
+    showToast('Session saved ✓');
+    btn.disabled = false;
+    btn.textContent = '✓ Done — save & advance';
+    goTo('screen-players');
+  }).catch(() => {
+    showToast('Saved locally (sheet offline)');
+    btn.disabled = false;
+    btn.textContent = '✓ Done — save & advance';
+    goTo('screen-players');
+  });
+}
+
+// ─── GOOGLE SHEETS ────────────────────────────────────────
+async function logToSheet(p) {
+  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbxgC8fvs0dStswxHYxCpLNSWnGSQALuqjP6W6UN_GsLuEEH8bI2Nf9CK3kG9pKMvWosAw/exec') return;
+  const payload = {
+    action: 'log',
+    name: p.name,
+    group: p.group,
+    phase: p.phase || '',
+    week: p.week,
+    day: p.day,
+    date: new Date().toISOString().split('T')[0],
+    timestamp: new Date().toLocaleString('en-CA')
+  };
+  await fetch(SHEET_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+}
+
+async function loadRoster() {
+  const el = document.getElementById('ash-roster');
+  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbxgC8fvs0dStswxHYxCpLNSWnGSQALuqjP6W6UN_GsLuEEH8bI2Nf9CK3kG9pKMvWosAw/exec') {
+    renderLocalRoster(el); return;
+  }
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading from sheet...</div>';
+  try {
+    const res = await fetch(`${SHEET_URL}?action=roster`);
+    const rows = await res.json();
+    if (!rows.length) { renderLocalRoster(el); return; }
+    el.innerHTML = rows.map(r => `
+      <div class="card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="avatar">${initials(r.name)}</div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:600">${r.name}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${r.location} · Last: ${r.lastDate}</div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--purple-text)">${r.sessions} sessions</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { renderLocalRoster(el); }
+}
+
+function renderLocalRoster(el) {
+  el.innerHTML = data.players.map(p => `
+    <div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar">${initials(p.name)}</div>
+        <div>
+          <div style="font-size:15px;font-weight:600">${p.name}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${locStr(p)}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── TIMER ────────────────────────────────────────────────
+function launchTimer(name, duration, totalSets) {
+  clearInterval(timerInterval);
+  timerState = {name, duration, totalSets, currentSet:1, remaining:duration, running:false};
+  renderTimerScreen(); goTo('screen-timer');
+}
+function renderTimerScreen() {
+  const s = timerState, pct = Math.round((1-(s.remaining/s.duration))*100);
+  const done = s.remaining === 0 && !s.running;
+  document.getElementById('timer-content').innerHTML = `
+    <div class="timer-wrap">
+      <div class="timer-exercise">${s.name}</div>
+      <div class="timer-set">Set ${s.currentSet} of ${s.totalSets}</div>
+      ${done ? `<div class="timer-done">✓ Set complete!</div>` : `<div class="timer-display">${fmtTime(s.remaining)}</div>`}
+      <div class="timer-status">${s.running ? 'Hold…' : done ? 'Rest, then start next set' : 'Ready'}</div>
+      <div class="progress-bar"><div class="progress-fill" id="prog" style="width:${pct}%"></div></div>
+      <div style="display:flex;gap:10px;width:100%;margin-bottom:10px">
+        <button class="btn${s.running ? '' : ' btn-primary'}" onclick="toggleTimer()" style="flex:1">
+          ${s.running ? '⏸ Pause' : done ? '↺ Restart' : '▶ Start'}
+        </button>
+        <button class="btn btn-sm" onclick="resetTimer()" style="padding:13px 16px">↺</button>
+      </div>
+      ${s.currentSet < s.totalSets ? `<button class="btn" onclick="nextSet()">Next set →</button>` : ''}
+    </div>`;
+}
+function fmtTime(s) { const m = Math.floor(s/60), sec = s%60; return m > 0 ? `${m}:${sec.toString().padStart(2,'0')}` : `${sec}s`; }
+function toggleTimer() {
+  if (timerState.running) { clearInterval(timerInterval); timerState.running = false; renderTimerScreen(); return; }
+  if (timerState.remaining === 0) { timerState.remaining = timerState.duration; }
+  timerState.running = true; renderTimerScreen();
+  timerInterval = setInterval(() => {
+    timerState.remaining--;
+    if (timerState.remaining <= 0) {
+      clearInterval(timerInterval); timerState.running = false; timerState.remaining = 0;
+      try { const a=new AudioContext(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=880; g.gain.setValueAtTime(0.3,a.currentTime); g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.8); o.start(); o.stop(a.currentTime+0.8); } catch(e){}
+      renderTimerScreen(); return;
+    }
+    const d = document.querySelector('.timer-display'), p = document.getElementById('prog');
+    if (d) d.textContent = fmtTime(timerState.remaining);
+    if (p) p.style.width = Math.round((1-(timerState.remaining/timerState.duration))*100) + '%';
+  }, 1000);
+}
+function resetTimer() { clearInterval(timerInterval); timerState.remaining = timerState.duration; timerState.running = false; renderTimerScreen(); }
+function nextSet() { clearInterval(timerInterval); timerState.currentSet++; timerState.remaining = timerState.duration; timerState.running = false; renderTimerScreen(); }
+function stopTimer() { clearInterval(timerInterval); goTo('screen-session'); }
+</script>
+</body>
+</html>
