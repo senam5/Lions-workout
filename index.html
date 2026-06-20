@@ -506,7 +506,7 @@ function finishSession() {
 
 // ─── GOOGLE SHEETS ────────────────────────────────────────
 async function logToSheet(p) {
-  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec') return;
+  if (!SHEET_URL || SHEET_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') return;
   const payload = {
     action: 'log',
     name: p.name,
@@ -527,7 +527,7 @@ async function logToSheet(p) {
 
 async function loadRoster() {
   const el = document.getElementById('ash-roster');
-  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec') {
+  if (!SHEET_URL || SHEET_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
     renderLocalRoster(el); return;
   }
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading from sheet...</div>';
