@@ -520,13 +520,14 @@ function goToFinish() {
   const p = data.players[currentIdx];
   Object.assign(data.players[currentIdx], pending);
   save();
-  const url = buildFormURL(p);
-  document.getElementById('submit-name').textContent = p.name;
-  document.getElementById('submit-detail').textContent =
-    (p.group==='A' ? 'Group A · Phase '+p.phase : p.group==='B' ? 'Group B' : 'Group C') +
-    ' · Week ' + p.week + ' · ' + (p.day==='upper' ? 'Upper body' : 'Lower body');
-  document.getElementById('submit-link').href = url;
-  goTo('screen-finish');
+  const params = new URLSearchParams({
+    name: p.name,
+    group: p.group,
+    phase: p.phase || '-',
+    week: p.week,
+    day: p.day
+  });
+  window.location.href = 'submit.html?' + params.toString();
 }
 
 function finishSession() { goTo('screen-players'); }
