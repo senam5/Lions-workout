@@ -196,7 +196,7 @@
     <div id="session-header"></div>
     <div id="session-content"></div>
     <div class="divider"></div>
-    <button class="btn btn-primary" onclick="finishSession()" id="finish-btn">✓ Done — save & advance</button>
+    <button class="btn btn-primary" onclick="goToFinish()" id="finish-btn">✓ Done</button>
   </div>
 
   <!-- TIMER -->
@@ -221,6 +221,21 @@
   </div>
 
 </div>
+
+<div id="screen-finish" class="screen">
+    <div class="app-header" style="margin: -24px -20px 20px;">
+      <button class="back-btn" onclick="goTo('screen-session')">← Back</button>
+      <div class="logo">Lions <span>/ Submit</span></div>
+    </div>
+    <div style="text-align:center;padding:12px 0 24px;">
+      <div style="font-size:48px;margin-bottom:12px;">🦁</div>
+      <h2 id="submit-name" style="margin-bottom:4px;"></h2>
+      <p id="submit-detail" class="sub" style="margin-bottom:24px;"></p>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">Tap the button below to log your session.<br>It opens Google Forms — just hit <strong>Submit</strong>.</p>
+      <a id="submit-link" href="#" target="_blank" class="btn btn-primary" style="text-decoration:none;display:block;">📋 Log my session</a>
+      <button class="btn" style="margin-top:8px" onclick="Object.assign(data.players[currentIdx],pending);save();goTo('screen-players')">Skip — already submitted</button>
+    </div>
+  </div>
 
 <div class="toast" id="toast"></div>
 
