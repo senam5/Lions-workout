@@ -227,7 +227,7 @@
 <script>
 // ─── CONFIG ───────────────────────────────────────────────
 // Paste your Google Apps Script Web App URL here after setup:
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxgC8fvs0dStswxHYxCpLNSWnGSQALuqjP6W6UN_GsLuEEH8bI2Nf9CK3kG9pKMvWosAw/exec';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec';
 // ──────────────────────────────────────────────────────────
 
 const DEFAULTS = [
@@ -506,7 +506,7 @@ function finishSession() {
 
 // ─── GOOGLE SHEETS ────────────────────────────────────────
 async function logToSheet(p) {
-  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbxgC8fvs0dStswxHYxCpLNSWnGSQALuqjP6W6UN_GsLuEEH8bI2Nf9CK3kG9pKMvWosAw/exec') return;
+  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec') return;
   const payload = {
     action: 'log',
     name: p.name,
@@ -527,7 +527,7 @@ async function logToSheet(p) {
 
 async function loadRoster() {
   const el = document.getElementById('ash-roster');
-  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbxgC8fvs0dStswxHYxCpLNSWnGSQALuqjP6W6UN_GsLuEEH8bI2Nf9CK3kG9pKMvWosAw/exec') {
+  if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec') {
     renderLocalRoster(el); return;
   }
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading from sheet...</div>';
