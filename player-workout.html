@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions — Train Today</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #111d33;
+    --surface: #162040;
+    --surface2: #1B2A4A;
+    --line: #243358;
+    --lion: #CC2229;
+    --lion-dim: #4a0a0d;
+    --lion-glow: rgba(204,34,41,0.15);
+    --green: #22c55e;
+    --green-dim: #052e16;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --white: #f1ede4;
+    --grey: #7a8aaa;
+    --grey2: #243358;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 24px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(204,34,41,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 80% 80%, rgba(204,34,41,0.04) 0%, transparent 60%);
+  }
+  .hero-court {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px; height: 280px;
+    border: 1px solid rgba(204,34,41,0.06);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero-court::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: -40px; right: -40px;
+    height: 1px;
+    background: rgba(204,34,41,0.04);
+  }
+  .hero-court::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 60px;
+    border: 1px solid rgba(212,135,10,0.1);
+    border-radius: 50%;
+  }
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--lion);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 20vw, 100px);
+    line-height: 0.88;
+    color: var(--white);
+    position: relative;
+    letter-spacing: 1px;
+  }
+  .hero-title span { color: var(--lion); }
+  .hero-sub {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--grey);
+    line-height: 1.7;
+    max-width: 300px;
+    position: relative;
+  }
+  .start-btn {
+    margin-top: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--lion);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 14px 24px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    width: fit-content;
+  }
+  .start-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .start-btn .arrow { font-size: 20px; transition: transform 0.2s; }
+  .start-btn:hover .arrow { transform: translateX(4px); }
+
+  /* ── BUILDER ── */
+  #builder { display: none; }
+  #builder.visible { display: block; }
+
+  /* STEP INDICATOR */
+  .steps-bar {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+  }
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--grey);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .step-dot.active { border-color: var(--lion); color: var(--lion); background: var(--lion-dim); }
+  .step-dot.done { border-color: var(--green); background: var(--green); color: var(--bg); }
+  .step-line { flex: 1; height: 1px; background: var(--line); min-width: 16px; transition: background 0.3s; }
+  .step-line.done { background: var(--green); }
+
+  /* STEP PANELS */
+  .step-panel { display: none; padding: 28px 24px; }
+  .step-panel.active { display: block; }
+
+  .step-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--lion);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+  .step-question {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--white);
+    letter-spacing: 1px;
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+
+  /* OPTION CARDS */
+  .option-grid { display: flex; flex-direction: column; gap: 10px; }
+  .option-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .option-card:hover { border-color: var(--lion-dim); background: var(--surface2); }
+  .option-card.selected { border-color: var(--lion); background: var(--lion-dim); }
+  .option-card.selected .option-check { background: var(--lion); border-color: var(--lion); }
+  .option-card.selected .option-check::after { opacity: 1; }
+  .option-icon { font-size: 24px; flex-shrink: 0; width: 36px; text-align: center; }
+  .option-info { flex: 1; }
+  .option-name { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 2px; }
+  .option-desc { font-size: 12px; color: var(--grey); line-height: 1.5; }
+  .option-check {
+    width: 20px; height: 20px;
+    border: 2px solid var(--grey2);
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.2s;
+  }
+  .option-check::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--bg);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  /* MULTI SELECT */
+  .option-card.multi.selected .option-check { background: var(--lion); border-color: var(--lion); border-radius: 4px; }
+  .option-card.multi.selected .option-check::after { content: '✓'; width: auto; height: auto; font-size: 11px; color: var(--bg); border-radius: 0; background: none; opacity: 1; font-weight: 700; }
+
+  /* TIME PICKER */
+  .time-picker {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .time-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    color: var(--lion);
+    text-align: center;
+    line-height: 1;
+    letter-spacing: 2px;
+  }
+  .time-unit { font-size: 18px; color: var(--grey); }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    outline: none;
+    margin: 16px 0 8px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--lion);
+    cursor: pointer;
+    box-shadow: 0 0 12px var(--lion-glow);
+  }
+  .time-presets { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+  .time-preset {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--grey);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .time-preset:hover { border-color: var(--lion); color: var(--lion); }
+
+  /* NAV */
+  .step-nav {
+    display: flex;
+    gap: 10px;
+    padding: 0 24px 32px;
+  }
+  .btn-back {
+    padding: 12px 20px;
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--grey);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-back:hover { border-color: var(--grey); color: var(--white); }
+  .btn-next {
+    flex: 1;
+    padding: 12px;
+    background: var(--lion);
+    border: none;
+    border-radius: 6px;
+    color: var(--bg);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-next:hover { opacity: 0.85; }
+  .btn-next:disabled { opacity: 0.3; cursor: default; }
+
+  /* ── WORKOUT OUTPUT ── */
+  #workout-screen { display: none; }
+  #workout-screen.visible { display: block; }
+
+  .workout-hero {
+    background: linear-gradient(180deg, rgba(212,135,10,0.1) 0%, transparent 100%);
+    border-bottom: 1px solid var(--line);
+    padding: 28px 24px 24px;
+  }
+  .workout-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    color: var(--white);
+    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .workout-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--grey);
+    letter-spacing: 1px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .workout-meta span { color: var(--lion); }
+
+  /* PHASE */
+  .phase {
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 24px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .phase-header:hover { background: var(--surface); }
+  .phase-indicator {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .phase-indicator.done { border-color: var(--green); background: var(--green-dim); }
+  .phase-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--white);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex: 1;
+  }
+  .phase-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--grey);
+  }
+  .phase-chevron {
+    font-size: 12px;
+    color: var(--grey);
+    transition: transform 0.3s;
+  }
+  .phase-chevron.open { transform: rotate(180deg); }
+
+  .phase-body { display: none; padding: 0 24px 20px; }
+  .phase-body.open { display: block; }
+
+  /* DRILL ITEMS */
+  .drill-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .drill-item:last-child { border-bottom: none; }
+  .drill-check {
+    width: 22px; height: 22px;
+    border: 2px solid var(--grey2);
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .drill-check.done { background: var(--green); border-color: var(--green); }
+  .drill-check.done::after { content: '✓'; color: var(--bg); font-size: 12px; font-weight: 700; }
+  .drill-info { flex: 1; }
+  .drill-name { font-size: 13px; font-weight: 500; color: var(--white); margin-bottom: 3px; }
+  .drill-detail { font-size: 12px; color: var(--grey); line-height: 1.5; }
+  .drill-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--grey);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* TIMER */
+  .timer-section {
+    margin: 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .timer-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .timer-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    color: var(--lion);
+    letter-spacing: 3px;
+    line-height: 1;
+  }
+  .timer-display.running { color: var(--green); }
+  .timer-display.warning { color: var(--red); }
+  .timer-controls { display: flex; gap: 8px; margin-top: 14px; justify-content: center; }
+  .timer-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface2);
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .timer-btn.primary { background: var(--lion); border-color: var(--lion); color: var(--bg); }
+  .timer-btn:hover { opacity: 0.85; }
+  .timer-presets { display: flex; gap: 6px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+  .timer-preset {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: none;
+    color: var(--grey);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .timer-preset:hover { border-color: var(--lion); color: var(--lion); }
+
+  /* PROGRESS */
+  .progress-bar-wrap {
+    height: 3px;
+    background: var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--lion);
+    transition: width 0.4s ease;
+  }
+
+  /* COMPLETE SCREEN */
+  .complete-screen {
+    display: none;
+    padding: 48px 24px;
+    text-align: center;
+    min-height: 60vh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .complete-screen.visible { display: flex; }
+  .complete-icon { font-size: 64px; margin-bottom: 16px; }
+  .complete-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--lion);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .complete-sub { font-size: 13px; color: var(--grey); line-height: 1.7; max-width: 280px; margin: 0 auto 28px; }
+  .complete-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 28px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--lion); }
+  .stat-label { font-size: 11px; color: var(--grey); margin-top: 2px; }
+  .restart-btn {
+    padding: 14px 28px;
+    background: var(--lion);
+    border: none;
+    border-radius: 6px;
+    color: var(--bg);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .restart-btn:hover { opacity: 0.85; }
+
+  /* INJURY NOTE */
+  .injury-banner {
+    margin: 0 24px 16px;
+    background: #1a0800;
+    border: 1px solid #7a3208;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #d4870a;
+    line-height: 1.6;
+  }
+  .injury-banner strong { color: var(--red); }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--lion); color: var(--bg);
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    letter-spacing: 1px; padding: 10px 20px;
+    border-radius: 20px; transition: transform 0.3s ease;
+    z-index: 999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-court"></div>
+  <div class="hero-eyebrow">St. Lawrence · Lions</div>
+  <h1 class="hero-title">TRAIN<br><span>TODAY</span></h1>
+  <p class="hero-sub">Build your session. Check off every drill. Put in the work — nobody's watching but you.</p>
+  <button class="start-btn" onclick="startBuilder()">
+    BUILD MY WORKOUT <span class="arrow">→</span>
+  </button>
+</section>
+
+<!-- BUILDER -->
+<div id="builder">
+  <!-- STEP BAR -->
+  <div class="steps-bar">
+    <div class="step-dot active" id="dot-1">1</div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step-dot" id="dot-2">2</div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step-dot" id="dot-3">3</div>
+    <div class="step-line" id="line-3"></div>
+    <div class="step-dot" id="dot-4">4</div>
+  </div>
+
+  <!-- STEP 1: FOCUS -->
+  <div class="step-panel active" id="step-1">
+    <div class="step-label">Step 1 of 4</div>
+    <div class="step-question">What are you working on today?</div>
+    <div class="option-grid">
+      <div class="option-card multi" onclick="toggleFocus(this, 'handle')">
+        <div class="option-icon">🏀</div>
+        <div class="option-info">
+          <div class="option-name">Ball Handling</div>
+          <div class="option-desc">Dribble moves, control, speed with the ball</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card multi" onclick="toggleFocus(this, 'shooting')">
+        <div class="option-icon">🎯</div>
+        <div class="option-info">
+          <div class="option-name">Shooting</div>
+          <div class="option-desc">Form, mid-range, three-point, free throws</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card multi" onclick="toggleFocus(this, 'finishing')">
+        <div class="option-icon">🚀</div>
+        <div class="option-info">
+          <div class="option-name">Finishing at the Rim</div>
+          <div class="option-desc">Layups, floaters, contact, euro-step</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card multi" onclick="toggleFocus(this, 'defense')">
+        <div class="option-icon">🛡️</div>
+        <div class="option-info">
+          <div class="option-name">Defense</div>
+          <div class="option-desc">Footwork, slides, positioning, help D</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card multi" onclick="toggleFocus(this, 'conditioning')">
+        <div class="option-icon">💨</div>
+        <div class="option-info">
+          <div class="option-name">Conditioning</div>
+          <div class="option-desc">Sprints, endurance, game-speed cardio</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card multi" onclick="toggleFocus(this, 'vert')">
+        <div class="option-icon">⚡</div>
+        <div class="option-info">
+          <div class="option-name">Explosiveness / Vert</div>
+          <div class="option-desc">Jump training, power, first-step quickness</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: INTENSITY -->
+  <div class="step-panel" id="step-2">
+    <div class="step-label">Step 2 of 4</div>
+    <div class="step-question">How hard are you going today?</div>
+    <div class="option-grid">
+      <div class="option-card" onclick="selectSingle(this, 'intensity', 'light')">
+        <div class="option-icon">🌱</div>
+        <div class="option-info">
+          <div class="option-name">Light — Recovery Day</div>
+          <div class="option-desc">Low impact, focus on form and touch. Body needs rest too.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card" onclick="selectSingle(this, 'intensity', 'medium')">
+        <div class="option-icon">🔥</div>
+        <div class="option-info">
+          <div class="option-name">Medium — Standard Session</div>
+          <div class="option-desc">Full effort, quality reps. This is your baseline.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card" onclick="selectSingle(this, 'intensity', 'high')">
+        <div class="option-icon">💀</div>
+        <div class="option-info">
+          <div class="option-name">High — Go Mode</div>
+          <div class="option-desc">Max effort throughout. Push past comfortable.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: TIME -->
+  <div class="step-panel" id="step-3">
+    <div class="step-label">Step 3 of 4</div>
+    <div class="step-question">How much time do you have?</div>
+    <div class="time-picker">
+      <div class="time-display"><span id="time-val">45</span> <span class="time-unit">min</span></div>
+      <input type="range" min="20" max="120" value="45" step="5" oninput="updateTime(this.value)">
+      <div class="time-presets">
+        <button class="time-preset" onclick="setTime(20)">20 min</button>
+        <button class="time-preset" onclick="setTime(30)">30 min</button>
+        <button class="time-preset" onclick="setTime(45)">45 min</button>
+        <button class="time-preset" onclick="setTime(60)">1 hour</button>
+        <button class="time-preset" onclick="setTime(90)">90 min</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: BODY -->
+  <div class="step-panel" id="step-4">
+    <div class="step-label">Step 4 of 4</div>
+    <div class="step-question">How's your body feeling?</div>
+    <div class="option-grid">
+      <div class="option-card" onclick="selectSingle(this, 'body', 'good')">
+        <div class="option-icon">✅</div>
+        <div class="option-info">
+          <div class="option-name">Good — No issues</div>
+          <div class="option-desc">Full go. No restrictions.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card" onclick="selectSingle(this, 'body', 'ankle')">
+        <div class="option-icon">🦶</div>
+        <div class="option-info">
+          <div class="option-name">Ankle soreness</div>
+          <div class="option-desc">Modified drills — no heavy cuts or jumping.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card" onclick="selectSingle(this, 'body', 'knee')">
+        <div class="option-icon">🦵</div>
+        <div class="option-info">
+          <div class="option-name">Knee soreness</div>
+          <div class="option-desc">Modified drills — avoid deep squats and impact.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+      <div class="option-card" onclick="selectSingle(this, 'body', 'tired')">
+        <div class="option-icon">😮‍💨</div>
+        <div class="option-info">
+          <div class="option-name">General fatigue</div>
+          <div class="option-desc">Lower volume, more rest between sets.</div>
+        </div>
+        <div class="option-check"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="step-nav">
+    <button class="btn-back" id="back-btn" onclick="prevStep()" style="display:none">← BACK</button>
+    <button class="btn-next" id="next-btn" onclick="nextStep()" disabled>NEXT →</button>
+  </div>
+</div>
+
+<!-- WORKOUT -->
+<div id="workout-screen">
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="workout-hero">
+    <div class="workout-title" id="workout-title">YOUR SESSION</div>
+    <div class="workout-meta" id="workout-meta"></div>
+  </div>
+
+  <div id="injury-note"></div>
+
+  <!-- TIMER -->
+  <div class="timer-section">
+    <div class="timer-label">Rest / Drill Timer</div>
+    <div class="timer-display" id="timer-display">00:00</div>
+    <div class="timer-controls">
+      <button class="timer-btn primary" id="timer-start" onclick="toggleTimer()">START</button>
+      <button class="timer-btn" onclick="resetTimer()">RESET</button>
+    </div>
+    <div class="timer-presets">
+      <button class="timer-preset" onclick="setTimer(30)">30s</button>
+      <button class="timer-preset" onclick="setTimer(60)">1 min</button>
+      <button class="timer-preset" onclick="setTimer(90)">90s</button>
+      <button class="timer-preset" onclick="setTimer(120)">2 min</button>
+      <button class="timer-preset" onclick="setTimer(180)">3 min</button>
+    </div>
+  </div>
+
+  <div id="phases-container"></div>
+
+  <div class="complete-screen" id="complete-screen">
+    <div class="complete-icon">🏆</div>
+    <div class="complete-title">WORK DONE.</div>
+    <p class="complete-sub">That's a session in the bank. Consistency is what separates players. See you tomorrow.</p>
+    <div class="complete-stats">
+      <div class="stat-box"><div class="stat-val" id="stat-drills">0</div><div class="stat-label">Drills completed</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-time">0</div><div class="stat-label">Minutes invested</div></div>
+    </div>
+    <button class="restart-btn" onclick="restart()">BUILD ANOTHER SESSION</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // STATE
+  const state = {
+    focuses: [],
+    intensity: null,
+    time: 45,
+    body: null,
+    currentStep: 1,
+    totalSteps: 4
+  };
+
+  let timerInterval = null;
+  let timerSeconds = 0;
+  let timerRunning = false;
+  let totalDrills = 0;
+  let completedDrills = 0;
+
+  // DRILL DATABASE
+  const drills = {
+    handle: {
+      warmup: [
+        { name: 'Stationary crossover', detail: '30 sec each hand — stay low, pound hard', sets: '3×30s' },
+        { name: 'Figure-8 dribble', detail: 'Slow control first, then speed. Feel the ball.', sets: '2 min' }
+      ],
+      main: {
+        light: [
+          { name: 'Two-ball stationary dribble', detail: 'Alternating rhythm, eyes up. Control over speed.', sets: '3×45s' },
+          { name: 'Chair moves — crossover', detail: 'Set up a chair as defender. Crossover and drive.', sets: '3×10 each side' }
+        ],
+        medium: [
+          { name: 'Two-ball dribble — alternating', detail: 'Push pace. Both hands working equally.', sets: '4×60s' },
+          { name: 'Pound dribble — low & fast', detail: 'As low as you can go. Max speed.', sets: '3×30s each hand' },
+          { name: 'Chair combo — crossover → pull back → attack', detail: 'Simulate a real defender. Sell the move.', sets: '4×10 each side' }
+        ],
+        high: [
+          { name: 'Speed dribble — full court', detail: 'Max speed, controlled. Head up the whole time.', sets: '6 trips' },
+          { name: 'Combo drill — cross, between, behind', detail: 'Continuous. No stopping for 45 sec straight.', sets: '4×45s' },
+          { name: 'Chair series — full attack combo', detail: 'Crossover, behind the back, spin move. Each one 10×.', sets: '3 rounds' }
+        ]
+      },
+      finish: [
+        { name: 'Full-speed figure-8', detail: 'Max speed for 30 sec. Mental sharpness at end of session.', sets: '3×30s' }
+      ]
+    },
+    shooting: {
+      warmup: [
+        { name: 'Form shooting — 3 feet from basket', detail: 'One hand. Perfect arc. Nothing but net, nothing else matters.', sets: '10 each side' },
+        { name: 'Catch-and-shoot — elbow', detail: 'Step into every shot. Same release every time.', sets: '10 each elbow' }
+      ],
+      main: {
+        light: [
+          { name: 'Mikan drill', detail: 'Both sides, soft touch. Don\'t rush.', sets: '3 min' },
+          { name: 'Mid-range spot shooting', detail: '5 spots, 5 makes each. Walk don\'t run.', sets: '25 makes' }
+        ],
+        medium: [
+          { name: 'Mikan drill', detail: 'Continuous — both sides, rhythm, soft touch.', sets: '4 min' },
+          { name: 'Elbow mid-range × 20 makes', detail: 'Make 20, not attempt. Different pressure.', sets: '20 makes' },
+          { name: 'Spot shooting — 5 spots', detail: '5 makes per spot. Left corner, left wing, top, right wing, right corner.', sets: '25 makes' }
+        ],
+        high: [
+          { name: 'Mikan drill — full speed', detail: 'No stopping. Go until you miss 3 in a row, restart.', sets: '5 min' },
+          { name: 'Spot shooting — 50 makes', detail: '10 makes per spot. No shortcuts.', sets: '50 makes' },
+          { name: '3-point rhythm shooting', detail: 'Catch, set feet, shoot. Not hunting — rhythm.', sets: '30 attempts' }
+        ]
+      },
+      finish: [
+        { name: 'Free throws', detail: '2 at a time. Routine before every shot. Make 10 total.', sets: '10 makes' }
+      ]
+    },
+    finishing: {
+      warmup: [
+        { name: 'Slow-motion layup — both sides', detail: 'Exaggerate every step. Footwork first.', sets: '10 each side' },
+        { name: 'Mikan drill', detail: 'Get the touch. Soft hands.', sets: '2 min' }
+      ],
+      main: {
+        light: [
+          { name: 'Basic layup — both sides', detail: 'Proper footwork. Right hand right side, left hand left side.', sets: '15 each side' },
+          { name: 'Floater — both sides', detail: 'Release point high. Aim for the backboard square.', sets: '10 each side' }
+        ],
+        medium: [
+          { name: 'Euro-step layup', detail: 'Two hard dribbles, gather, step opposite. Sell it.', sets: '10 each side' },
+          { name: 'Floater from the paint', detail: 'One dribble into the lane, float it soft.', sets: '15 each side' },
+          { name: 'Reverse layup', detail: 'Under the basket, use the rim as a shield.', sets: '10 each side' }
+        ],
+        high: [
+          { name: 'Euro-step at full speed', detail: 'No half measures. Attack the rim.', sets: '12 each side' },
+          { name: 'Up-and-under', detail: 'Show the shot, pump, step through, finish.', sets: '10 each side' },
+          { name: 'Contact finishing — self-toss', detail: 'Toss ball, retrieve off bounce, take contact on imaginary defender, finish.', sets: '15 total' }
+        ]
+      },
+      finish: [
+        { name: 'Off-balance layup drill', detail: 'Toss ball out, go get it awkward, finish anyway. Train the body to adapt.', sets: '10 total' }
+      ]
+    },
+    defense: {
+      warmup: [
+        { name: 'Defensive stance hold', detail: 'Low. Butt down, chest up, arms active. Hold 30 sec.', sets: '3×30s' },
+        { name: 'Hip circles', detail: 'Loosen the hips. 10 each direction.', sets: '2×10' }
+      ],
+      main: {
+        light: [
+          { name: 'Defensive slide — half court', detail: 'Stay low the whole way. Don\'t stand up.', sets: '5 lengths' },
+          { name: 'Closeout drill', detail: 'Sprint, break down, hand up, don\'t foul.', sets: '10 reps' }
+        ],
+        medium: [
+          { name: 'Defensive slide — full court', detail: 'Full length each way. Low the whole time.', sets: '6 trips' },
+          { name: 'Drop step + recover', detail: 'React to a ball fake, recover to deny.', sets: '3×10' },
+          { name: 'Closeout → contest → box out', detail: 'Full sequence. Closeout, contest shot, box out on miss.', sets: '12 reps' }
+        ],
+        high: [
+          { name: '1-on-0 defensive footwork circuit', detail: 'Slide left, sprint back, slide right, sprint forward. Non-stop 45s.', sets: '4×45s' },
+          { name: 'Timed closeout series', detail: 'Max speed closeouts. 15 in a row with 10s rest.', sets: '3 rounds' },
+          { name: 'Mirror drill (self-shadow)', detail: 'Imagine a ball handler and mirror their movement. Stay attached.', sets: '3×60s' }
+        ]
+      },
+      finish: [
+        { name: 'Deny position hold', detail: 'Get in deny, hold 20 sec each side. Feel the muscle memory.', sets: '3 each side' }
+      ]
+    },
+    conditioning: {
+      warmup: [
+        { name: 'Jog — easy pace', detail: 'Just get the blood flowing. 2 min.', sets: '2 min' },
+        { name: 'High knees + butt kicks', detail: '30 seconds each. Stay light on your feet.', sets: '2×30s' }
+      ],
+      main: {
+        light: [
+          { name: 'Baseline jog × 10', detail: 'Easy pace. Focus on breathing through your nose.', sets: '10 lengths' },
+          { name: 'Dribble walk + jog', detail: 'Dribble the length at a comfortable pace.', sets: '6 lengths' }
+        ],
+        medium: [
+          { name: 'Sprint — baseline to baseline', detail: 'Max effort. Walk back. Breathe.', sets: '8 sprints' },
+          { name: 'Defensive slide + sprint', detail: 'Slide to half, sprint to opposite baseline.', sets: '5 trips' },
+          { name: '17s drill', detail: 'Baseline to baseline 17 times. Under 60 seconds. This is the standard.', sets: '2 rounds' }
+        ],
+        high: [
+          { name: '17s drill — push', detail: 'Baseline to baseline 17× in under 55 seconds. Go harder.', sets: '3 rounds' },
+          { name: 'Suicide sprints', detail: 'Touch foul line, half, far foul line, full court. Walk back. Repeat.', sets: '5 rounds' },
+          { name: 'Dribble sprint — full court', detail: 'Full speed dribble, both hands. No slowing on the catch.', sets: '8 trips' }
+        ]
+      },
+      finish: [
+        { name: 'Free throw after fatigue', detail: 'Shoot 10 free throws right now. This is game conditioning.', sets: '10 shots' }
+      ]
+    },
+    vert: {
+      warmup: [
+        { name: 'Glute bridges', detail: '15 slow reps. Feel every rep in the glutes.', sets: '2×15' },
+        { name: 'Ankle rotations', detail: '10 circles each direction, each ankle. Non-negotiable.', sets: '2×10' }
+      ],
+      main: {
+        light: [
+          { name: 'Calf raises — single leg', detail: 'Slow up, slow down. 15 each leg.', sets: '3×15 each' },
+          { name: 'Squat jumps — low intensity', detail: 'Small jumps. Land soft. Focus on mechanics.', sets: '3×8' }
+        ],
+        medium: [
+          { name: 'Box jumps — step off', detail: 'Explosive jump up, step down. Never jump down.', sets: '4×6' },
+          { name: 'Broad jumps', detail: 'Max distance. Two feet. Stick the landing — hold 2 seconds.', sets: '3×5' },
+          { name: 'Single-leg calf raises', detail: 'Slow and controlled. Full range of motion.', sets: '3×15 each' }
+        ],
+        high: [
+          { name: 'Box jumps — max effort', detail: 'Highest box available. Every jump is max effort.', sets: '5×5' },
+          { name: 'Depth drops → stick', detail: 'Step off box, land and freeze. Train landing mechanics.', sets: '4×6' },
+          { name: 'Approach jump reach', detail: 'Full approach, two-foot jump, reach as high as possible.', sets: '8 reps' }
+        ]
+      },
+      finish: [
+        { name: 'Approach jump — measure yourself', detail: 'Mark your reach on the wall. This is your benchmark. Come back and beat it.', sets: '5 reps' }
+      ]
+    }
+  };
+
+  // BODY MODIFIER
+  const bodyMods = {
+    ankle: 'Ankle protocol: avoid lateral cuts and jumping. Replace all jump drills with calf raises and ankle alphabet (trace A–Z with your foot). Land two-footed on anything you do jump.',
+    knee: 'Knee protocol: avoid deep squats and high-impact landings. Replace box jumps with step-ups. No full-speed cuts. Ice after session.',
+    tired: 'Fatigue protocol: cut all sets by 30%. Rest 90s between sets instead of 60s. If something feels off, stop — a bad session isn\'t worth an injury.',
+    good: null
+  };
+
+  // STEP LOGIC
+  function startBuilder() {
+    document.getElementById('hero').style.display = 'none';
+    document.getElementById('builder').classList.add('visible');
+    updateNav();
+  }
+
+  function toggleFocus(card, focus) {
+    card.classList.toggle('selected');
+    if (card.classList.contains('selected')) {
+      state.focuses.push(focus);
+    } else {
+      state.focuses = state.focuses.filter(f => f !== focus);
+    }
+    updateNav();
+  }
+
+  function selectSingle(card, key, val) {
+    card.closest('.option-grid').querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    state[key] = val;
+    updateNav();
+  }
+
+  function updateTime(val) {
+    state.time = parseInt(val);
+    document.getElementById('time-val').textContent = val;
+    document.querySelector('input[type=range]').value = val;
+  }
+
+  function setTime(val) {
+    updateTime(val);
+  }
+
+  function canProceed() {
+    if (state.currentStep === 1) return state.focuses.length > 0;
+    if (state.currentStep === 2) return state.intensity !== null;
+    if (state.currentStep === 3) return true;
+    if (state.currentStep === 4) return state.body !== null;
+    return false;
+  }
+
+  function updateNav() {
+    const nextBtn = document.getElementById('next-btn');
+    const backBtn = document.getElementById('back-btn');
+    nextBtn.disabled = !canProceed();
+    backBtn.style.display = state.currentStep > 1 ? 'block' : 'none';
+    if (state.currentStep === 4 && canProceed()) {
+      nextBtn.textContent = 'BUILD MY SESSION →';
+    } else {
+      nextBtn.textContent = 'NEXT →';
+    }
+  }
+
+  function nextStep() {
+    if (!canProceed()) return;
+    if (state.currentStep === 4) { buildWorkout(); return; }
+
+    // Update dots
+    document.getElementById('dot-' + state.currentStep).classList.remove('active');
+    document.getElementById('dot-' + state.currentStep).classList.add('done');
+    document.getElementById('dot-' + state.currentStep).textContent = '✓';
+    document.getElementById('line-' + state.currentStep).classList.add('done');
+    document.getElementById('step-' + state.currentStep).classList.remove('active');
+
+    state.currentStep++;
+    document.getElementById('dot-' + state.currentStep).classList.add('active');
+    document.getElementById('step-' + state.currentStep).classList.add('active');
+    updateNav();
+    window.scrollTo(0, 0);
+  }
+
+  function prevStep() {
+    document.getElementById('dot-' + state.currentStep).classList.remove('active');
+    document.getElementById('step-' + state.currentStep).classList.remove('active');
+    state.currentStep--;
+    document.getElementById('dot-' + state.currentStep).classList.remove('done');
+    document.getElementById('dot-' + state.currentStep).textContent = state.currentStep;
+    document.getElementById('dot-' + state.currentStep).classList.add('active');
+    document.getElementById('line-' + state.currentStep).classList.remove('done');
+    document.getElementById('step-' + state.currentStep).classList.add('active');
+    updateNav();
+    window.scrollTo(0, 0);
+  }
+
+  // BUILD WORKOUT
+  function buildWorkout() {
+    document.getElementById('builder').style.display = 'none';
+    document.getElementById('workout-screen').classList.add('visible');
+
+    const focusNames = { handle: 'Ball Handling', shooting: 'Shooting', finishing: 'Finishing', defense: 'Defense', conditioning: 'Conditioning', vert: 'Explosiveness' };
+    const intensityNames = { light: 'Light', medium: 'Medium', high: 'Go Mode' };
+
+    document.getElementById('workout-title').textContent = state.focuses.map(f => focusNames[f]).join(' + ');
+    document.getElementById('workout-meta').innerHTML = `
+      <span>⏱ ${state.time} min</span>
+      <span>🔥 ${intensityNames[state.intensity]}</span>
+      <span>🏀 ${state.focuses.length} focus area${state.focuses.length > 1 ? 's' : ''}</span>
+    `;
+
+    // Injury note
+    const mod = bodyMods[state.body];
+    if (mod) {
+      document.getElementById('injury-note').innerHTML = `<div class="injury-banner"><strong>⚠️ Modified Session:</strong> ${mod}</div>`;
+    }
+
+    // Build phases
+    const warmupTime = Math.max(5, Math.round(state.time * 0.15));
+    const finishTime = Math.max(5, Math.round(state.time * 0.1));
+    const mainTime = state.time - warmupTime - finishTime;
+
+    // Collect drills
+    let warmupDrills = [];
+    let mainDrills = [];
+    let finishDrills = [];
+
+    state.focuses.forEach(f => {
+      const d = drills[f];
+      if (!d) return;
+      // Add 1 warmup per focus (avoid duplicates)
+      if (warmupDrills.length < state.focuses.length * 1) {
+        warmupDrills.push(...d.warmup.slice(0, 1));
+      }
+      // Main drills based on intensity
+      const intensity = state.body === 'tired' ? 'light' : state.intensity;
+      mainDrills.push(...(d.main[intensity] || d.main.medium));
+      // 1 finish per focus
+      finishDrills.push(d.finish[0]);
+    });
+
+    // Ankle/knee modifications
+    if (state.body === 'ankle' || state.body === 'knee') {
+      mainDrills = mainDrills.filter(d => !d.name.toLowerCase().includes('jump') && !d.name.toLowerCase().includes('sprint'));
+    }
+
+    const phases = [
+      { name: 'Warm-Up', emoji: '🌡️', time: warmupTime, drills: warmupDrills },
+      { name: 'Main Work', emoji: '💪', time: mainTime, drills: mainDrills },
+      { name: 'Finish Strong', emoji: '🏁', time: finishTime, drills: [...finishDrills, { name: 'Static stretch', detail: 'Quad, hip flexor, hamstring, calf — 60 sec each. Don\'t skip this.', sets: '60s each' }] }
+    ];
+
+    totalDrills = phases.reduce((sum, p) => sum + p.drills.length, 0);
+    completedDrills = 0;
+
+    const container = document.getElementById('phases-container');
+    container.innerHTML = phases.map((phase, pi) => `
+      <div class="phase">
+        <div class="phase-header" onclick="togglePhase(${pi})">
+          <div class="phase-indicator" id="phase-ind-${pi}">${phase.emoji}</div>
+          <div class="phase-name">${phase.name}</div>
+          <div class="phase-time">${phase.time} min</div>
+          <div class="phase-chevron ${pi === 0 ? 'open' : ''}" id="phase-chev-${pi}">▼</div>
+        </div>
+        <div class="phase-body ${pi === 0 ? 'open' : ''}" id="phase-body-${pi}">
+          ${phase.drills.map((d, di) => `
+            <div class="drill-item" id="drill-${pi}-${di}">
+              <div class="drill-check" onclick="checkDrill(this, ${pi}, ${di})"></div>
+              <div class="drill-info">
+                <div class="drill-name">${d.name}</div>
+                <div class="drill-detail">${d.detail}</div>
+              </div>
+              <div class="drill-badge">${d.sets}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    window.scrollTo(0, 0);
+  }
+
+  function togglePhase(pi) {
+    const body = document.getElementById('phase-body-' + pi);
+    const chev = document.getElementById('phase-chev-' + pi);
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+  }
+
+  function checkDrill(el, pi, di) {
+    el.classList.toggle('done');
+    if (el.classList.contains('done')) {
+      completedDrills++;
+      showToast('Drill done ✓');
+    } else {
+      completedDrills--;
+    }
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const pct = totalDrills > 0 ? (completedDrills / totalDrills) * 100 : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    if (completedDrills === totalDrills && totalDrills > 0) {
+      setTimeout(showComplete, 600);
+    }
+  }
+
+  function showComplete() {
+    document.getElementById('complete-screen').classList.add('visible');
+    document.getElementById('stat-drills').textContent = completedDrills;
+    document.getElementById('stat-time').textContent = state.time;
+    document.getElementById('complete-screen').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // TIMER
+  function toggleTimer() {
+    if (timerRunning) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('timer-start').textContent = 'RESUME';
+      document.getElementById('timer-display').classList.remove('running');
+    } else {
+      timerRunning = true;
+      document.getElementById('timer-start').textContent = 'PAUSE';
+      document.getElementById('timer-display').classList.add('running');
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        if (timerSeconds <= 0) {
+          timerSeconds = 0;
+          clearInterval(timerInterval);
+          timerRunning = false;
+          document.getElementById('timer-start').textContent = 'START';
+          document.getElementById('timer-display').classList.remove('running');
+          document.getElementById('timer-display').classList.add('warning');
+          showToast('Time\'s up! 🔔');
+          setTimeout(() => document.getElementById('timer-display').classList.remove('warning'), 2000);
+        }
+        updateTimerDisplay();
+      }, 1000);
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = 0;
+    document.getElementById('timer-start').textContent = 'START';
+    document.getElementById('timer-display').classList.remove('running', 'warning');
+    updateTimerDisplay();
+  }
+
+  function setTimer(secs) {
+    resetTimer();
+    timerSeconds = secs;
+    updateTimerDisplay();
+  }
+
+  function updateTimerDisplay() {
+    const m = Math.floor(timerSeconds / 60);
+    const s = timerSeconds % 60;
+    document.getElementById('timer-display').textContent =
+      String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function restart() {
+    state.focuses = [];
+    state.intensity = null;
+    state.time = 45;
+    state.body = null;
+    state.currentStep = 1;
+    completedDrills = 0;
+    totalDrills = 0;
+
+    document.getElementById('workout-screen').classList.remove('visible');
+    document.getElementById('complete-screen').classList.remove('visible');
+    document.getElementById('hero').style.display = 'flex';
+
+    // Reset step UI
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById('dot-' + i);
+      dot.classList.remove('active', 'done');
+      dot.textContent = i;
+      const panel = document.getElementById('step-' + i);
+      panel.classList.remove('active');
+      if (i < 4) document.getElementById('line-' + i).classList.remove('done');
+    }
+    document.getElementById('dot-1').classList.add('active');
+    document.getElementById('step-1').classList.add('active');
+    document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('builder').style.display = '';
+    document.getElementById('builder').classList.remove('visible');
+    document.getElementById('injury-note').innerHTML = '';
+    resetTimer();
+    window.scrollTo(0, 0);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // Init timer display
+  updateTimerDisplay();
+</script>
+</body>
+</html>
