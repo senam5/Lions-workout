@@ -107,42 +107,63 @@
   }
   .start-btn {
     margin-top: 28px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     background: var(--lion);
     color: var(--bg);
     border: none;
     border-radius: 6px;
-    padding: 14px 24px;
+    padding: 16px 24px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
+    font-size: 20px;
     letter-spacing: 2px;
     cursor: pointer;
     position: relative;
     transition: all 0.2s;
-    width: fit-content;
+    width: 100%;
   }
   .start-btn:hover { opacity: 0.88; transform: translateY(-1px); }
   .start-btn .arrow { font-size: 20px; transition: transform 0.2s; }
   .start-btn:hover .arrow { transform: translateX(4px); }
-  .start-btn-row { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+  .start-btn-row { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .new-badge {
+    display: inline-block;
+    background: var(--lion);
+    color: white;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+    animation: badgePulse 1.4s ease-in-out infinite;
+  }
+  @keyframes badgePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.65; transform: scale(1.08); }
+  }
   .start-btn-secondary {
-    margin-top: 28px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     background: none;
     color: var(--white);
-    border: 1px solid var(--line);
+    border: 2px solid rgba(255,255,255,0.2);
     border-radius: 6px;
-    padding: 14px 24px;
+    padding: 16px 24px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
+    font-size: 20px;
     letter-spacing: 2px;
     cursor: pointer;
     transition: all 0.2s;
-    width: fit-content;
+    width: 100%;
   }
   .start-btn-secondary:hover { border-color: var(--lion); color: var(--lion); }
 
@@ -736,7 +757,7 @@
       BUILD MY WORKOUT <span class="arrow">→</span>
     </button>
     <button class="start-btn-secondary" onclick="startQuickShoot()">
-      🎯 JUST SHOOT
+      🎯 JUST SHOOT <span class="new-badge">NEW</span>
     </button>
   </div>
 </section>
