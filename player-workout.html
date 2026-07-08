@@ -42,8 +42,8 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: 0 24px 48px;
+    justify-content: center;
+    padding: 60px 24px 48px;
     position: relative;
     overflow: hidden;
   }
@@ -744,24 +744,41 @@
 <!-- JUST SHOOT MODE -->
 <div id="quick-shoot">
 
+  <!-- NAME GATE -->
+  <div id="qs-name-gate">
+    <div class="qs-header">
+      <button class="qs-back" onclick="qsBackToHero()">← BACK</button>
+      <div class="step-label">Just Shoot</div>
+      <div class="step-question">What's your name?</div>
+      <p style="font-size:12px;color:var(--grey);margin-top:-14px;margin-bottom:24px;">Your results will be saved under your name so Coach can track your progress.</p>
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border:2px solid var(--lion);border-radius:10px;padding:14px 16px;margin-bottom:20px;">
+        <span style="font-size:22px;">👤</span>
+        <input id="qs-player-name" type="text" placeholder="First name + Last name" maxlength="40" autocomplete="name"
+          style="flex:1;background:none;border:none;outline:none;color:var(--white);font-family:'Inter',sans-serif;font-size:16px;font-weight:600;"
+          oninput="qsNameChanged(this.value)"
+          onkeydown="if(event.key==='Enter') qsConfirmName()">
+      </div>
+      <button class="qs-advance-btn" id="qs-name-btn" onclick="qsConfirmName()" disabled style="opacity:0.3;">
+        LET'S SHOOT →
+      </button>
+    </div>
+  </div>
+
   <!-- TALLY SCREEN — 3 zones, fixed 50 shots each -->
-  <div id="qs-tally">
+  <div id="qs-tally" style="display:none;">
     <div class="qs-header" style="padding-bottom:0;">
       <button class="qs-back" onclick="qsBackToHero()">← END SESSION</button>
-      <div class="step-label">Just Shoot</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div class="step-label" style="margin:0;">Just Shoot</div>
+        <div id="qs-tally-name" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--lion);letter-spacing:1px;"></div>
+      </div>
       <div class="step-question" style="margin-bottom:4px;">50 threes · 50 mid · 50 FT</div>
       <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Tap MAKE after every shot you hit. Attempts track automatically.</p>
-      <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px;">
-        <span style="font-size:18px;">👤</span>
-        <input id="qs-player-name" type="text" placeholder="Your name" maxlength="30"
-          style="flex:1;background:none;border:none;outline:none;color:var(--white);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;"
-          oninput="localStorage.setItem('lionsPlayerName', this.value)">
-      </div>
     </div>
 
     <div style="padding:0 24px 48px;display:flex;flex-direction:column;gap:16px;">
 
-      <!-- ZONE CARD -->
+      <!-- ZONE CARD — THREES -->
       <div class="qs-zone-card" id="qz-threes">
         <div class="qs-zone-top">
           <div>
@@ -833,7 +850,7 @@
     <div class="complete-icon">🎯</div>
     <div class="complete-title">SHOOT DONE.</div>
     <div id="qs-summary-identity" style="margin-bottom:16px;text-align:center;">
-      <div id="qs-summary-name" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);letter-spacing:1px;"></div>
+      <div id="qs-summary-name" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--white);letter-spacing:1px;"></div>
       <div id="qs-summary-time" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--grey);letter-spacing:1px;margin-top:3px;"></div>
     </div>
     <div class="complete-stats" style="max-width:320px;grid-template-columns:1fr 1fr 1fr;">
@@ -841,9 +858,22 @@
       <div class="stat-box"><div class="stat-val" id="qs-sum-mid">—</div><div class="stat-label">Mid %</div></div>
       <div class="stat-box"><div class="stat-val" id="qs-sum-ft">—</div><div class="stat-label">FT %</div></div>
     </div>
-    <div style="width:100%;max-width:320px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:24px;" id="qs-breakdown"></div>
+    <div style="width:100%;max-width:320px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:12px;" id="qs-breakdown"></div>
+    <div id="qs-log-status" style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;margin-bottom:20px;text-align:center;"></div>
+
+    <!-- ACTION BUTTONS -->
+    <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+      <button onclick="qsSendEmail()" style="width:100%;padding:14px;background:var(--lion);border:none;border-radius:8px;color:var(--bg);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;">
+        📧 SEND TO COACH
+      </button>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;text-align:center;">
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--lion);letter-spacing:1px;margin-bottom:4px;">📸 SAVE SCREENSHOT</div>
+        <div id="qs-screenshot-hint" style="font-size:12px;color:var(--grey);line-height:1.6;"></div>
+      </div>
+    </div>
+
     <button class="restart-btn" onclick="startQuickShoot()">SHOOT AGAIN</button>
-    <button class="qs-back" style="margin-top:16px;" onclick="qsBackToHero()">BACK HOME</button>
+    <button class="qs-back" style="margin-top:12px;" onclick="qsBackToHero()">BACK HOME</button>
   </div>
 
 </div>
@@ -1571,28 +1601,54 @@
   };
 
   function startQuickShoot() {
-    // reset
-    ['threes','mid','ft'].forEach(z => { qz[z].makes = 0; qz[z].attempts = 0; });
-    ['threes','mid','ft'].forEach(z => qzRender(z));
     document.getElementById('hero').style.display = 'none';
     document.getElementById('quick-shoot').classList.add('visible');
-    document.getElementById('qs-tally').style.display = '';
+    document.getElementById('qs-name-gate').style.display = '';
+    document.getElementById('qs-tally').style.display = 'none';
     document.getElementById('qs-summary').style.display = 'none';
     // restore saved name
     const saved = localStorage.getItem('lionsPlayerName') || '';
-    document.getElementById('qs-player-name').value = saved;
+    const input = document.getElementById('qs-player-name');
+    input.value = saved;
+    const btn = document.getElementById('qs-name-btn');
+    btn.disabled = saved.trim().length === 0;
+    btn.style.opacity = saved.trim().length === 0 ? '0.3' : '1';
+    window.scrollTo(0, 0);
+    setTimeout(() => input.focus(), 300);
+  }
+
+  function qsNameChanged(val) {
+    const ok = val.trim().length > 0;
+    const btn = document.getElementById('qs-name-btn');
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.3';
+    localStorage.setItem('lionsPlayerName', val);
+  }
+
+  function qsConfirmName() {
+    const name = document.getElementById('qs-player-name').value.trim();
+    if (!name) return;
+    // reset zones
+    ['threes','mid','ft'].forEach(z => { qz[z].makes = 0; qz[z].attempts = 0; });
+    ['threes','mid','ft'].forEach(z => qzRender(z));
+    document.getElementById('qs-name-gate').style.display = 'none';
+    document.getElementById('qs-tally').style.display = '';
+    document.getElementById('qs-tally-name').textContent = name.toUpperCase();
     window.scrollTo(0, 0);
   }
 
   function qsBackToHero() {
     document.getElementById('quick-shoot').classList.remove('visible');
+    document.getElementById('qs-name-gate').style.display = '';
+    document.getElementById('qs-tally').style.display = 'none';
+    document.getElementById('qs-summary').style.display = 'none';
     document.getElementById('hero').style.display = 'flex';
     window.scrollTo(0, 0);
   }
 
   function qzLog(zone, isMake) {
     const z = qz[zone];
-    if (z.attempts >= z.target) return; // locked at 50
+    if (z.attempts >= z.target) return;
     z.attempts++;
     if (isMake) z.makes++;
     qzRender(zone);
@@ -1604,7 +1660,6 @@
     const pct = z.attempts > 0 ? Math.round((z.makes / z.attempts) * 100) : null;
     const done = z.attempts >= z.target;
     const pctStr = pct !== null ? pct + '%' : '—';
-
     document.getElementById('qz-' + zone + '-prog').textContent = z.attempts + ' / ' + z.target + ' shots';
     document.getElementById('qz-' + zone + '-makes').textContent = z.makes;
     document.getElementById('qz-' + zone + '-attempts').textContent = z.attempts;
@@ -1614,7 +1669,6 @@
     document.getElementById('qz-' + zone + '-bar').className = 'qs-zone-bar' + (done ? ' green' : '');
     document.getElementById('qz-' + zone + '-done').style.display = done ? '' : 'none';
     document.getElementById('qz-' + zone).className = 'qs-zone-card' + (done ? ' complete' : '');
-    // lock buttons when zone is done
     document.querySelectorAll('#qz-' + zone + ' button').forEach(b => b.disabled = done);
   }
 
@@ -1625,15 +1679,10 @@
   function qsShowSummary() {
     document.getElementById('qs-tally').style.display = 'none';
     document.getElementById('qs-summary').style.display = 'flex';
-    document.getElementById('qs-sum-threes').textContent = pctStr('threes');
-    document.getElementById('qs-sum-mid').textContent = pctStr('mid');
-    document.getElementById('qs-sum-ft').textContent = pctStr('ft');
 
-    // Player name
-    const name = document.getElementById('qs-player-name').value.trim();
-    document.getElementById('qs-summary-name').textContent = name || 'Anonymous';
+    const name = localStorage.getItem('lionsPlayerName') || 'Anonymous';
+    document.getElementById('qs-summary-name').textContent = name;
 
-    // Quebec timestamp (America/Toronto = Quebec timezone)
     const now = new Date();
     const ts = now.toLocaleString('en-CA', {
       timeZone: 'America/Toronto',
@@ -1641,6 +1690,10 @@
       day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
     });
     document.getElementById('qs-summary-time').textContent = ts + ' (QC)';
+
+    document.getElementById('qs-sum-threes').textContent = pctStr('threes');
+    document.getElementById('qs-sum-mid').textContent = pctStr('mid');
+    document.getElementById('qs-sum-ft').textContent = pctStr('ft');
 
     const rowsArr = [
       { label: '🎯 3-Pointers', z: 'threes' },
@@ -1652,7 +1705,75 @@
       return '<div style="display:flex;justify-content:space-between;padding:10px 0;' + border + 'font-size:13px;"><div style="color:var(--white);">' + label + '</div><div style="font-family:\'Space Mono\',monospace;color:var(--lion);">' + makes + '/' + attempts + ' · ' + pctStr(z) + '</div></div>';
     });
     document.getElementById('qs-breakdown').innerHTML = rowsArr.join('');
+
+    // Screenshot hint
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const hint = isIOS
+      ? 'Press <strong>Side button + Volume Up</strong> at the same time'
+      : 'Press <strong>Power + Volume Down</strong> at the same time';
+    document.getElementById('qs-screenshot-hint').innerHTML = hint + '<br>then share the screenshot with Coach Senam.';
+
+    // Auto-log to Google Sheets
+    qsLogToSheets(name, ts);
+
     document.getElementById('qs-summary').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function qsLogToSheets(name, ts) {
+    const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWW_jOP8hthumnYI9nLbIMQmRqtHX5bCB07HC5wko2JfCvrFHaU5V4erxk1tXkR0gJ/exec';
+    const payload = {
+      date: ts,
+      player: name,
+      threesMade: qz.threes.makes,
+      threesAtt:  qz.threes.attempts,
+      threesPct:  pctStr('threes'),
+      midMade:    qz.mid.makes,
+      midAtt:     qz.mid.attempts,
+      midPct:     pctStr('mid'),
+      ftMade:     qz.ft.makes,
+      ftAtt:      qz.ft.attempts,
+      ftPct:      pctStr('ft')
+    };
+    const logStatus = document.getElementById('qs-log-status');
+    logStatus.textContent = '⏳ Saving to sheet...';
+    logStatus.style.color = 'var(--grey)';
+
+    fetch(ENDPOINT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      logStatus.textContent = '✅ Session saved to Coach\'s sheet';
+      logStatus.style.color = 'var(--green)';
+    })
+    .catch(() => {
+      logStatus.textContent = '⚠️ Could not save — send screenshot to Coach';
+      logStatus.style.color = '#f0a500';
+    });
+  }
+
+  function qsSendEmail() {
+    const name = localStorage.getItem('lionsPlayerName') || 'Anonymous';
+    const now = new Date();
+    const ts = now.toLocaleString('en-CA', {
+      timeZone: 'America/Toronto',
+      weekday: 'short', year: 'numeric', month: 'short',
+      day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const subject = 'Lions Shooting Session — ' + name + ' — ' + ts;
+    const body = [
+      'Player: ' + name,
+      'Date: ' + ts + ' (Quebec)',
+      '',
+      '3-Pointers:  ' + qz.threes.makes + '/' + qz.threes.attempts + ' (' + pctStr('threes') + ')',
+      'Mid-Range:   ' + qz.mid.makes + '/' + qz.mid.attempts + ' (' + pctStr('mid') + ')',
+      'Free Throws: ' + qz.ft.makes + '/' + qz.ft.attempts + ' (' + pctStr('ft') + ')',
+      '',
+      'Sent from Lions Workout App'
+    ].join('\n');
+    window.location.href = 'mailto:wedontniaise@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   }
 
   function togglePhase(pi) {
