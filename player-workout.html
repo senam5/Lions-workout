@@ -1,3 +1,85 @@
+
+/
+and in future sessions how can i come prepared to improve the workoput builder? because that is my main issue
+
+Straightforward answer — bring the file.
+
+Every time we work on the workout builder, I have to re-clone the repo from GitHub to get the current version of the file. That works, but it means the first few minutes of every session are spent just getting the file, reading it, and confirming what's already in there before touching anything.
+
+If you start the session by uploading player-workout.html directly into the chat, I skip all of that and go straight to work. One less thing that can go wrong, faster turnaround on every change.
+
+Beyond that, the most useful thing you can bring is specific feedback from players. Not "the app needs to be better" but the version of what you gave me today — "the Mikan drill has no endpoint" or "the time slider doesn't change the workout." That kind of specific observation is what lets me make a targeted fix in one shot instead of guessing. So after practices or whenever players use the app, just jot down whatever they say — even voice memo it to yourself — and drop it at the start of the session.
+
+Third thing worth thinking about before the next session: what you actually want to track. Right now the app has no memory — a player can use it every day this summer and we have zero data on their progress. Before we wire up the Google Sheets logging we discussed, you need to decide: do you want to track by player name, or is it anonymous? Do you want to log every session, or just shooting sessions? Do you want a simple log you check yourself, or a dashboard players can see? Those decisions shape everything about how the logging gets built, and if you come in knowing the answers it saves a full conversation just narrowing it down.
+
+So in short: upload the file, bring player feedback, know what you want to track. That's all you need to hit the ground running every time.
+
+last thing can you add timestamp quebec time and a place holder for the name of the player, lets ay i ask them to take a screenshot and send it to me and i track it on notion, excel
+
+for the just shoot feature
+
+
+Viewed 2 files
+Viewed 2 files
+Two things to add: a name field on the tally screen (so it's filled before they start, not after), and timestamp + name on the summary screen where the screenshot gets taken.
+
+
+Add player name input to the Just Shoot header above the zone cards
+Add player name input to the Just Shoot header above the zone cards
+Now update the summary screen to show name + timestamp:
+
+
+Add player name and Quebec timestamp to summary screen for screenshot tracking
+Add player name and Quebec timestamp to summary screen for screenshot tracking
+Now update startQuickShoot to restore saved name, and qsShowSummary to populate name + timestamp:
+
+
+Edited 2 files, ran 2 commands, read a file
+Edited 2 files, ran 2 commands, read a file
+Done. Here's what changed:
+
+On the tally screen — there's now a name field with a 👤 icon right at the top before they start shooting. It saves to their device so returning players don't have to type it again — they just open the app and their name is already there.
+
+On the summary screen — two lines appear above the stats:
+
+Their name in big Bebas font (shows "Anonymous" if they left it blank)
+The exact Quebec timestamp: e.g. Wed, Jul 8, 2026, 14:32 (QC)
+Screenshot that summary and you've got: player name, date, time, and all three percentages in one clean image ready to drop into Notion or a spreadsheet column. No manual entry needed on your end beyond typing what you see.
+
+
+Player workout
+Code · HTML 
+Make it so that they have to fill their names first then lead them to the just shoot, also is it possible to click on a button that sends result to my email wedontniaise@gmail.com or takes a screenshot of the results that saves on their phone?
+
+On the screenshot/email question first — two honest answers:
+
+Email button: technically possible but requires a backend server to actually send it. From a static HTML page hosted on GitHub Pages, you can't send a real email programmatically. What I can do is a mailto: link that opens their phone's email app pre-filled with the results — they just hit send. One tap, works on every phone, no server needed.
+
+Screenshot button: browsers don't let a webpage trigger "save to camera roll" directly — that's a phone OS restriction. What I can do is a "Hold to save" visual prompt that tells them exactly what to press (on iPhone: side button + volume up, on Android: power + volume down). Clean, honest, no workaround needed.
+
+The name-first flow is straightforward. Building all three now.
+
+
+Viewed 2 files
+Viewed 2 files
+Now I have everything I need. Three changes: name gate screen, summary action buttons, and the JS to power it all.
+
+
+Replace the Just Shoot section: add name gate screen, update tally (no name field there anymore), update summary with email + screenshot buttons
+Replace the Just Shoot section: add name gate screen, update tally (no name field there anymore), update summary with email + screenshot buttons
+
+
+You've reached your session limit. It resets at 12:20 PM.
+Keep working with free credits
+
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+
+
+Player workout · HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +88,9 @@
 <title>Lions — Train Today</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-
+ 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
   :root {
     --bg: #111d33;
     --surface: #162040;
@@ -25,9 +107,9 @@
     --grey: #7a8aaa;
     --grey2: #243358;
   }
-
+ 
   html { scroll-behavior: smooth; }
-
+ 
   body {
     background: var(--bg);
     color: var(--white);
@@ -36,7 +118,7 @@
     min-height: 100vh;
     overflow-x: hidden;
   }
-
+ 
   /* ── HERO ── */
   .hero {
     min-height: 100vh;
@@ -126,11 +208,30 @@
   .start-btn:hover { opacity: 0.88; transform: translateY(-1px); }
   .start-btn .arrow { font-size: 20px; transition: transform 0.2s; }
   .start-btn:hover .arrow { transform: translateX(4px); }
-
+  .start-btn-row { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
+  .start-btn-secondary {
+    margin-top: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    color: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 24px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: fit-content;
+  }
+  .start-btn-secondary:hover { border-color: var(--lion); color: var(--lion); }
+ 
   /* ── BUILDER ── */
   #builder { display: none; }
   #builder.visible { display: block; }
-
+ 
   /* STEP INDICATOR */
   .steps-bar {
     display: flex;
@@ -155,11 +256,11 @@
   .step-dot.done { border-color: var(--green); background: var(--green); color: var(--bg); }
   .step-line { flex: 1; height: 1px; background: var(--line); min-width: 16px; transition: background 0.3s; }
   .step-line.done { background: var(--green); }
-
+ 
   /* STEP PANELS */
   .step-panel { display: none; padding: 28px 24px; }
   .step-panel.active { display: block; }
-
+ 
   .step-label {
     font-family: 'Space Mono', monospace;
     font-size: 9px;
@@ -176,7 +277,7 @@
     line-height: 1.1;
     margin-bottom: 24px;
   }
-
+ 
   /* OPTION CARDS */
   .option-grid { display: flex; flex-direction: column; gap: 10px; }
   .option-card {
@@ -217,11 +318,11 @@
     opacity: 0;
     transition: opacity 0.2s;
   }
-
+ 
   /* MULTI SELECT */
   .option-card.multi.selected .option-check { background: var(--lion); border-color: var(--lion); border-radius: 4px; }
   .option-card.multi.selected .option-check::after { content: '✓'; width: auto; height: auto; font-size: 11px; color: var(--bg); border-radius: 0; background: none; opacity: 1; font-weight: 700; }
-
+ 
   /* TIME PICKER */
   .time-picker {
     background: var(--surface);
@@ -268,7 +369,7 @@
     transition: all 0.15s;
   }
   .time-preset:hover { border-color: var(--lion); color: var(--lion); }
-
+ 
   /* NAV */
   .step-nav {
     display: flex;
@@ -303,11 +404,11 @@
   }
   .btn-next:hover { opacity: 0.85; }
   .btn-next:disabled { opacity: 0.3; cursor: default; }
-
+ 
   /* ── WORKOUT OUTPUT ── */
   #workout-screen { display: none; }
   #workout-screen.visible { display: block; }
-
+ 
   .workout-hero {
     background: linear-gradient(180deg, rgba(212,135,10,0.1) 0%, transparent 100%);
     border-bottom: 1px solid var(--line);
@@ -332,7 +433,7 @@
     margin-top: 8px;
   }
   .workout-meta span { color: var(--lion); }
-
+ 
   /* PHASE */
   .phase {
     border-bottom: 1px solid var(--line);
@@ -376,10 +477,10 @@
     transition: transform 0.3s;
   }
   .phase-chevron.open { transform: rotate(180deg); }
-
+ 
   .phase-body { display: none; padding: 0 24px 20px; }
   .phase-body.open { display: block; }
-
+ 
   /* DRILL ITEMS */
   .drill-item {
     display: flex;
@@ -414,7 +515,150 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-
+ 
+  /* SHOT TRACKER */
+  .shot-tracker-toggle {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 5px 12px;
+    color: var(--lion);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .shot-tracker-toggle:hover { border-color: var(--lion); background: var(--lion-dim); }
+  .shot-tracker-toggle .stt-count { color: var(--grey); }
+  .shot-tracker {
+    display: none;
+    margin-top: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .shot-tracker.open { display: block; }
+  .shot-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 8px;
+  }
+  .shot-group { text-align: center; }
+  .shot-group-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+  .shot-group input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    text-align: center;
+    padding: 8px 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .shot-group input:focus { border-color: var(--lion); }
+  .shot-group-target {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--grey);
+    margin-top: 3px;
+  }
+  .shot-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .shot-total-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .shot-total-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--lion);
+    letter-spacing: 1px;
+  }
+  .shot-total-val.hit-target { color: var(--green); }
+ 
+  /* TIMER */
+  #quick-shoot { display: none; }
+  #quick-shoot.visible { display: block; }
+  .qs-header { padding: 28px 24px 8px; }
+  .qs-back {
+    background: none; border: none; color: var(--grey);
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    letter-spacing: 1px; cursor: pointer; padding: 0; margin-bottom: 14px;
+    display: block;
+  }
+  .qs-back:hover { color: var(--white); }
+  .qs-advance-btn {
+    width: 100%; padding: 16px; background: var(--lion);
+    border: none; border-radius: 8px; color: var(--bg);
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px;
+    cursor: pointer; transition: opacity 0.15s; margin-top: 8px;
+  }
+  .qs-advance-btn:hover { opacity: 0.88; }
+ 
+  /* ZONE CARDS */
+  .qs-zone-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .qs-zone-card.complete { border-color: var(--green); }
+  .qs-zone-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .qs-zone-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--white); letter-spacing: 1px; }
+  .qs-zone-progress { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); margin-top: 3px; letter-spacing: 1px; }
+  .qs-zone-pct { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--lion); letter-spacing: 1px; }
+  .qs-zone-pct.green { color: var(--green); }
+  .qs-zone-bar-wrap { height: 4px; background: var(--line); border-radius: 2px; margin-bottom: 14px; }
+  .qs-zone-bar { height: 100%; background: var(--lion); border-radius: 2px; transition: width 0.3s ease; }
+  .qs-zone-bar.green { background: var(--green); }
+  .qs-zone-counts { display: flex; gap: 20px; margin-bottom: 14px; }
+  .qs-zone-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--white); }
+  .qs-zone-stat-label { font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 1px; }
+  .qs-zone-btns { display: flex; gap: 10px; }
+  .qs-btn-miss {
+    flex: 1; padding: 14px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface2); color: var(--grey);
+    font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .qs-btn-miss:hover { border-color: var(--grey); color: var(--white); }
+  .qs-btn-make {
+    flex: 2; padding: 14px; border-radius: 8px; border: none;
+    background: var(--lion); color: var(--bg);
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .qs-btn-make:hover { opacity: 0.88; }
+  .qs-btn-miss:disabled, .qs-btn-make:disabled { opacity: 0.25; cursor: default; }
+  .qs-zone-done {
+    text-align: center; font-family: 'Space Mono', monospace; font-size: 11px;
+    color: var(--green); letter-spacing: 1px; margin-top: 10px;
+  }
+ 
   /* TIMER */
   .timer-section {
     margin: 20px 24px;
@@ -470,7 +714,7 @@
     transition: all 0.15s;
   }
   .timer-preset:hover { border-color: var(--lion); color: var(--lion); }
-
+ 
   /* PROGRESS */
   .progress-bar-wrap {
     height: 3px;
@@ -484,7 +728,7 @@
     background: var(--lion);
     transition: width 0.4s ease;
   }
-
+ 
   /* COMPLETE SCREEN */
   .complete-screen {
     display: none;
@@ -534,7 +778,7 @@
     transition: opacity 0.15s;
   }
   .restart-btn:hover { opacity: 0.85; }
-
+ 
   /* INJURY NOTE */
   .injury-banner {
     margin: 0 24px 16px;
@@ -547,7 +791,7 @@
     line-height: 1.6;
   }
   .injury-banner strong { color: var(--red); }
-
+ 
   .toast {
     position: fixed; bottom: 24px; left: 50%;
     transform: translateX(-50%) translateY(80px);
@@ -561,7 +805,7 @@
 </style>
 </head>
 <body>
-
+ 
 <!-- HERO -->
 <section class="hero" id="hero">
   <div class="hero-bg"></div>
@@ -569,11 +813,123 @@
   <div class="hero-eyebrow">St. Lawrence · Lions</div>
   <h1 class="hero-title">TRAIN<br><span>TODAY</span></h1>
   <p class="hero-sub">Build your session. Check off every drill. Put in the work — nobody's watching but you.</p>
-  <button class="start-btn" onclick="startBuilder()">
-    BUILD MY WORKOUT <span class="arrow">→</span>
-  </button>
+  <div class="start-btn-row">
+    <button class="start-btn" onclick="startBuilder()">
+      BUILD MY WORKOUT <span class="arrow">→</span>
+    </button>
+    <button class="start-btn-secondary" onclick="startQuickShoot()">
+      🎯 JUST SHOOT
+    </button>
+  </div>
 </section>
-
+ 
+<!-- JUST SHOOT MODE -->
+<div id="quick-shoot">
+ 
+  <!-- TALLY SCREEN — 3 zones, fixed 50 shots each -->
+  <div id="qs-tally">
+    <div class="qs-header" style="padding-bottom:0;">
+      <button class="qs-back" onclick="qsBackToHero()">← END SESSION</button>
+      <div class="step-label">Just Shoot</div>
+      <div class="step-question" style="margin-bottom:4px;">50 threes · 50 mid · 50 FT</div>
+      <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Tap MAKE after every shot you hit. Attempts track automatically.</p>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px;">
+        <span style="font-size:18px;">👤</span>
+        <input id="qs-player-name" type="text" placeholder="Your name" maxlength="30"
+          style="flex:1;background:none;border:none;outline:none;color:var(--white);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;"
+          oninput="localStorage.setItem('lionsPlayerName', this.value)">
+      </div>
+    </div>
+ 
+    <div style="padding:0 24px 48px;display:flex;flex-direction:column;gap:16px;">
+ 
+      <!-- ZONE CARD -->
+      <div class="qs-zone-card" id="qz-threes">
+        <div class="qs-zone-top">
+          <div>
+            <div class="qs-zone-title">🎯 3-Pointers</div>
+            <div class="qs-zone-progress" id="qz-threes-prog">0 / 50 shots</div>
+          </div>
+          <div class="qs-zone-pct" id="qz-threes-pct">—</div>
+        </div>
+        <div class="qs-zone-bar-wrap"><div class="qs-zone-bar" id="qz-threes-bar" style="width:0%"></div></div>
+        <div class="qs-zone-counts">
+          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-threes-makes">0</div><div class="qs-zone-stat-label">makes</div></div>
+          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-threes-attempts">0</div><div class="qs-zone-stat-label">attempts</div></div>
+        </div>
+        <div class="qs-zone-btns">
+          <button class="qs-btn-miss" onclick="qzLog('threes', false)">MISS</button>
+          <button class="qs-btn-make" onclick="qzLog('threes', true)">MAKE ✓</button>
+        </div>
+        <div class="qs-zone-done" id="qz-threes-done" style="display:none;">✅ 50 done</div>
+      </div>
+ 
+      <!-- MID-RANGE -->
+      <div class="qs-zone-card" id="qz-mid">
+        <div class="qs-zone-top">
+          <div>
+            <div class="qs-zone-title">📍 Mid-Range</div>
+            <div class="qs-zone-progress" id="qz-mid-prog">0 / 50 shots</div>
+          </div>
+          <div class="qs-zone-pct" id="qz-mid-pct">—</div>
+        </div>
+        <div class="qs-zone-bar-wrap"><div class="qs-zone-bar" id="qz-mid-bar" style="width:0%"></div></div>
+        <div class="qs-zone-counts">
+          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-mid-makes">0</div><div class="qs-zone-stat-label">makes</div></div>
+          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-mid-attempts">0</div><div class="qs-zone-stat-label">attempts</div></div>
+        </div>
+        <div class="qs-zone-btns">
+          <button class="qs-btn-miss" onclick="qzLog('mid', false)">MISS</button>
+          <button class="qs-btn-make" onclick="qzLog('mid', true)">MAKE ✓</button>
+        </div>
+        <div class="qs-zone-done" id="qz-mid-done" style="display:none;">✅ 50 done</div>
+      </div>
+ 
+      <!-- FREE THROW -->
+      <div class="qs-zone-card" id="qz-ft">
+        <div class="qs-zone-top">
+          <div>
+            <div class="qs-zone-title">⚪ Free Throws</div>
+            <div class="qs-zone-progress" id="qz-ft-prog">0 / 50 shots</div>
+          </div>
+          <div class="qs-zone-pct" id="qz-ft-pct">—</div>
+        </div>
+        <div class="qs-zone-bar-wrap"><div class="qs-zone-bar" id="qz-ft-bar" style="width:0%"></div></div>
+        <div class="qs-zone-counts">
+          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-ft-makes">0</div><div class="qs-zone-stat-label">makes</div></div>
+          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-ft-attempts">0</div><div class="qs-zone-stat-label">attempts</div></div>
+        </div>
+        <div class="qs-zone-btns">
+          <button class="qs-btn-miss" onclick="qzLog('ft', false)">MISS</button>
+          <button class="qs-btn-make" onclick="qzLog('ft', true)">MAKE ✓</button>
+        </div>
+        <div class="qs-zone-done" id="qz-ft-done" style="display:none;">✅ 50 done</div>
+      </div>
+ 
+      <button class="qs-advance-btn" onclick="qsShowSummary()">FINISH SESSION ✅</button>
+    </div>
+  </div>
+ 
+  <!-- SUMMARY -->
+  <div id="qs-summary" style="display:none;" class="complete-screen">
+    <div class="complete-icon">🎯</div>
+    <div class="complete-title">SHOOT DONE.</div>
+    <div id="qs-summary-identity" style="margin-bottom:16px;text-align:center;">
+      <div id="qs-summary-name" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);letter-spacing:1px;"></div>
+      <div id="qs-summary-time" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--grey);letter-spacing:1px;margin-top:3px;"></div>
+    </div>
+    <div class="complete-stats" style="max-width:320px;grid-template-columns:1fr 1fr 1fr;">
+      <div class="stat-box"><div class="stat-val" id="qs-sum-threes">—</div><div class="stat-label">Threes %</div></div>
+      <div class="stat-box"><div class="stat-val" id="qs-sum-mid">—</div><div class="stat-label">Mid %</div></div>
+      <div class="stat-box"><div class="stat-val" id="qs-sum-ft">—</div><div class="stat-label">FT %</div></div>
+    </div>
+    <div style="width:100%;max-width:320px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:24px;" id="qs-breakdown"></div>
+    <button class="restart-btn" onclick="startQuickShoot()">SHOOT AGAIN</button>
+    <button class="qs-back" style="margin-top:16px;" onclick="qsBackToHero()">BACK HOME</button>
+  </div>
+ 
+</div>
+ 
 <!-- BUILDER -->
 <div id="builder">
   <!-- STEP BAR -->
@@ -586,7 +942,7 @@
     <div class="step-line" id="line-3"></div>
     <div class="step-dot" id="dot-4">4</div>
   </div>
-
+ 
   <!-- STEP 1: FOCUS -->
   <div class="step-panel active" id="step-1">
     <div class="step-label">Step 1 of 4</div>
@@ -642,7 +998,7 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- STEP 2: INTENSITY -->
   <div class="step-panel" id="step-2">
     <div class="step-label">Step 2 of 4</div>
@@ -674,7 +1030,7 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- STEP 3: TIME -->
   <div class="step-panel" id="step-3">
     <div class="step-label">Step 3 of 4</div>
@@ -691,7 +1047,7 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- STEP 4: BODY -->
   <div class="step-panel" id="step-4">
     <div class="step-label">Step 4 of 4</div>
@@ -731,25 +1087,25 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- NAV -->
   <div class="step-nav">
     <button class="btn-back" id="back-btn" onclick="prevStep()" style="display:none">← BACK</button>
     <button class="btn-next" id="next-btn" onclick="nextStep()" disabled>NEXT →</button>
   </div>
 </div>
-
+ 
 <!-- WORKOUT -->
 <div id="workout-screen">
   <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
-
+ 
   <div class="workout-hero">
     <div class="workout-title" id="workout-title">YOUR SESSION</div>
     <div class="workout-meta" id="workout-meta"></div>
   </div>
-
+ 
   <div id="injury-note"></div>
-
+ 
   <!-- TIMER -->
   <div class="timer-section">
     <div class="timer-label">Rest / Drill Timer</div>
@@ -766,9 +1122,13 @@
       <button class="timer-preset" onclick="setTimer(180)">3 min</button>
     </div>
   </div>
-
+ 
   <div id="phases-container"></div>
-
+ 
+  <div style="padding: 8px 24px 40px;">
+    <button class="btn-next" style="width:100%;" onclick="showComplete()">✅ FINISH WORKOUT</button>
+  </div>
+ 
   <div class="complete-screen" id="complete-screen">
     <div class="complete-icon">🏆</div>
     <div class="complete-title">WORK DONE.</div>
@@ -776,13 +1136,14 @@
     <div class="complete-stats">
       <div class="stat-box"><div class="stat-val" id="stat-drills">0</div><div class="stat-label">Drills completed</div></div>
       <div class="stat-box"><div class="stat-val" id="stat-time">0</div><div class="stat-label">Minutes invested</div></div>
+      <div class="stat-box" id="stat-shots-box" style="display:none;grid-column: span 2;"><div class="stat-val" id="stat-shots">0</div><div class="stat-label">Shots made</div></div>
     </div>
     <button class="restart-btn" onclick="restart()">BUILD ANOTHER SESSION</button>
   </div>
 </div>
-
+ 
 <div class="toast" id="toast"></div>
-
+ 
 <script>
   // STATE
   const state = {
@@ -793,13 +1154,13 @@
     currentStep: 1,
     totalSteps: 4
   };
-
+ 
   let timerInterval = null;
   let timerSeconds = 0;
   let timerRunning = false;
   let totalDrills = 0;
   let completedDrills = 0;
-
+ 
   // DRILL DATABASE
   const drills = {
     handle: {
@@ -819,7 +1180,7 @@
         ],
         high: [
           { name: 'Speed dribble — full court', detail: 'Max speed, controlled. Head up the whole time.', sets: '6 trips' },
-          { name: 'Combo drill — cross, between, behind', detail: 'Continuous. No stopping for 45 sec straight.', sets: '4×45s' },
+          { name: 'Combo drill — cross, between, behind', detail: '45 sec of continuous combo moves, then 30 sec rest. Repeat 4 times.', sets: '4×45s' },
           { name: 'Chair series — full attack combo', detail: 'Crossover, behind the back, spin move. Each one 10×.', sets: '3 rounds' }
         ]
       },
@@ -835,21 +1196,21 @@
       main: {
         light: [
           { name: 'Mikan drill', detail: 'Both sides, soft touch. Don\'t rush.', sets: '3 min' },
-          { name: 'Mid-range spot shooting', detail: '5 spots, 5 makes each. Walk don\'t run.', sets: '25 makes' }
+          { name: 'Mid-range spot shooting — 5 spots × 5 makes', detail: '5 makes per spot from the mid-range. Walk between spots, no rushing. 25 makes total.', sets: '25 makes' }
         ],
         medium: [
           { name: 'Mikan drill', detail: 'Continuous — both sides, rhythm, soft touch.', sets: '4 min' },
-          { name: 'Elbow mid-range × 20 makes', detail: 'Make 20, not attempt. Different pressure.', sets: '20 makes' },
-          { name: 'Spot shooting — 5 spots', detail: '5 makes per spot. Left corner, left wing, top, right wing, right corner.', sets: '25 makes' }
+          { name: 'Elbow mid-range — 20 makes', detail: 'Shoot from both elbows, alternate sides. 20 makes total, not attempts — miss means you stay.', sets: '20 makes' },
+          { name: 'Spot shooting — 5 spots × 5 makes', detail: '5 makes per spot: left corner, left wing, top of key, right wing, right corner. 25 makes total.', sets: '25 makes' }
         ],
         high: [
-          { name: 'Mikan drill — full speed', detail: 'No stopping. Go until you miss 3 in a row, restart.', sets: '5 min' },
-          { name: 'Spot shooting — 50 makes', detail: '10 makes per spot. No shortcuts.', sets: '50 makes' },
-          { name: '3-point rhythm shooting', detail: 'Catch, set feet, shoot. Not hunting — rhythm.', sets: '30 attempts' }
+          { name: 'Mikan drill — full speed', detail: 'Both sides, full speed, no stopping. 5 min on the clock — work the whole time.', sets: '5 min' },
+          { name: 'Spot shooting — 5 spots × 10 makes', detail: '10 makes per spot: left corner, left wing, top of key, right wing, right corner. 50 makes total.', sets: '50 makes' },
+          { name: '3-point rhythm shooting — 30 attempts', detail: 'Catch, set feet, shoot. 30 attempts total — track your makes. Not hunting, just rhythm.', sets: '30 attempts' }
         ]
       },
       finish: [
-        { name: 'Free throws', detail: '2 at a time. Routine before every shot. Make 10 total.', sets: '10 makes' }
+        { name: 'Free throws', detail: 'Shoot in pairs of 2. Full routine before every shot. 10 makes total to finish.', sets: '10 makes' }
       ]
     },
     finishing: {
@@ -893,8 +1254,8 @@
           { name: 'Closeout → contest → box out', detail: 'Full sequence. Closeout, contest shot, box out on miss.', sets: '12 reps' }
         ],
         high: [
-          { name: '1-on-0 defensive footwork circuit', detail: 'Slide left, sprint back, slide right, sprint forward. Non-stop 45s.', sets: '4×45s' },
-          { name: 'Timed closeout series', detail: 'Max speed closeouts. 15 in a row with 10s rest.', sets: '3 rounds' },
+          { name: '1-on-0 defensive footwork circuit', detail: 'Slide left, sprint back, slide right, sprint forward — 45 sec non-stop, then 30 sec rest. 4 rounds.', sets: '4×45s' },
+          { name: 'Timed closeout series — 15 reps × 3 rounds', detail: '15 max-speed closeouts, then 30 sec rest. 3 rounds total — 45 closeouts.', sets: '3×15 reps' },
           { name: 'Mirror drill (self-shadow)', detail: 'Imagine a ball handler and mirror their movement. Stay attached.', sets: '3×60s' }
         ]
       },
@@ -924,7 +1285,7 @@
         ]
       },
       finish: [
-        { name: 'Free throw after fatigue', detail: 'Shoot 10 free throws right now. This is game conditioning.', sets: '10 shots' }
+        { name: 'Free throw after fatigue', detail: 'Shoot 10 free throws right now while you\'re tired. This is game conditioning — train your routine under pressure.', sets: '10 makes' }
       ]
     },
     vert: {
@@ -953,7 +1314,7 @@
       ]
     }
   };
-
+ 
   // BODY MODIFIER
   const bodyMods = {
     ankle: 'Ankle protocol: avoid lateral cuts and jumping. Replace all jump drills with calf raises and ankle alphabet (trace A–Z with your foot). Land two-footed on anything you do jump.',
@@ -961,14 +1322,14 @@
     tired: 'Fatigue protocol: cut all sets by 30%. Rest 90s between sets instead of 60s. If something feels off, stop — a bad session isn\'t worth an injury.',
     good: null
   };
-
+ 
   // STEP LOGIC
   function startBuilder() {
     document.getElementById('hero').style.display = 'none';
     document.getElementById('builder').classList.add('visible');
     updateNav();
   }
-
+ 
   function toggleFocus(card, focus) {
     card.classList.toggle('selected');
     if (card.classList.contains('selected')) {
@@ -978,24 +1339,24 @@
     }
     updateNav();
   }
-
+ 
   function selectSingle(card, key, val) {
     card.closest('.option-grid').querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     state[key] = val;
     updateNav();
   }
-
+ 
   function updateTime(val) {
     state.time = parseInt(val);
     document.getElementById('time-val').textContent = val;
     document.querySelector('input[type=range]').value = val;
   }
-
+ 
   function setTime(val) {
     updateTime(val);
   }
-
+ 
   function canProceed() {
     if (state.currentStep === 1) return state.focuses.length > 0;
     if (state.currentStep === 2) return state.intensity !== null;
@@ -1003,7 +1364,7 @@
     if (state.currentStep === 4) return state.body !== null;
     return false;
   }
-
+ 
   function updateNav() {
     const nextBtn = document.getElementById('next-btn');
     const backBtn = document.getElementById('back-btn');
@@ -1015,25 +1376,25 @@
       nextBtn.textContent = 'NEXT →';
     }
   }
-
+ 
   function nextStep() {
     if (!canProceed()) return;
     if (state.currentStep === 4) { buildWorkout(); return; }
-
+ 
     // Update dots
     document.getElementById('dot-' + state.currentStep).classList.remove('active');
     document.getElementById('dot-' + state.currentStep).classList.add('done');
     document.getElementById('dot-' + state.currentStep).textContent = '✓';
     document.getElementById('line-' + state.currentStep).classList.add('done');
     document.getElementById('step-' + state.currentStep).classList.remove('active');
-
+ 
     state.currentStep++;
     document.getElementById('dot-' + state.currentStep).classList.add('active');
     document.getElementById('step-' + state.currentStep).classList.add('active');
     updateNav();
     window.scrollTo(0, 0);
   }
-
+ 
   function prevStep() {
     document.getElementById('dot-' + state.currentStep).classList.remove('active');
     document.getElementById('step-' + state.currentStep).classList.remove('active');
@@ -1046,66 +1407,130 @@
     updateNav();
     window.scrollTo(0, 0);
   }
-
+ 
   // BUILD WORKOUT
   function buildWorkout() {
     document.getElementById('builder').style.display = 'none';
     document.getElementById('workout-screen').classList.add('visible');
-
+ 
     const focusNames = { handle: 'Ball Handling', shooting: 'Shooting', finishing: 'Finishing', defense: 'Defense', conditioning: 'Conditioning', vert: 'Explosiveness' };
     const intensityNames = { light: 'Light', medium: 'Medium', high: 'Go Mode' };
-
+ 
     document.getElementById('workout-title').textContent = state.focuses.map(f => focusNames[f]).join(' + ');
     document.getElementById('workout-meta').innerHTML = `
       <span>⏱ ${state.time} min</span>
       <span>🔥 ${intensityNames[state.intensity]}</span>
       <span>🏀 ${state.focuses.length} focus area${state.focuses.length > 1 ? 's' : ''}</span>
     `;
-
+ 
     // Injury note
     const mod = bodyMods[state.body];
     if (mod) {
       document.getElementById('injury-note').innerHTML = `<div class="injury-banner"><strong>⚠️ Modified Session:</strong> ${mod}</div>`;
     }
-
-    // Build phases
-    const warmupTime = Math.max(5, Math.round(state.time * 0.15));
-    const finishTime = Math.max(5, Math.round(state.time * 0.1));
-    const mainTime = state.time - warmupTime - finishTime;
-
-    // Collect drills
+ 
+    // ── TIME-AWARE DRILL BUDGET ──
+    // How many drills to pull and how aggressively to scale sets
+    const t = state.time;
+    let warmupSlots, mainSlots, finishSlots, setScale, setsNote;
+    if (t <= 20) {
+      warmupSlots = 1; mainSlots = 1; finishSlots = 0;
+      setScale = 0.5;
+      setsNote = 'Short session — sets cut in half. Move fast, stay focused.';
+    } else if (t <= 35) {
+      warmupSlots = 1; mainSlots = 2; finishSlots = 1;
+      setScale = 0.75;
+      setsNote = null;
+    } else if (t <= 55) {
+      warmupSlots = 1; mainSlots = 2; finishSlots = 1;
+      setScale = 1;
+      setsNote = null;
+    } else if (t <= 75) {
+      warmupSlots = 2; mainSlots = 3; finishSlots = 1;
+      setScale = 1.25;
+      setsNote = null;
+    } else {
+      warmupSlots = 2; mainSlots = 4; finishSlots = 1;
+      setScale = 1.5;
+      setsNote = 'Full session — full volume. No shortcuts.';
+    }
+ 
+    // Scale sets text helper
+    function scaleSets(setsStr) {
+      if (setScale === 1) return setsStr;
+      const s = setsStr;
+      // Pattern: N×something  e.g. "4×60s", "3×30s"
+      let m = s.match(/^(\d+)(×.+)$/);
+      if (m) {
+        const n = Math.max(1, Math.round(parseInt(m[1]) * setScale));
+        return n + m[2];
+      }
+      // Pattern: N makes / attempts / shots / reps / rounds / trips / lengths / sprints
+      m = s.match(/^(\d+)\s*(.+)$/);
+      if (m) {
+        const n = Math.max(1, Math.round(parseInt(m[1]) * setScale));
+        return n + ' ' + m[2];
+      }
+      return s;
+    }
+ 
+    // Apply set scaling to a drill (returns a shallow copy with scaled sets)
+    function scaleDrill(d) {
+      return { ...d, sets: scaleSets(d.sets), _scaled: setScale !== 1 };
+    }
+ 
+    // Collect drills up to slot budget per focus
     let warmupDrills = [];
     let mainDrills = [];
     let finishDrills = [];
-
+    const slotsPerFocus = Math.max(1, Math.ceil(mainSlots / state.focuses.length));
+ 
     state.focuses.forEach(f => {
       const d = drills[f];
       if (!d) return;
-      // Add 1 warmup per focus (avoid duplicates)
-      if (warmupDrills.length < state.focuses.length * 1) {
-        warmupDrills.push(...d.warmup.slice(0, 1));
+      // Warmup: 1 or 2 per focus up to warmupSlots total
+      if (warmupDrills.length < warmupSlots) {
+        const take = Math.min(warmupSlots - warmupDrills.length, 1);
+        warmupDrills.push(...d.warmup.slice(0, take).map(scaleDrill));
       }
-      // Main drills based on intensity
+      // Main: time-scaled intensity selection
       const intensity = state.body === 'tired' ? 'light' : state.intensity;
-      mainDrills.push(...(d.main[intensity] || d.main.medium));
-      // 1 finish per focus
-      finishDrills.push(d.finish[0]);
+      const available = d.main[intensity] || d.main.medium;
+      mainDrills.push(...available.slice(0, slotsPerFocus).map(scaleDrill));
+      // Finish: only if finishSlots > 0
+      if (finishSlots > 0) finishDrills.push(scaleDrill(d.finish[0]));
     });
-
+ 
+    // Trim main drills to hard cap
+    mainDrills = mainDrills.slice(0, mainSlots * state.focuses.length);
+ 
     // Ankle/knee modifications
     if (state.body === 'ankle' || state.body === 'knee') {
       mainDrills = mainDrills.filter(d => !d.name.toLowerCase().includes('jump') && !d.name.toLowerCase().includes('sprint'));
     }
-
+ 
+    // Build phases
+    const warmupTime = Math.max(3, Math.round(t * 0.15));
+    const finishTime = finishSlots > 0 ? Math.max(3, Math.round(t * 0.1)) : 0;
+    const mainTime = t - warmupTime - finishTime;
+ 
+    const finishPhaseNote = t <= 20 ? null : { name: 'Static stretch', detail: 'Quad, hip flexor, hamstring, calf — 60 sec each. Don\'t skip this.', sets: '60s each' };
+    const finishPhase = [...finishDrills, ...(finishPhaseNote ? [finishPhaseNote] : [])];
+ 
     const phases = [
       { name: 'Warm-Up', emoji: '🌡️', time: warmupTime, drills: warmupDrills },
       { name: 'Main Work', emoji: '💪', time: mainTime, drills: mainDrills },
-      { name: 'Finish Strong', emoji: '🏁', time: finishTime, drills: [...finishDrills, { name: 'Static stretch', detail: 'Quad, hip flexor, hamstring, calf — 60 sec each. Don\'t skip this.', sets: '60s each' }] }
+      ...(finishSlots > 0 ? [{ name: 'Finish Strong', emoji: '🏁', time: finishTime, drills: finishPhase }] : [])
     ];
-
+ 
+    // Session note banner
+    if (setsNote) {
+      document.getElementById('injury-note').innerHTML += `<div class="injury-banner" style="border-color:#1a3a6a;background:#0a1a33;color:#5a9af0;"><strong>⏱ ${t} min session:</strong> ${setsNote}</div>`;
+    }
+ 
     totalDrills = phases.reduce((sum, p) => sum + p.drills.length, 0);
     completedDrills = 0;
-
+ 
     const container = document.getElementById('phases-container');
     container.innerHTML = phases.map((phase, pi) => `
       <div class="phase">
@@ -1116,30 +1541,209 @@
           <div class="phase-chevron ${pi === 0 ? 'open' : ''}" id="phase-chev-${pi}">▼</div>
         </div>
         <div class="phase-body ${pi === 0 ? 'open' : ''}" id="phase-body-${pi}">
-          ${phase.drills.map((d, di) => `
-            <div class="drill-item" id="drill-${pi}-${di}">
-              <div class="drill-check" onclick="checkDrill(this, ${pi}, ${di})"></div>
-              <div class="drill-info">
-                <div class="drill-name">${d.name}</div>
-                <div class="drill-detail">${d.detail}</div>
+          ${phase.drills.map((d, di) => {
+            const cfg = getShotConfig(d);
+            return `
+            <div class="drill-item" id="drill-${pi}-${di}" style="flex-direction:column;align-items:stretch;">
+              <div style="display:flex;align-items:flex-start;gap:12px;">
+                <div class="drill-check" onclick="checkDrill(this, ${pi}, ${di})"></div>
+                <div class="drill-info">
+                  <div class="drill-name">${d.name}</div>
+                  <div class="drill-detail">${d.detail}</div>
+                  ${cfg ? `<button type="button" class="shot-tracker-toggle" onclick="toggleShotTracker(${pi}, ${di})">
+                    🎯 LOG SHOTS <span class="stt-count" id="shot-summary-${pi}-${di}">0/${cfg.total}</span>
+                  </button>` : ''}
+                </div>
+                <div class="drill-badge">${d.sets}</div>
               </div>
-              <div class="drill-badge">${d.sets}</div>
+              ${cfg ? renderShotTracker(pi, di, cfg) : ''}
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       </div>
     `).join('');
-
+ 
     window.scrollTo(0, 0);
   }
-
+ 
+  // SHOT TRACKING
+  const shotState = {}; // key `${pi}-${di}` -> array of makes per group
+ 
+  function getShotConfig(d) {
+    const s = d.sets.toLowerCase();
+    let m;
+    // Only trigger for drills explicitly counted in makes/attempts/shots —
+    // NOT the generic "N each side" pattern, which also appears on dribble,
+    // finishing, and defense drills that have nothing to do with shooting.
+    if ((m = s.match(/(\d+)\s*(makes|attempts|shots)\b/))) {
+      const total = parseInt(m[1]);
+      if (total < 4) return null; // too small to bother tracking in groups
+      const groups = Math.min(5, total);
+      const perGroup = Math.round(total / groups);
+      return { total, groups, perGroup, labels: null };
+    }
+    return null;
+  }
+ 
+  function renderShotTracker(pi, di, cfg) {
+    const key = pi + '-' + di;
+    if (!shotState[key]) shotState[key] = new Array(cfg.groups).fill('');
+    const groupsHtml = Array.from({ length: cfg.groups }).map((_, gi) => {
+      const label = cfg.labels ? cfg.labels[gi] : ('Set ' + (gi + 1));
+      return `
+        <div class="shot-group">
+          <div class="shot-group-label">${label}</div>
+          <input type="number" inputmode="numeric" min="0" placeholder="0"
+            id="shot-${pi}-${di}-${gi}"
+            oninput="updateShotGroup(${pi}, ${di}, ${gi}, ${cfg.total}, this.value)">
+          <div class="shot-group-target">of ${cfg.perGroup}</div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="shot-tracker" id="shot-tracker-${pi}-${di}">
+        <div class="shot-groups">${groupsHtml}</div>
+        <div class="shot-total-row">
+          <div class="shot-total-label">Total made</div>
+          <div class="shot-total-val" id="shot-total-${pi}-${di}">0 / ${cfg.total}</div>
+        </div>
+      </div>`;
+  }
+ 
+  function toggleShotTracker(pi, di) {
+    document.getElementById('shot-tracker-' + pi + '-' + di).classList.toggle('open');
+  }
+ 
+  function updateShotGroup(pi, di, gi, total, val) {
+    const key = pi + '-' + di;
+    const num = val === '' ? 0 : Math.max(0, parseInt(val) || 0);
+    shotState[key][gi] = num;
+    const sum = shotState[key].reduce((a, b) => a + (b || 0), 0);
+    const totalEl = document.getElementById('shot-total-' + pi + '-' + di);
+    totalEl.textContent = sum + ' / ' + total;
+    totalEl.classList.toggle('hit-target', sum >= total);
+    document.getElementById('shot-summary-' + pi + '-' + di).textContent = sum + '/' + total;
+ 
+    // Auto-check the drill once the target is reached
+    if (sum >= total) {
+      const check = document.querySelector('#drill-' + pi + '-' + di + ' .drill-check');
+      if (check && !check.classList.contains('done')) checkDrill(check, pi, di);
+    }
+  }
+ 
+  function getTotalShotsMade() {
+    return Object.values(shotState).reduce((sum, arr) => sum + arr.reduce((a, b) => a + (b || 0), 0), 0);
+  }
+ 
+  function getTotalShotsTarget() {
+    // recompute targets from the DOM totals text (n / target)
+    let total = 0;
+    document.querySelectorAll('[id^="shot-total-"]').forEach(el => {
+      const parts = el.textContent.split('/');
+      if (parts[1]) total += parseInt(parts[1].trim()) || 0;
+    });
+    return total;
+  }
+ 
+  // JUST SHOOT MODE — 3 fixed zones, 50 shots each
+  const qz = {
+    threes:  { makes: 0, attempts: 0, target: 50 },
+    mid:     { makes: 0, attempts: 0, target: 50 },
+    ft:      { makes: 0, attempts: 0, target: 50 }
+  };
+ 
+  function startQuickShoot() {
+    // reset
+    ['threes','mid','ft'].forEach(z => { qz[z].makes = 0; qz[z].attempts = 0; });
+    ['threes','mid','ft'].forEach(z => qzRender(z));
+    document.getElementById('hero').style.display = 'none';
+    document.getElementById('quick-shoot').classList.add('visible');
+    document.getElementById('qs-tally').style.display = '';
+    document.getElementById('qs-summary').style.display = 'none';
+    // restore saved name
+    const saved = localStorage.getItem('lionsPlayerName') || '';
+    document.getElementById('qs-player-name').value = saved;
+    window.scrollTo(0, 0);
+  }
+ 
+  function qsBackToHero() {
+    document.getElementById('quick-shoot').classList.remove('visible');
+    document.getElementById('hero').style.display = 'flex';
+    window.scrollTo(0, 0);
+  }
+ 
+  function qzLog(zone, isMake) {
+    const z = qz[zone];
+    if (z.attempts >= z.target) return; // locked at 50
+    z.attempts++;
+    if (isMake) z.makes++;
+    qzRender(zone);
+    if (z.attempts >= z.target) showToast(zone === 'threes' ? '🎯 50 threes done!' : zone === 'mid' ? '📍 50 mid done!' : '⚪ 50 FTs done!');
+  }
+ 
+  function qzRender(zone) {
+    const z = qz[zone];
+    const pct = z.attempts > 0 ? Math.round((z.makes / z.attempts) * 100) : null;
+    const done = z.attempts >= z.target;
+    const pctStr = pct !== null ? pct + '%' : '—';
+ 
+    document.getElementById('qz-' + zone + '-prog').textContent = z.attempts + ' / ' + z.target + ' shots';
+    document.getElementById('qz-' + zone + '-makes').textContent = z.makes;
+    document.getElementById('qz-' + zone + '-attempts').textContent = z.attempts;
+    document.getElementById('qz-' + zone + '-pct').textContent = pctStr;
+    document.getElementById('qz-' + zone + '-pct').className = 'qs-zone-pct' + (done ? ' green' : '');
+    document.getElementById('qz-' + zone + '-bar').style.width = (z.attempts / z.target * 100) + '%';
+    document.getElementById('qz-' + zone + '-bar').className = 'qs-zone-bar' + (done ? ' green' : '');
+    document.getElementById('qz-' + zone + '-done').style.display = done ? '' : 'none';
+    document.getElementById('qz-' + zone).className = 'qs-zone-card' + (done ? ' complete' : '');
+    // lock buttons when zone is done
+    document.querySelectorAll('#qz-' + zone + ' button').forEach(b => b.disabled = done);
+  }
+ 
+  function pctStr(z) {
+    return qz[z].attempts > 0 ? Math.round(qz[z].makes / qz[z].attempts * 100) + '%' : '—';
+  }
+ 
+  function qsShowSummary() {
+    document.getElementById('qs-tally').style.display = 'none';
+    document.getElementById('qs-summary').style.display = 'flex';
+    document.getElementById('qs-sum-threes').textContent = pctStr('threes');
+    document.getElementById('qs-sum-mid').textContent = pctStr('mid');
+    document.getElementById('qs-sum-ft').textContent = pctStr('ft');
+ 
+    // Player name
+    const name = document.getElementById('qs-player-name').value.trim();
+    document.getElementById('qs-summary-name').textContent = name || 'Anonymous';
+ 
+    // Quebec timestamp (America/Toronto = Quebec timezone)
+    const now = new Date();
+    const ts = now.toLocaleString('en-CA', {
+      timeZone: 'America/Toronto',
+      weekday: 'short', year: 'numeric', month: 'short',
+      day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    document.getElementById('qs-summary-time').textContent = ts + ' (QC)';
+ 
+    const rowsArr = [
+      { label: '🎯 3-Pointers', z: 'threes' },
+      { label: '📍 Mid-Range', z: 'mid' },
+      { label: '⚪ Free Throws', z: 'ft' }
+    ].map(({ label, z }, i, arr) => {
+      const { makes, attempts } = qz[z];
+      const border = i < arr.length - 1 ? 'border-bottom:1px solid var(--line);' : '';
+      return '<div style="display:flex;justify-content:space-between;padding:10px 0;' + border + 'font-size:13px;"><div style="color:var(--white);">' + label + '</div><div style="font-family:\'Space Mono\',monospace;color:var(--lion);">' + makes + '/' + attempts + ' · ' + pctStr(z) + '</div></div>';
+    });
+    document.getElementById('qs-breakdown').innerHTML = rowsArr.join('');
+    document.getElementById('qs-summary').scrollIntoView({ behavior: 'smooth' });
+  }
+ 
   function togglePhase(pi) {
     const body = document.getElementById('phase-body-' + pi);
     const chev = document.getElementById('phase-chev-' + pi);
     body.classList.toggle('open');
     chev.classList.toggle('open');
   }
-
+ 
   function checkDrill(el, pi, di) {
     el.classList.toggle('done');
     if (el.classList.contains('done')) {
@@ -1150,7 +1754,7 @@
     }
     updateProgress();
   }
-
+ 
   function updateProgress() {
     const pct = totalDrills > 0 ? (completedDrills / totalDrills) * 100 : 0;
     document.getElementById('progress-fill').style.width = pct + '%';
@@ -1158,14 +1762,26 @@
       setTimeout(showComplete, 600);
     }
   }
-
+ 
   function showComplete() {
+    if (timerRunning) { clearInterval(timerInterval); timerRunning = false; }
     document.getElementById('complete-screen').classList.add('visible');
     document.getElementById('stat-drills').textContent = completedDrills;
     document.getElementById('stat-time').textContent = state.time;
+ 
+    const shotsMade = getTotalShotsMade();
+    const shotsTarget = getTotalShotsTarget();
+    const shotsBox = document.getElementById('stat-shots-box');
+    if (shotsTarget > 0) {
+      shotsBox.style.display = '';
+      document.getElementById('stat-shots').textContent = shotsMade + '/' + shotsTarget;
+    } else {
+      shotsBox.style.display = 'none';
+    }
+ 
     document.getElementById('complete-screen').scrollIntoView({ behavior: 'smooth' });
   }
-
+ 
   // TIMER
   function toggleTimer() {
     if (timerRunning) {
@@ -1193,7 +1809,7 @@
       }, 1000);
     }
   }
-
+ 
   function resetTimer() {
     clearInterval(timerInterval);
     timerRunning = false;
@@ -1202,20 +1818,20 @@
     document.getElementById('timer-display').classList.remove('running', 'warning');
     updateTimerDisplay();
   }
-
+ 
   function setTimer(secs) {
     resetTimer();
     timerSeconds = secs;
     updateTimerDisplay();
   }
-
+ 
   function updateTimerDisplay() {
     const m = Math.floor(timerSeconds / 60);
     const s = timerSeconds % 60;
     document.getElementById('timer-display').textContent =
       String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
-
+ 
   function restart() {
     state.focuses = [];
     state.intensity = null;
@@ -1224,11 +1840,12 @@
     state.currentStep = 1;
     completedDrills = 0;
     totalDrills = 0;
-
+    Object.keys(shotState).forEach(k => delete shotState[k]);
+ 
     document.getElementById('workout-screen').classList.remove('visible');
     document.getElementById('complete-screen').classList.remove('visible');
     document.getElementById('hero').style.display = 'flex';
-
+ 
     // Reset step UI
     for (let i = 1; i <= 4; i++) {
       const dot = document.getElementById('dot-' + i);
@@ -1247,16 +1864,17 @@
     resetTimer();
     window.scrollTo(0, 0);
   }
-
+ 
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2000);
   }
-
+ 
   // Init timer display
   updateTimerDisplay();
 </script>
 </body>
 </html>
+ 
