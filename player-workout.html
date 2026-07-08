@@ -863,7 +863,7 @@
 
     <!-- ACTION BUTTONS -->
     <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-      <button onclick="qsSendEmail()" style="width:100%;padding:14px;background:var(--lion);border:none;border-radius:8px;color:var(--bg);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;">
+      <button id="qs-email-btn" onclick="qsSendEmail()" style="display:none;width:100%;padding:14px;background:var(--lion);border:none;border-radius:8px;color:var(--bg);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;">
         📧 SEND TO COACH
       </button>
       <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;text-align:center;">
@@ -1747,10 +1747,12 @@
     .then(() => {
       logStatus.textContent = '✅ Session saved to Coach\'s sheet';
       logStatus.style.color = 'var(--green)';
+      document.getElementById('qs-email-btn').style.display = 'none';
     })
     .catch(() => {
-      logStatus.textContent = '⚠️ Could not save — send screenshot to Coach';
+      logStatus.textContent = '⚠️ Could not save automatically';
       logStatus.style.color = '#f0a500';
+      document.getElementById('qs-email-btn').style.display = '';
     });
   }
 
