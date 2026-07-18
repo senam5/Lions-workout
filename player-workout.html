@@ -50,6 +50,7 @@
   .hero-bg {
     position: absolute;
     inset: 0;
+    pointer-events: none;
     background:
       radial-gradient(ellipse 80% 60% at 50% 0%, rgba(204,34,41,0.08) 0%, transparent 70%),
       radial-gradient(ellipse 40% 40% at 80% 80%, rgba(204,34,41,0.04) 0%, transparent 60%);
@@ -106,7 +107,7 @@
     position: relative;
   }
   .start-btn {
-    margin-top: 28px;
+    margin-top: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -114,8 +115,8 @@
     background: var(--lion);
     color: var(--bg);
     border: none;
-    border-radius: 6px;
-    padding: 16px 24px;
+    border-radius: 8px;
+    padding: 18px 24px;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 20px;
     letter-spacing: 2px;
@@ -123,31 +124,12 @@
     position: relative;
     transition: all 0.2s;
     width: 100%;
+    min-height: 56px;
   }
   .start-btn:hover { opacity: 0.88; transform: translateY(-1px); }
   .start-btn .arrow { font-size: 20px; transition: transform 0.2s; }
   .start-btn:hover .arrow { transform: translateX(4px); }
-  .start-btn-row { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-  .new-badge {
-    display: inline-block;
-    background: var(--lion);
-    color: white;
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    margin-left: 8px;
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-    animation: badgePulse 1.4s ease-in-out infinite;
-  }
-  @keyframes badgePulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.65; transform: scale(1.08); }
-  }
+  .start-btn-row { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 28px; }
   .start-btn-secondary {
     display: flex;
     align-items: center;
@@ -156,14 +138,15 @@
     background: none;
     color: var(--white);
     border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 6px;
-    padding: 16px 24px;
+    border-radius: 8px;
+    padding: 18px 24px;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 20px;
     letter-spacing: 2px;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
+    min-height: 56px;
   }
   .start-btn-secondary:hover { border-color: var(--lion); color: var(--lion); }
 
@@ -559,6 +542,20 @@
   }
   .qs-advance-btn:hover { opacity: 0.88; }
 
+  .qs-manual-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .qs-manual-field { flex: 1; }
+  .qs-manual-label { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .qs-manual-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; color: var(--white); font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; text-align: center; padding: 10px 6px; outline: none;
+    transition: border-color 0.15s; -moz-appearance: textfield;
+  }
+  .qs-manual-input::-webkit-outer-spin-button,
+  .qs-manual-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .qs-manual-input:focus { border-color: var(--lion); }
+  .qs-manual-sep { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--grey); padding-top: 22px; }
+
   /* ZONE CARDS */
   .qs-zone-card {
     background: var(--surface); border: 1px solid var(--line);
@@ -757,7 +754,7 @@
       BUILD MY WORKOUT <span class="arrow">→</span>
     </button>
     <button class="start-btn-secondary" onclick="startQuickShoot()">
-      🎯 JUST SHOOT <span class="new-badge">NEW</span>
+      🎯 JUST SHOOT
     </button>
   </div>
 </section>
@@ -785,7 +782,7 @@
     </div>
   </div>
 
-  <!-- TALLY SCREEN — 3 zones, fixed 50 shots each -->
+  <!-- TALLY SCREEN — manual entry -->
   <div id="qs-tally" style="display:none;">
     <div class="qs-header" style="padding-bottom:0;">
       <button class="qs-back" onclick="qsBackToHero()">← END SESSION</button>
@@ -793,73 +790,76 @@
         <div class="step-label" style="margin:0;">Just Shoot</div>
         <div id="qs-tally-name" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--lion);letter-spacing:1px;"></div>
       </div>
-      <div class="step-question" style="margin-bottom:4px;">50 threes · 50 mid · 50 FT</div>
-      <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Tap MAKE after every shot you hit. Attempts track automatically.</p>
+      <div class="step-question" style="margin-bottom:4px;">Enter your results</div>
+      <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Default is 50 shots per zone — change it if you shot more or less.</p>
     </div>
 
-    <div style="padding:0 24px 48px;display:flex;flex-direction:column;gap:16px;">
+    <div style="padding:0 24px 48px;display:flex;flex-direction:column;gap:14px;">
 
       <!-- ZONE CARD — THREES -->
       <div class="qs-zone-card" id="qz-threes">
         <div class="qs-zone-top">
-          <div>
-            <div class="qs-zone-title">🎯 3-Pointers</div>
-            <div class="qs-zone-progress" id="qz-threes-prog">0 / 50 shots</div>
-          </div>
+          <div><div class="qs-zone-title">🎯 3-Pointers</div></div>
           <div class="qs-zone-pct" id="qz-threes-pct">—</div>
         </div>
         <div class="qs-zone-bar-wrap"><div class="qs-zone-bar" id="qz-threes-bar" style="width:0%"></div></div>
-        <div class="qs-zone-counts">
-          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-threes-makes">0</div><div class="qs-zone-stat-label">makes</div></div>
-          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-threes-attempts">0</div><div class="qs-zone-stat-label">attempts</div></div>
+        <div class="qs-manual-row">
+          <div class="qs-manual-field">
+            <div class="qs-manual-label">MAKES</div>
+            <input class="qs-manual-input" id="qz-threes-makes-in" type="number" inputmode="numeric" min="0" max="999" placeholder="0"
+              oninput="qzManualUpdate('threes')">
+          </div>
+          <div class="qs-manual-sep">/</div>
+          <div class="qs-manual-field">
+            <div class="qs-manual-label">ATTEMPTS</div>
+            <input class="qs-manual-input" id="qz-threes-att-in" type="number" inputmode="numeric" min="0" max="999" placeholder="50"
+              oninput="qzManualUpdate('threes')">
+          </div>
         </div>
-        <div class="qs-zone-btns">
-          <button class="qs-btn-miss" onclick="qzLog('threes', false)">MISS</button>
-          <button class="qs-btn-make" onclick="qzLog('threes', true)">MAKE ✓</button>
-        </div>
-        <div class="qs-zone-done" id="qz-threes-done" style="display:none;">✅ 50 done</div>
       </div>
 
       <!-- MID-RANGE -->
       <div class="qs-zone-card" id="qz-mid">
         <div class="qs-zone-top">
-          <div>
-            <div class="qs-zone-title">📍 Mid-Range</div>
-            <div class="qs-zone-progress" id="qz-mid-prog">0 / 50 shots</div>
-          </div>
+          <div><div class="qs-zone-title">📍 Mid-Range</div></div>
           <div class="qs-zone-pct" id="qz-mid-pct">—</div>
         </div>
         <div class="qs-zone-bar-wrap"><div class="qs-zone-bar" id="qz-mid-bar" style="width:0%"></div></div>
-        <div class="qs-zone-counts">
-          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-mid-makes">0</div><div class="qs-zone-stat-label">makes</div></div>
-          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-mid-attempts">0</div><div class="qs-zone-stat-label">attempts</div></div>
+        <div class="qs-manual-row">
+          <div class="qs-manual-field">
+            <div class="qs-manual-label">MAKES</div>
+            <input class="qs-manual-input" id="qz-mid-makes-in" type="number" inputmode="numeric" min="0" max="999" placeholder="0"
+              oninput="qzManualUpdate('mid')">
+          </div>
+          <div class="qs-manual-sep">/</div>
+          <div class="qs-manual-field">
+            <div class="qs-manual-label">ATTEMPTS</div>
+            <input class="qs-manual-input" id="qz-mid-att-in" type="number" inputmode="numeric" min="0" max="999" placeholder="50"
+              oninput="qzManualUpdate('mid')">
+          </div>
         </div>
-        <div class="qs-zone-btns">
-          <button class="qs-btn-miss" onclick="qzLog('mid', false)">MISS</button>
-          <button class="qs-btn-make" onclick="qzLog('mid', true)">MAKE ✓</button>
-        </div>
-        <div class="qs-zone-done" id="qz-mid-done" style="display:none;">✅ 50 done</div>
       </div>
 
       <!-- FREE THROW -->
       <div class="qs-zone-card" id="qz-ft">
         <div class="qs-zone-top">
-          <div>
-            <div class="qs-zone-title">⚪ Free Throws</div>
-            <div class="qs-zone-progress" id="qz-ft-prog">0 / 50 shots</div>
-          </div>
+          <div><div class="qs-zone-title">⚪ Free Throws</div></div>
           <div class="qs-zone-pct" id="qz-ft-pct">—</div>
         </div>
         <div class="qs-zone-bar-wrap"><div class="qs-zone-bar" id="qz-ft-bar" style="width:0%"></div></div>
-        <div class="qs-zone-counts">
-          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-ft-makes">0</div><div class="qs-zone-stat-label">makes</div></div>
-          <div class="qs-zone-stat"><div class="qs-zone-stat-val" id="qz-ft-attempts">0</div><div class="qs-zone-stat-label">attempts</div></div>
+        <div class="qs-manual-row">
+          <div class="qs-manual-field">
+            <div class="qs-manual-label">MAKES</div>
+            <input class="qs-manual-input" id="qz-ft-makes-in" type="number" inputmode="numeric" min="0" max="999" placeholder="0"
+              oninput="qzManualUpdate('ft')">
+          </div>
+          <div class="qs-manual-sep">/</div>
+          <div class="qs-manual-field">
+            <div class="qs-manual-label">ATTEMPTS</div>
+            <input class="qs-manual-input" id="qz-ft-att-in" type="number" inputmode="numeric" min="0" max="999" placeholder="50"
+              oninput="qzManualUpdate('ft')">
+          </div>
         </div>
-        <div class="qs-zone-btns">
-          <button class="qs-btn-miss" onclick="qzLog('ft', false)">MISS</button>
-          <button class="qs-btn-make" onclick="qzLog('ft', true)">MAKE ✓</button>
-        </div>
-        <div class="qs-zone-done" id="qz-ft-done" style="display:none;">✅ 50 done</div>
       </div>
 
       <button class="qs-advance-btn" onclick="qsShowSummary()">FINISH SESSION ✅</button>
@@ -1614,21 +1614,24 @@
     return total;
   }
 
-  // JUST SHOOT MODE — 3 fixed zones, 50 shots each
+  // JUST SHOOT MODE — manual entry
   const qz = {
-    threes:  { makes: 0, attempts: 0, target: 50 },
-    mid:     { makes: 0, attempts: 0, target: 50 },
-    ft:      { makes: 0, attempts: 0, target: 50 }
+    threes: { makes: 0, attempts: 50, target: 50 },
+    mid:    { makes: 0, attempts: 50, target: 50 },
+    ft:     { makes: 0, attempts: 50, target: 50 }
   };
 
+  function lsGet(key) { try { return localStorage.getItem(key) || ''; } catch(e) { return ''; } }
+  function lsSet(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+
   function startQuickShoot() {
+    ['threes','mid','ft'].forEach(z => { qz[z].makes = 0; qz[z].attempts = 50; });
     document.getElementById('hero').style.display = 'none';
     document.getElementById('quick-shoot').classList.add('visible');
     document.getElementById('qs-name-gate').style.display = '';
     document.getElementById('qs-tally').style.display = 'none';
     document.getElementById('qs-summary').style.display = 'none';
-    // restore saved name
-    const saved = localStorage.getItem('lionsPlayerName') || '';
+    const saved = lsGet('lionsPlayerName');
     const input = document.getElementById('qs-player-name');
     input.value = saved;
     const btn = document.getElementById('qs-name-btn');
@@ -1643,15 +1646,19 @@
     const btn = document.getElementById('qs-name-btn');
     btn.disabled = !ok;
     btn.style.opacity = ok ? '1' : '0.3';
-    localStorage.setItem('lionsPlayerName', val);
+    lsSet('lionsPlayerName', val);
   }
 
   function qsConfirmName() {
     const name = document.getElementById('qs-player-name').value.trim();
     if (!name) return;
-    // reset zones
-    ['threes','mid','ft'].forEach(z => { qz[z].makes = 0; qz[z].attempts = 0; });
-    ['threes','mid','ft'].forEach(z => qzRender(z));
+    // reset inputs
+    ['threes','mid','ft'].forEach(z => {
+      document.getElementById('qz-' + z + '-makes-in').value = '';
+      document.getElementById('qz-' + z + '-att-in').value = '';
+      qz[z].makes = 0; qz[z].attempts = 50;
+      qzRender(z);
+    });
     document.getElementById('qs-name-gate').style.display = 'none';
     document.getElementById('qs-tally').style.display = '';
     document.getElementById('qs-tally-name').textContent = name.toUpperCase();
@@ -1667,41 +1674,42 @@
     window.scrollTo(0, 0);
   }
 
-  function qzLog(zone, isMake) {
-    const z = qz[zone];
-    if (z.attempts >= z.target) return;
-    z.attempts++;
-    if (isMake) z.makes++;
+  function qzManualUpdate(zone) {
+    const makes   = parseInt(document.getElementById('qz-' + zone + '-makes-in').value) || 0;
+    const attRaw  = document.getElementById('qz-' + zone + '-att-in').value;
+    const att     = attRaw === '' ? 50 : (parseInt(attRaw) || 50);
+    // makes can't exceed attempts
+    qz[zone].makes    = Math.min(makes, att);
+    qz[zone].attempts = att;
     qzRender(zone);
-    if (z.attempts >= z.target) showToast(zone === 'threes' ? '🎯 50 threes done!' : zone === 'mid' ? '📍 50 mid done!' : '⚪ 50 FTs done!');
   }
 
   function qzRender(zone) {
     const z = qz[zone];
-    const pct = z.attempts > 0 ? Math.round((z.makes / z.attempts) * 100) : null;
-    const done = z.attempts >= z.target;
+    const pct = z.attempts > 0 ? Math.round(z.makes / z.attempts * 100) : null;
     const pctStr = pct !== null ? pct + '%' : '—';
-    document.getElementById('qz-' + zone + '-prog').textContent = z.attempts + ' / ' + z.target + ' shots';
-    document.getElementById('qz-' + zone + '-makes').textContent = z.makes;
-    document.getElementById('qz-' + zone + '-attempts').textContent = z.attempts;
+    const fillPct = z.attempts > 0 ? Math.min(100, z.makes / z.attempts * 100) : 0;
+    const isGood = pct !== null && pct >= 50;
+
     document.getElementById('qz-' + zone + '-pct').textContent = pctStr;
-    document.getElementById('qz-' + zone + '-pct').className = 'qs-zone-pct' + (done ? ' green' : '');
-    document.getElementById('qz-' + zone + '-bar').style.width = (z.attempts / z.target * 100) + '%';
-    document.getElementById('qz-' + zone + '-bar').className = 'qs-zone-bar' + (done ? ' green' : '');
-    document.getElementById('qz-' + zone + '-done').style.display = done ? '' : 'none';
-    document.getElementById('qz-' + zone).className = 'qs-zone-card' + (done ? ' complete' : '');
-    document.querySelectorAll('#qz-' + zone + ' button').forEach(b => b.disabled = done);
+    document.getElementById('qz-' + zone + '-pct').className = 'qs-zone-pct' + (isGood ? ' green' : '');
+    document.getElementById('qz-' + zone + '-bar').style.width = fillPct + '%';
+    document.getElementById('qz-' + zone + '-bar').className = 'qs-zone-bar' + (isGood ? ' green' : '');
   }
 
   function pctStr(z) {
-    return qz[z].attempts > 0 ? Math.round(qz[z].makes / qz[z].attempts * 100) + '%' : '—';
+    const d = qz[z];
+    return d.attempts > 0 ? Math.round(d.makes / d.attempts * 100) + '%' : '—';
   }
 
   function qsShowSummary() {
+    // Read final values from inputs before showing summary
+    ['threes','mid','ft'].forEach(z => qzManualUpdate(z));
+
     document.getElementById('qs-tally').style.display = 'none';
     document.getElementById('qs-summary').style.display = 'flex';
 
-    const name = localStorage.getItem('lionsPlayerName') || 'Anonymous';
+    const name = lsGet('lionsPlayerName') || 'Anonymous';
     document.getElementById('qs-summary-name').textContent = name;
 
     const now = new Date();
@@ -1778,7 +1786,7 @@
   }
 
   function qsSendEmail() {
-    const name = localStorage.getItem('lionsPlayerName') || 'Anonymous';
+    const name = lsGet('lionsPlayerName') || 'Anonymous';
     const now = new Date();
     const ts = now.toLocaleString('en-CA', {
       timeZone: 'America/Toronto',
