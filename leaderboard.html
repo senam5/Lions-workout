@@ -205,12 +205,46 @@ function parseCSV(csv) {
   }).filter(function (s) { return s.player; });
 }
 
+// The CSV export URL is case-sensitive about the tab name, unlike the
+// Apps Script. Try the likely spellings, then fall back to the endpoint.
+var SHOT_TAB_NAMES = ['shots', 'Shots', 'SHOTS'];
+function csvUrlFor(tab) {
+  return 'https://docs.google.com/spreadsheets/d/' + Lions.SHEET_ID +
+         '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tab);
+}
+
 function loadShooting() {
   var el = document.getElementById('shooting-lb');
-  fetch(SHOTS_CSV).then(function (r) { return r.text(); })
-    .then(function (csv) { renderShooting(parseCSV(csv), el); })
+
+  (function attempt(i) {
+    if (i >= SHOT_TAB_NAMES.length) { loadShootingViaEndpoint(el); return; }
+    fetch(csvUrlFor(SHOT_TAB_NAMES[i]))
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
+      .then(function (csv) {
+        var sessions = parseCSV(csv);
+        if (!sessions.length) { attempt(i + 1); return; }   // wrong tab, or empty
+        renderShooting(sessions, el);
+      })
+      .catch(function () { attempt(i + 1); });
+  })(0);
+}
+
+// Last resort: ask the Apps Script, which finds the tab regardless of case.
+function loadShootingViaEndpoint(el) {
+  fetch(Lions.ENDPOINT + '?action=shots')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      var num = function (v) { return parseFloat(String(v == null ? 0 : v).replace('%', '').replace(',', '.')) || 0; };
+      var sessions = (rows || []).map(function (r) {
+        return {
+          date: String(r.date || ''), player: String(r.player || ''),
+          threesPct: num(r.threesPct), midPct: num(r.midPct), ftPct: num(r.ftPct)
+        };
+      }).filter(function (s) { return s.player; });
+      renderShooting(sessions, el);
+    })
     .catch(function () {
-      el.innerHTML = '<div class="empty">Could not load shooting data.<br>Check sheet permissions.</div>';
+      el.innerHTML = '<div class="empty">Could not load shooting data.<br>Check the sheet is shared as "Anyone with the link".</div>';
     });
 }
 
