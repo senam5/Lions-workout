@@ -1659,6 +1659,10 @@
   }
 
   function qsNameChanged(val) {
+    // "My name isn't here…" — ask for it, add it, share it with the team.
+    if (val === Lions.ADD_VALUE) {
+      val = Lions.handleRosterSelect(document.getElementById('qs-player-name'));
+    }
     const ok = String(val || '').trim().length > 0;
     const btn = document.getElementById('qs-name-btn');
     btn.disabled = !ok;
@@ -1673,7 +1677,7 @@
     if (!el) return;
     if (!name) { el.innerHTML = ''; return; }
 
-    const goal   = Lions.WEEKLY_SHOT_GOAL;
+    const goal   = Lions.getGoals().shots;
     const makes  = Lions.weekMakes(name);
     const streak = Lions.shotStreak(name);
     const career = Lions.careerMakes(name);
@@ -1822,7 +1826,7 @@
     const el = document.getElementById('qs-rewards');
     if (!el) return;
 
-    const goal      = Lions.WEEKLY_SHOT_GOAL;
+    const goal      = Lions.getGoals().shots;
     const makesNow  = Lions.weekMakes(ctx.name);
     const careerNow = Lions.careerMakes(ctx.name);
     const streak    = Lions.shotStreak(ctx.name);
@@ -1912,24 +1916,19 @@
       ftPct:      pctStr('ft')
     };
     const logStatus = document.getElementById('qs-log-status');
-    logStatus.textContent = '⏳ Saving to sheet...';
-    logStatus.style.color = 'var(--grey)';
+    logStatus.textContent = '';
 
-    fetch(ENDPOINT, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(() => {
-      logStatus.textContent = '✅ Session saved to Coach\'s sheet';
-      logStatus.style.color = 'var(--green)';
-      document.getElementById('qs-email-btn').style.display = 'none';
-    })
-    .catch(() => {
-      logStatus.textContent = '⚠️ Could not save automatically';
-      logStatus.style.color = '#f0a500';
-      document.getElementById('qs-email-btn').style.display = '';
+    Lions.postWithOverlay(payload, {
+      title: 'Saving your session…',
+      okTitle: 'Session saved',
+      okMsg: 'Coach can see your shots. You can close the app now.',
+      failMsg: 'No connection. Screenshot this screen and send it to Coach.'
+    }).then((okState) => {
+      logStatus.textContent = okState
+        ? '✅ Session saved to Coach\'s sheet'
+        : '⚠️ Could not save automatically';
+      logStatus.style.color = okState ? 'var(--green)' : '#f0a500';
+      document.getElementById('qs-email-btn').style.display = okState ? 'none' : '';
     });
   }
 

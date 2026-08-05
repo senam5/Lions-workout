@@ -18,7 +18,9 @@
   // ── ROSTER ───────────────────────────────────────────────
   // Single source of truth. Every page reads this one list, so names
   // can never drift apart between pages again.
-  var ROSTER = [
+  // Players who joined after this list was written add themselves in the
+  // app; those names sync through the sheet so every device sees them.
+  var BASE_ROSTER = [
     'Thomas Lemay',
     'William Warford',
     'Antoine Bergeron',
@@ -38,14 +40,20 @@
   ];
 
   // ── GOALS ────────────────────────────────────────────────
-  var WEEKLY_SHOT_GOAL = 300;   // makes per week
-  var WEEKLY_RUN_GOAL  = 1;     // runs per week
+  // Defaults only. The coach sets the real numbers on the leaderboard,
+  // they save to the sheet, and every device picks them up.
+  var DEFAULT_SHOT_GOAL = 300;   // makes per week
+  var DEFAULT_RUN_GOAL  = 1;     // runs per week
 
   // ── STORAGE KEYS ─────────────────────────────────────────
   var K_PLAYER   = 'lions_player';
   var K_LEGACY   = 'lionsPlayerName';
   var K_SHOTLOG  = 'lions_shot_log';
   var K_RUNLOG   = 'lions_run_log';
+  var K_EXTRA    = 'lions_roster_extra';   // players added since the base list
+  var K_GOALS    = 'lions_goals';          // cached weekly targets from the sheet
+
+  var ADD_VALUE  = '__add__';              // sentinel for the "add me" option
 
   // ── SAFE STORAGE ─────────────────────────────────────────
   function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
@@ -65,7 +73,106 @@
   function clearPlayer() { setPlayer(''); }
 
   var norm = function (s) { return String(s || '').trim().toLowerCase(); };
-  function inRoster(name) { return ROSTER.some(function (n) { return norm(n) === norm(name); }); }
+
+  // ── ROSTER: base list + players who added themselves ─────
+  function extraRoster() { return jsonGet(K_EXTRA, []); }
+
+  /** The full roster this device knows about, deduplicated. */
+  function getRoster() {
+    var seen = {}, out = [];
+    BASE_ROSTER.concat(extraRoster()).forEach(function (n) {
+      var k = norm(n);
+      if (!k || seen[k]) return;
+      seen[k] = 1;
+      out.push(n);
+    });
+    return out;
+  }
+
+  function inRoster(name) {
+    return getRoster().some(function (n) { return norm(n) === norm(name); });
+  }
+
+  /**
+   * Add a player. Saved on this device immediately and pushed to the
+   * sheet so every other phone and the coach's leaderboard see it too.
+   * Returns the canonical name (the existing one if already known).
+   */
+  function addPlayerName(name) {
+    var v = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    if (!v) return null;
+
+    var match = null;
+    getRoster().forEach(function (n) { if (norm(n) === norm(v)) match = n; });
+    if (match) return match;                    // already on the roster
+
+    var extra = extraRoster();
+    extra.push(v);
+    jsonSet(K_EXTRA, extra);
+    post({ type: 'player', name: v, date: stamp() });   // share with the team
+    return v;
+  }
+
+  /** Fold names coming back from the sheet into this device's list. */
+  function mergeRoster(names) {
+    if (!names || !names.length) return false;
+    var known = {}, changed = false;
+    getRoster().forEach(function (n) { known[norm(n)] = 1; });
+    var extra = extraRoster();
+    names.forEach(function (n) {
+      n = String(n || '').trim();
+      if (!n || known[norm(n)]) return;
+      extra.push(n);
+      known[norm(n)] = 1;
+      changed = true;
+    });
+    if (changed) jsonSet(K_EXTRA, extra);
+    return changed;
+  }
+
+  /** Pull the shared roster from the sheet. cb(changed) when done. */
+  function refreshRoster(cb) {
+    fetch(ENDPOINT + '?action=players')
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        var names = (rows || []).map(function (r) {
+          return typeof r === 'string' ? r : (r.player || r.name || r.Name || '');
+        });
+        var changed = mergeRoster(names);
+        if (cb) cb(changed);
+      })
+      .catch(function () { if (cb) cb(false); });
+  }
+
+  // ── WEEKLY TARGETS (coach-controlled) ────────────────────
+  function getGoals() {
+    var g = jsonGet(K_GOALS, null) || {};
+    return {
+      shots: parseInt(g.shots, 10) > 0 ? parseInt(g.shots, 10) : DEFAULT_SHOT_GOAL,
+      runs:  parseInt(g.runs, 10)  > 0 ? parseInt(g.runs, 10)  : DEFAULT_RUN_GOAL
+    };
+  }
+  function cacheGoals(g) {
+    if (!g) return;
+    jsonSet(K_GOALS, { shots: parseInt(g.shots, 10) || DEFAULT_SHOT_GOAL,
+                       runs:  parseInt(g.runs, 10)  || DEFAULT_RUN_GOAL });
+  }
+  /** Coach-only: publish new targets. `pw` is checked server-side. */
+  function saveGoals(shots, runs, pw) {
+    cacheGoals({ shots: shots, runs: runs });
+    return post({ type: 'settings', pw: pw || '',
+                  shotGoal: parseInt(shots, 10) || DEFAULT_SHOT_GOAL,
+                  runGoal: parseInt(runs, 10) || DEFAULT_RUN_GOAL, date: stamp() });
+  }
+  function refreshGoals(cb) {
+    fetch(ENDPOINT + '?action=settings')
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        if (s && (s.shotGoal || s.runGoal)) cacheGoals({ shots: s.shotGoal, runs: s.runGoal });
+        if (cb) cb(getGoals());
+      })
+      .catch(function () { if (cb) cb(getGoals()); });
+  }
 
   // ── ESCAPING ─────────────────────────────────────────────
   var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -75,13 +182,36 @@
 
   // ── NAME DROPDOWN ────────────────────────────────────────
   // Renders roster <option>s, preselecting the known player.
-  function rosterOptions(selected) {
+  function rosterOptions(selected, opts) {
     var sel = norm(selected);
-    return '<option value="">— Select your name —</option>' +
-      ROSTER.map(function (n) {
+    var html = '<option value="">— Select your name —</option>' +
+      getRoster().map(function (n) {
         return '<option value="' + escapeHtml(n) + '"' +
           (norm(n) === sel ? ' selected' : '') + '>' + escapeHtml(n) + '</option>';
       }).join('');
+    if (!opts || opts.add !== false) {
+      html += '<option value="' + ADD_VALUE + '">＋ My name isn\'t here…</option>';
+    }
+    return html;
+  }
+
+  /**
+   * Handle a change on a roster <select>. If the player picked "my name
+   * isn't here", ask for it, add it, and re-render the list with the new
+   * name selected. Returns the chosen name ('' if they backed out).
+   */
+  function handleRosterSelect(sel, selectedAfter) {
+    if (!sel) return '';
+    if (sel.value !== ADD_VALUE) return sel.value;
+
+    var typed = prompt('Enter your full name (first and last):');
+    var added = typed ? addPlayerName(typed) : null;
+    sel.innerHTML = rosterOptions(added || selectedAfter || getPlayer());
+    if (added) {
+      setPlayer(added);
+      toast('Added — Coach will see you now');
+    }
+    return added || '';
   }
 
   // ── DATES / WEEKS ────────────────────────────────────────
@@ -144,14 +274,15 @@
     var byWeek = {};
     log.forEach(function (s) { byWeek[s.week] = (byWeek[s.week] || 0) + (s.makes || 0); });
 
+    var goal = getGoals().shots;
     var streak = 0;
     var cursor = new Date(weekKey());
     // If this week already hit the goal, it counts too.
-    if ((byWeek[weekKey(cursor)] || 0) >= WEEKLY_SHOT_GOAL) streak++;
+    if ((byWeek[weekKey(cursor)] || 0) >= goal) streak++;
     for (var i = 0; i < 60; i++) {
       cursor.setDate(cursor.getDate() - 7);
       var k = weekKey(cursor);
-      if ((byWeek[k] || 0) >= WEEKLY_SHOT_GOAL) streak++;
+      if ((byWeek[k] || 0) >= goal) streak++;
       else break;
     }
     return streak;
@@ -204,6 +335,86 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+  }
+
+  // ── SAVING OVERLAY ───────────────────────────────────────
+  // Players close the app the second they finish, which kills an
+  // in-flight request. This blocks the screen until the save settles so
+  // they know to wait, and says plainly when it is safe to leave.
+  function overlayEl() {
+    var el = document.getElementById('lions-saving');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'lions-saving';
+    el.innerHTML =
+      '<div class="ls-box">' +
+        '<div class="ls-spin" id="ls-spin"></div>' +
+        '<div class="ls-icon" id="ls-icon"></div>' +
+        '<div class="ls-title" id="ls-title">Saving…</div>' +
+        '<div class="ls-msg" id="ls-msg">Keep the app open — don\'t close it yet.</div>' +
+        '<button class="ls-btn" id="ls-btn">DONE</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function saving(title) {
+    var el = overlayEl();
+    el.className = 'on';
+    document.getElementById('ls-spin').style.display = '';
+    document.getElementById('ls-icon').style.display = 'none';
+    document.getElementById('ls-title').textContent = title || 'Saving…';
+    document.getElementById('ls-msg').textContent = "Keep the app open — don't close it yet.";
+    document.getElementById('ls-btn').style.display = 'none';
+    return el;
+  }
+
+  function saveResult(okState, title, msg, onClose) {
+    var el = overlayEl();
+    el.className = 'on ' + (okState ? 'ok' : 'warn');
+    document.getElementById('ls-spin').style.display = 'none';
+    var icon = document.getElementById('ls-icon');
+    icon.style.display = '';
+    icon.textContent = okState ? '✅' : '⚠️';
+    document.getElementById('ls-title').textContent = title;
+    document.getElementById('ls-msg').textContent = msg;
+    var btn = document.getElementById('ls-btn');
+    btn.style.display = 'block';   // the stylesheet hides it by default
+    btn.textContent = okState ? 'SAFE TO CLOSE' : 'OK';
+    btn.onclick = function () { hideSaving(); if (onClose) onClose(); };
+    if (okState) beep(880, 0.25);
+  }
+
+  function hideSaving() {
+    var el = document.getElementById('lions-saving');
+    if (el) el.className = '';
+  }
+
+  /**
+   * Post with the overlay wrapped around it. `mode:'no-cors'` hides the
+   * real response, so a resolved promise only proves the request left the
+   * device — which is exactly what the player needs to wait for.
+   */
+  function postWithOverlay(payload, opts) {
+    opts = opts || {};
+    saving(opts.title || 'Saving…');
+    var started = Date.now();
+    return post(payload)
+      .then(function () {
+        // Hold the spinner briefly so it registers as a real save.
+        var wait = Math.max(0, 600 - (Date.now() - started));
+        return new Promise(function (res) { setTimeout(res, wait); });
+      })
+      .then(function () {
+        saveResult(true, opts.okTitle || 'Saved to Coach\'s sheet',
+                   opts.okMsg || 'You can close the app now.', opts.onClose);
+        return true;
+      })
+      .catch(function () {
+        saveResult(false, 'Could not save',
+                   opts.failMsg || 'No connection. Screenshot this and send it to Coach.', opts.onClose);
+        return false;
+      });
   }
 
   // ── TOAST ────────────────────────────────────────────────
@@ -283,14 +494,40 @@
     return String(n || '').split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
   }
 
+  // ── LAST SESSION ─────────────────────────────────────────
+  // What this player did last, straight from the sheet, so they can
+  // pick up where they left off instead of guessing.
+  function lastSession(player, cb) {
+    fetch(ENDPOINT + '?action=last&player=' + encodeURIComponent(player || ''))
+      .then(function (r) { return r.json(); })
+      .then(function (s) { cb(s && s.player ? s : null); })
+      .catch(function () { cb(null); });
+  }
+
   // ── EXPORT ───────────────────────────────────────────────
   global.Lions = {
     ENDPOINT: ENDPOINT,
     SHEET_ID: SHEET_ID,
-    ROSTER: ROSTER,
-    WEEKLY_SHOT_GOAL: WEEKLY_SHOT_GOAL,
-    WEEKLY_RUN_GOAL: WEEKLY_RUN_GOAL,
+    BASE_ROSTER: BASE_ROSTER,
+    ADD_VALUE: ADD_VALUE,
     MILESTONES: MILESTONES,
+
+    getRoster: getRoster,
+    addPlayerName: addPlayerName,
+    refreshRoster: refreshRoster,
+    mergeRoster: mergeRoster,
+    handleRosterSelect: handleRosterSelect,
+
+    getGoals: getGoals,
+    saveGoals: saveGoals,
+    refreshGoals: refreshGoals,
+
+    saving: saving,
+    saveResult: saveResult,
+    hideSaving: hideSaving,
+    postWithOverlay: postWithOverlay,
+
+    lastSession: lastSession,
 
     getPlayer: getPlayer,
     setPlayer: setPlayer,

@@ -107,7 +107,8 @@
   <div class="tabs">
     <button class="tab active" data-tab="shooting">🎯 Shooting</button>
     <button class="tab" data-tab="running">🏃 Running</button>
-    <button class="tab" data-tab="attendance">💪 Weight Room</button>
+    <button class="tab" data-tab="attendance">💪 Weights</button>
+    <button class="tab" data-tab="challenge">🏁 Challenge</button>
   </div>
 
   <!-- SHOOTING -->
@@ -126,6 +127,37 @@
       <div class="week-val" id="running-week">—</div>
     </div>
     <div id="running-lb"><div class="loading"><div class="spinner"></div>Loading runs...</div></div>
+  </div>
+
+  <!-- WEEKLY CHALLENGE — coach sets the targets -->
+  <div class="wrap-wide pane hidden" id="pane-challenge">
+    <div class="card">
+      <div class="card-title">🎯 This week's challenge</div>
+      <p class="section-sub">Set the targets. Every player's app picks these up automatically.</p>
+
+      <div style="margin-bottom:14px">
+        <label class="label" for="goal-shots">Makes per week</label>
+        <input class="input input-mono" id="goal-shots" type="number" min="1" step="10" inputmode="numeric">
+      </div>
+      <div style="margin-bottom:16px">
+        <label class="label" for="goal-runs">Runs per week</label>
+        <input class="input input-mono" id="goal-runs" type="number" min="1" step="1" inputmode="numeric">
+      </div>
+
+      <button class="btn-primary" id="save-goals">SAVE CHALLENGE ✓</button>
+      <div class="mono center" id="goals-status" style="font-size:10px;letter-spacing:1px;margin-top:10px;min-height:14px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">This week's progress</div>
+      <div id="challenge-board"><div class="empty">Loading…</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Roster</div>
+      <p class="section-sub" id="roster-count"></p>
+      <div id="roster-list"></div>
+    </div>
   </div>
 
   <!-- ATTENDANCE — manual, Ash only -->
@@ -155,24 +187,70 @@
 'use strict';
 var esc = Lions.escapeHtml;
 
-var PASSWORD  = 'Dexter';
-var SHOTS_CSV = 'https://docs.google.com/spreadsheets/d/' + Lions.SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=shots';
-
 // ── LOCK ──────────────────────────────────────────────────
+// The password is NOT in this file. It lives in Apps Script's Script
+// Properties, on Google's servers, and is checked there. Nothing in the
+// page reveals it, and the data endpoints refuse to answer without it.
+var PW = '';   // held in memory for this tab only, never written to disk
+
+function authQS() { return PW ? '&pw=' + encodeURIComponent(PW) : ''; }
+
 function checkPassword() {
   var input = document.getElementById('pw-input');
   var err = document.getElementById('pw-error');
-  if (input.value === PASSWORD) {
-    document.getElementById('lock').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    loadAll();
-  } else {
-    input.classList.add('error');
-    err.textContent = 'Wrong password. Try again.';
-    input.value = '';
-    setTimeout(function () { input.classList.remove('error'); }, 400);
-  }
+  var btn = document.getElementById('pw-btn');
+  var typed = input.value;
+  if (!typed) return;
+
+  btn.disabled = true;
+  err.style.color = 'var(--grey)';
+  err.textContent = 'CHECKING…';
+
+  fetch(Lions.ENDPOINT + '?action=unlock&pw=' + encodeURIComponent(typed))
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      btn.disabled = false;
+      if (res && res.ok) {
+        PW = typed;
+        try { sessionStorage.setItem('lions_pw', typed); } catch (e) {}
+        document.getElementById('lock').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadAll();
+        return;
+      }
+      err.style.color = 'var(--lion)';
+      if (res && res.configured === false) {
+        err.textContent = 'NO PASSWORD SET — RUN setCoachPassword() IN APPS SCRIPT';
+      } else {
+        err.textContent = 'Wrong password. Try again.';
+        input.classList.add('error');
+        setTimeout(function () { input.classList.remove('error'); }, 400);
+      }
+      input.value = '';
+    })
+    .catch(function () {
+      btn.disabled = false;
+      err.style.color = 'var(--gold)';
+      err.textContent = 'NO CONNECTION — CHECK THE APPS SCRIPT IS DEPLOYED';
+    });
 }
+
+// Stay unlocked while this tab is open, but not after it closes.
+(function () {
+  var saved = '';
+  try { saved = sessionStorage.getItem('lions_pw') || ''; } catch (e) {}
+  if (!saved) return;
+  fetch(Lions.ENDPOINT + '?action=unlock&pw=' + encodeURIComponent(saved))
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res || !res.ok) return;
+      PW = saved;
+      document.getElementById('lock').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadAll();
+    })
+    .catch(function () {});
+})();
 document.getElementById('pw-btn').addEventListener('click', checkPassword);
 document.getElementById('pw-input').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') checkPassword();
@@ -183,13 +261,123 @@ document.querySelectorAll('.tab').forEach(function (t) {
   t.addEventListener('click', function () {
     var tab = this.dataset.tab;
     document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x.dataset.tab === tab); });
-    ['shooting', 'running', 'attendance'].forEach(function (p) {
+    ['shooting', 'running', 'attendance', 'challenge'].forEach(function (p) {
       document.getElementById('pane-' + p).classList.toggle('hidden', p !== tab);
     });
   });
 });
 
-function loadAll() { loadShooting(); loadRunning(); loadAttendance(); }
+function loadAll() {
+  // Pull the shared roster first — new players must appear everywhere.
+  Lions.refreshRoster(function () { renderAttendance(); renderRosterList(); });
+  Lions.refreshGoals(function (g) { renderGoalInputs(g); loadChallenge(); });
+  loadShooting(); loadRunning(); loadAttendance();
+}
+
+// ── WEEKLY CHALLENGE ──────────────────────────────────────
+function renderGoalInputs(g) {
+  document.getElementById('goal-shots').value = g.shots;
+  document.getElementById('goal-runs').value = g.runs;
+}
+
+document.getElementById('save-goals').addEventListener('click', function () {
+  var shots = parseInt(document.getElementById('goal-shots').value, 10);
+  var runs = parseInt(document.getElementById('goal-runs').value, 10);
+  if (!(shots > 0) || !(runs > 0)) { Lions.toast('Enter numbers above 0'); return; }
+
+  var st = document.getElementById('goals-status');
+  st.textContent = 'SAVING…'; st.style.color = 'var(--grey)';
+  Lions.saveGoals(shots, runs, PW)
+    .then(function () {
+      st.textContent = '✅ SAVED — PLAYERS SEE THIS NEXT TIME THEY OPEN THE APP';
+      st.style.color = 'var(--green)';
+      loadChallenge();
+    })
+    .catch(function () {
+      st.textContent = '⚠️ COULD NOT SAVE — CHECK CONNECTION';
+      st.style.color = 'var(--gold)';
+    });
+});
+
+// Who has hit this week's targets, straight from the sheet.
+function loadChallenge() {
+  var el = document.getElementById('challenge-board');
+  var goals = Lions.getGoals();
+  var wk = Lions.weekKey();
+
+  Promise.all([
+    fetch(Lions.ENDPOINT + '?action=shots' + authQS()).then(function (r) { return r.json(); }).catch(function () { return []; }),
+    fetch(Lions.ENDPOINT + '?action=runs' + authQS()).then(function (r) { return r.json(); }).catch(function () { return []; })
+  ]).then(function (res) {
+    var shots = res[0] || [], runs = res[1] || [];
+    var by = {};
+    var touch = function (n) {
+      if (!by[n]) by[n] = { name: n, makes: 0, runs: 0 };
+      return by[n];
+    };
+
+    // Only this week's rows count toward the challenge.
+    var thisWeek = function (d) {
+      var t = Date.parse(d);
+      return isNaN(t) ? false : Lions.weekKey(new Date(t)) === wk;
+    };
+    var toInt = function (v) { return parseInt(String(v == null ? 0 : v).replace(/[^\d-]/g, ''), 10) || 0; };
+
+    shots.forEach(function (r) {
+      if (!r.player || !thisWeek(r.date)) return;
+      touch(r.player).makes += toInt(r['3Made'] || r['Threes Made']) +
+                               toInt(r.MidMade || r['Mid Made']) +
+                               toInt(r.FTMade || r['FT made'] || r['FT Made']);
+    });
+    runs.forEach(function (r) {
+      if (!r.player || !thisWeek(r.date)) return;
+      touch(r.player).runs++;
+    });
+
+    var rows = Lions.getRoster().map(function (n) {
+      var found = null;
+      Object.keys(by).forEach(function (k) { if (Lions.norm(k) === Lions.norm(n)) found = by[k]; });
+      return found || { name: n, makes: 0, runs: 0 };
+    }).sort(function (a, b) { return (b.makes / goals.shots + b.runs / goals.runs) - (a.makes / goals.shots + a.runs / goals.runs); });
+
+    var done = rows.filter(function (r) { return r.makes >= goals.shots && r.runs >= goals.runs; }).length;
+
+    el.innerHTML =
+      '<div class="stat-row" style="margin-bottom:14px">' +
+        '<div class="stat"><div class="stat-val green">' + done + '</div><div class="stat-label">completed</div></div>' +
+        '<div class="stat"><div class="stat-val">' + rows.length + '</div><div class="stat-label">players</div></div>' +
+        '<div class="stat"><div class="stat-val gold">' + Lions.weekLabel() + '</div><div class="stat-label">week</div></div>' +
+      '</div>' +
+      rows.map(function (r) {
+        var sPct = Math.min(100, Math.round(r.makes / goals.shots * 100));
+        var rPct = Math.min(100, Math.round(r.runs / goals.runs * 100));
+        var all = r.makes >= goals.shots && r.runs >= goals.runs;
+        return '<div class="lb-row" style="padding:12px 0">' +
+          '<div class="avatar">' + esc(Lions.initials(r.name)) + '</div>' +
+          '<div class="lb-info">' +
+            '<div class="lb-name">' + esc(r.name) + (all ? ' ✅' : '') + '</div>' +
+            '<div class="lb-sub">' + r.makes + '/' + goals.shots + ' makes · ' + r.runs + '/' + goals.runs + ' run' + (goals.runs > 1 ? 's' : '') + '</div>' +
+            '<div style="display:flex;gap:6px;margin-top:6px">' +
+              '<div class="bar-track" style="flex:2"><div class="bar-fill' + (sPct >= 100 ? ' green' : '') + '" style="width:' + sPct + '%"></div></div>' +
+              '<div class="bar-track" style="flex:1"><div class="bar-fill' + (rPct >= 100 ? ' green' : ' blue') + '" style="width:' + rPct + '%"></div></div>' +
+            '</div>' +
+          '</div></div>';
+      }).join('');
+  });
+}
+
+// ── ROSTER (including players who added themselves) ───────
+function renderRosterList() {
+  var roster = Lions.getRoster();
+  var base = Lions.BASE_ROSTER.map(Lions.norm);
+  document.getElementById('roster-count').textContent =
+    roster.length + ' players · ' + Math.max(0, roster.length - Lions.BASE_ROSTER.length) + ' added since the season started';
+  document.getElementById('roster-list').innerHTML = roster.map(function (n) {
+    var isNew = base.indexOf(Lions.norm(n)) === -1;
+    return '<div class="admin-row"><div class="admin-name">' + esc(n) + '</div>' +
+      (isNew ? '<span class="badge badge-green">new</span>' : '') + '</div>';
+  }).join('');
+}
 document.getElementById('refresh-btn').addEventListener('click', loadAll);
 
 // ── SHOOTING ──────────────────────────────────────────────
@@ -205,35 +393,15 @@ function parseCSV(csv) {
   }).filter(function (s) { return s.player; });
 }
 
-// The CSV export URL is case-sensitive about the tab name, unlike the
-// Apps Script. Try the likely spellings, then fall back to the endpoint.
-var SHOT_TAB_NAMES = ['shots', 'Shots', 'SHOTS'];
-function csvUrlFor(tab) {
-  return 'https://docs.google.com/spreadsheets/d/' + Lions.SHEET_ID +
-         '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tab);
-}
-
+// Read through the password-checked endpoint, not the public CSV export.
+// That way the Sheet itself can stay private — a public sheet would make
+// the password pointless, since anyone could read the data around it.
 function loadShooting() {
   var el = document.getElementById('shooting-lb');
-
-  (function attempt(i) {
-    if (i >= SHOT_TAB_NAMES.length) { loadShootingViaEndpoint(el); return; }
-    fetch(csvUrlFor(SHOT_TAB_NAMES[i]))
-      .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
-      .then(function (csv) {
-        var sessions = parseCSV(csv);
-        if (!sessions.length) { attempt(i + 1); return; }   // wrong tab, or empty
-        renderShooting(sessions, el);
-      })
-      .catch(function () { attempt(i + 1); });
-  })(0);
-}
-
-// Last resort: ask the Apps Script, which finds the tab regardless of case.
-function loadShootingViaEndpoint(el) {
-  fetch(Lions.ENDPOINT + '?action=shots')
+  fetch(Lions.ENDPOINT + '?action=shots' + authQS())
     .then(function (r) { return r.json(); })
     .then(function (rows) {
+      if (rows && rows.error) { el.innerHTML = '<div class="empty">Locked.</div>'; return; }
       var num = function (v) { return parseFloat(String(v == null ? 0 : v).replace('%', '').replace(',', '.')) || 0; };
       var sessions = (rows || []).map(function (r) {
         return {
@@ -244,7 +412,7 @@ function loadShootingViaEndpoint(el) {
       renderShooting(sessions, el);
     })
     .catch(function () {
-      el.innerHTML = '<div class="empty">Could not load shooting data.<br>Check the sheet is shared as "Anyone with the link".</div>';
+      el.innerHTML = '<div class="empty">Could not load shooting data.<br>Check the Apps Script is deployed.</div>';
     });
 }
 
@@ -297,7 +465,7 @@ function renderShooting(sessions, el) {
 function loadRunning() {
   var el = document.getElementById('running-lb');
   document.getElementById('running-week').textContent = Lions.weekLabel();
-  fetch(Lions.ENDPOINT + '?action=runs')
+  fetch(Lions.ENDPOINT + '?action=runs' + authQS())
     .then(function (r) { return r.json(); })
     .then(function (rows) { renderRunning(rows || [], el); })
     .catch(function () {
@@ -355,7 +523,7 @@ var todayMarked = {};
 var attSheetData = {};
 
 function loadAttendance() {
-  fetch(Lions.ENDPOINT + '?action=attendance')
+  fetch(Lions.ENDPOINT + '?action=attendance' + authQS())
     .then(function (r) { return r.json(); })
     .then(function (rows) {
       attSheetData = {};
@@ -370,7 +538,7 @@ function loadAttendance() {
 function safeid(name) { return name.replace(/[^a-z0-9]/gi, '_'); }
 
 function renderAttendance() {
-  document.getElementById('att-admin-rows').innerHTML = Lions.ROSTER.map(function (name) {
+  document.getElementById('att-admin-rows').innerHTML = Lions.getRoster().map(function (name) {
     return '<div class="admin-row">' +
       '<div class="admin-name">' + esc(name) + '</div>' +
       '<button class="att-toggle ' + (todayMarked[name] ? 'marked' : '') + '" id="att-' + safeid(name) + '" data-n="' + esc(name) + '">' +
@@ -380,7 +548,7 @@ function renderAttendance() {
     b.addEventListener('click', function () { toggleAttMark(this.dataset.n); });
   });
 
-  var ranked = Lions.ROSTER.map(function (name) {
+  var ranked = Lions.getRoster().map(function (name) {
     return { name: name, count: attSheetData[name] || 0 };
   }).sort(function (a, b) { return b.count - a.count; });
 
@@ -414,8 +582,9 @@ document.getElementById('save-att').addEventListener('click', function () {
   Lions.toast('⏳ Saving...');
   Lions.post({
     type: 'attendance',
+    pw: PW,
     date: Lions.stamp(),
-    players: Lions.ROSTER.map(function (name) { return { name: name, present: !!todayMarked[name] }; })
+    players: Lions.getRoster().map(function (name) { return { name: name, present: !!todayMarked[name] }; })
   }).then(function () {
     marked.forEach(function (n) { attSheetData[n] = (attSheetData[n] || 0) + 1; });
     todayMarked = {};

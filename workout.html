@@ -163,11 +163,12 @@
     <div style="font-size:48px;margin:20px 0 12px">🦁</div>
     <div class="section-title" id="submit-name"></div>
     <p class="section-sub" id="submit-detail"></p>
+    <div class="mono" id="finish-status" style="font-size:11px;letter-spacing:1px;min-height:18px;margin-bottom:20px"></div>
     <p style="font-size:13px;color:var(--grey);margin-bottom:20px;line-height:1.6">
-      Tap below to log your session.<br>It opens Google Forms — just hit <strong>Submit</strong>.
+      Next time you open this, it'll pick up right where you left off.
     </p>
-    <a id="submit-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary" style="margin-bottom:10px">📋 LOG MY SESSION</a>
-    <button class="btn-secondary" id="skip-btn" style="width:100%">SKIP — ALREADY SUBMITTED</button>
+    <button class="btn-primary" id="finish-home" style="margin-bottom:10px">DONE</button>
+    <button class="btn-secondary" id="skip-btn" style="width:100%">BACK TO PLAYERS</button>
   </div>
 </div>
 
@@ -206,6 +207,24 @@ if (!data) data = { players: JSON.parse(JSON.stringify(DEFAULTS)) };
 DEFAULTS.forEach(function (dp) {
   if (!data.players.find(function (p) { return p.name === dp.name; })) data.players.push(Object.assign({}, dp));
 });
+
+/**
+ * Fold the shared roster in, so anyone who added themselves elsewhere in
+ * the app turns up here too. New players start where a newcomer should:
+ * Group C, week 1, upper body.
+ */
+function syncRosterIntoPlayers() {
+  var added = false;
+  Lions.getRoster().forEach(function (n) {
+    var known = data.players.some(function (p) { return Lions.norm(p.name) === Lions.norm(n); });
+    if (known) return;
+    data.players.push({ name: n, group: 'C', phase: null, week: 1, day: 'upper' });
+    added = true;
+  });
+  if (added) save();
+  return added;
+}
+syncRosterIntoPlayers();
 function save() { try { localStorage.setItem(SK, JSON.stringify(data)); } catch (e) {} }
 save();
 
@@ -366,12 +385,30 @@ function renderYouBox() {
         '<div class="you-name">' + esc(p.name) + '</div>' +
         '<div class="you-loc">Up next · ' + esc(locStr(Object.assign({}, p, sug))) + '</div>' +
       '</div><span class="chevron">›</span></div>' +
+    '<div class="mono center" id="last-session" style="font-size:10px;color:var(--grey2);letter-spacing:1px;margin-top:8px">' +
+      'checking your last session…</div>' +
     '<div class="center" style="margin:12px 0 4px">' +
       '<button class="btn-ghost" id="show-roster">Not you? Pick a different name</button></div>';
 
   document.getElementById('you-go').addEventListener('click', function () { selectPlayer(idx); });
+  showLastSession(p.name);
   document.getElementById('show-roster').addEventListener('click', function () {
     showFullList = true; renderPlayers();
+  });
+}
+
+// What the sheet says this player actually did last — the record that
+// survives switching phones, unlike the copy stored on this device.
+function showLastSession(name) {
+  Lions.lastSession(name, function (s) {
+    var el = document.getElementById('last-session');
+    if (!el) return;
+    if (!s) { el.textContent = 'No session logged yet — this will be your first.'; return; }
+    var where = 'Group ' + (s.group || '?') +
+      (s.phase ? ' · Phase ' + s.phase : '') +
+      ' · Week ' + (s.week || '?') +
+      ' · ' + (String(s.day).toLowerCase() === 'upper' ? 'Upper' : 'Lower');
+    el.textContent = 'LAST LOGGED: ' + where + (s.date ? '  (' + String(s.date).slice(0, 16) + ')' : '');
   });
 }
 
@@ -501,16 +538,35 @@ function renderSessionScreen(p) {
   });
 }
 
-var FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeZjGjDxRXBdrQ2NY9FL5iWfyITCYX_DoWY_adDspy-sL7Okw/formResponse';
-
+// Sessions now go straight to the sheet — no Google Forms round-trip.
 function goToFinish() {
   var p = data.players[currentIdx];
   Object.assign(data.players[currentIdx], pending);
   save();
-  var params = new URLSearchParams({
-    name: p.name, group: p.group, phase: p.phase || '-', week: p.week, day: p.day
+
+  document.getElementById('submit-name').textContent = p.name.toUpperCase();
+  document.getElementById('submit-detail').textContent = locStr(p);
+  goTo('screen-finish');
+
+  Lions.postWithOverlay({
+    type: 'weights',
+    date: Lions.stamp(),
+    name: p.name,
+    player: p.name,
+    group: p.group,
+    phase: p.phase || '',
+    week: p.week,
+    day: p.day
+  }, {
+    title: 'Saving your session…',
+    okTitle: 'Session logged',
+    okMsg: 'Coach can see it. You can close the app now.',
+    failMsg: 'No connection. Screenshot this screen and show Coach.'
+  }).then(function (okState) {
+    var el = document.getElementById('finish-status');
+    el.textContent = okState ? '✅ Saved to Coach\'s sheet' : '⚠️ Not saved — show this to Coach';
+    el.style.color = okState ? 'var(--green)' : 'var(--gold)';
   });
-  window.location.href = 'submit.html?' + params.toString();
 }
 
 // ─── ROSTER (Ash) ─────────────────────────────────────────
@@ -622,20 +678,29 @@ document.getElementById('adjust-btn').addEventListener('click', openAdjust);
 document.getElementById('adjust-back-btn').addEventListener('click', function () { showConfirm(data.players[currentIdx].name, pending); });
 document.getElementById('confirm-adjust').addEventListener('click', function () { showConfirm(data.players[currentIdx].name, pending); });
 document.getElementById('finish-btn').addEventListener('click', goToFinish);
-document.getElementById('skip-btn').addEventListener('click', function () {
-  Object.assign(data.players[currentIdx], pending); save(); goTo('screen-players');
-});
+document.getElementById('skip-btn').addEventListener('click', function () { goTo('screen-players'); });
+document.getElementById('finish-home').addEventListener('click', function () { location.href = 'index.html'; });
 document.getElementById('add-player').addEventListener('click', function () {
-  var name = prompt('Enter your name:');
-  if (name && name.trim()) {
-    data.players.push({ name: name.trim(), group: 'C', phase: null, week: 1, day: 'upper' });
-    Lions.setPlayer(name.trim());
-    showFullList = false;
-    save(); renderPlayers(); renderWho();
-  }
+  var typed = prompt('Enter your full name (first and last):');
+  if (!typed || !typed.trim()) return;
+  // Goes through the shared roster so the sheet and every other page get it.
+  var name = Lions.addPlayerName(typed);
+  if (!name) { Lions.toast('That name doesn\'t look right'); return; }
+  syncRosterIntoPlayers();
+  Lions.setPlayer(name);
+  showFullList = false;
+  save(); renderPlayers(); renderWho();
+  Lions.toast('Added — Coach will see you now');
 });
 
 renderWho();
+
+// Pull in team-mates who added themselves on another phone.
+Lions.refreshRoster(function (changed) {
+  if (!changed) return;
+  if (syncRosterIntoPlayers() && !document.getElementById('screen-players').classList.contains('active')) return;
+  renderPlayers();
+});
 </script>
 </body>
 </html>

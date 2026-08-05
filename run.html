@@ -427,14 +427,21 @@ function initGate() {
   var sel = document.getElementById('gate-select');
   var btn = document.getElementById('gate-btn');
   sel.innerHTML = Lions.rosterOptions(Lions.getPlayer());
-  btn.disabled = !sel.value;
-  sel.addEventListener('change', function () { btn.disabled = !sel.value; });
+  btn.disabled = !sel.value || sel.value === Lions.ADD_VALUE;
+  sel.addEventListener('change', function () {
+    var picked = Lions.handleRosterSelect(this);
+    btn.disabled = !picked;
+  });
   btn.addEventListener('click', function () {
-    if (!sel.value) return;
+    if (!sel.value || sel.value === Lions.ADD_VALUE) return;
     Lions.setPlayer(sel.value);
     renderWho();
     goStep('time');
   });
+  Lions.refreshRoster(function (changed) {
+    if (changed) sel.innerHTML = Lions.rosterOptions(Lions.getPlayer());
+  });
+  Lions.refreshGoals();
 }
 function renderWho() {
   Lions.renderWho('who-box', function () {
@@ -834,18 +841,19 @@ function submitRun() {
   goStep('done');
 
   var el = document.getElementById('log-status');
-  el.textContent = '⏳ Saving to Coach\'s sheet...';
-  el.style.color = 'var(--grey)';
-  Lions.post({
+  el.textContent = '';
+  Lions.postWithOverlay({
     type: 'run', date: ts, player: name,
     runType: rt ? rt.name : '', plannedMin: state.time,
     distanceKm: dist, durationMin: mins, pacePerKm: pace
-  }).then(function () {
-    el.textContent = '✅ Run saved to Coach\'s sheet';
-    el.style.color = 'var(--green)';
-  }).catch(function () {
-    el.textContent = '⚠️ Could not save — screenshot this and send it to Coach';
-    el.style.color = 'var(--gold)';
+  }, {
+    title: 'Saving your run…',
+    okTitle: 'Run saved',
+    okMsg: 'Coach can see it. You can close the app now.',
+    failMsg: 'No connection. Screenshot this screen and send it to Coach.'
+  }).then(function (okState) {
+    el.textContent = okState ? '✅ Saved to Coach\'s sheet' : '⚠️ Not saved — screenshot and send to Coach';
+    el.style.color = okState ? 'var(--green)' : 'var(--gold)';
   });
 }
 

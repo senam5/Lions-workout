@@ -127,11 +127,12 @@
         '<span class="label">Name</span>' +
         '<select class="who-select" id="who-select">' + Lions.rosterOptions(name) + '</select>';
       document.getElementById('who-select').addEventListener('change', function () {
-        if (!this.value) return;
-        Lions.setPlayer(this.value);
+        var picked = Lions.handleRosterSelect(this);
+        if (!picked) return;
+        Lions.setPlayer(picked);
         renderWhoBar(false);
         renderGoals();
-        Lions.toast('Welcome, ' + this.value.split(' ')[0]);
+        Lions.toast('Welcome, ' + picked.split(' ')[0]);
       });
     }
     renderGoals();
@@ -144,14 +145,15 @@
     if (!name) { el.innerHTML = ''; return; }
 
     var makes  = Lions.weekMakes(name);
-    var goal   = Lions.WEEKLY_SHOT_GOAL;
+    var goals  = Lions.getGoals();
+    var goal   = goals.shots;
     var runs   = Lions.getRunLog().filter(function (r) {
       return r.week === Lions.weekKey() && Lions.norm(r.player) === Lions.norm(name);
     }).length;
     var streak = Lions.shotStreak(name);
 
     var shotPct = Math.min(100, Math.round(makes / goal * 100));
-    var runPct  = Math.min(100, Math.round(runs / Lions.WEEKLY_RUN_GOAL * 100));
+    var runPct  = Math.min(100, Math.round(runs / goals.runs * 100));
 
     el.innerHTML =
       '<div class="goal">' +
@@ -161,14 +163,20 @@
       '</div>' +
       '<div class="goal">' +
         '<div class="goal-top"><span class="goal-name">' + (streak > 0 ? '🔥 Streak' : 'Runs this week') + '</span>' +
-        '<span class="goal-val' + ((streak > 0 || runs >= Lions.WEEKLY_RUN_GOAL) ? ' done' : '') + '">' +
-          (streak > 0 ? streak + ' wk' : runs + '/' + Lions.WEEKLY_RUN_GOAL) +
+        '<span class="goal-val' + ((streak > 0 || runs >= goals.runs) ? ' done' : '') + '">' +
+          (streak > 0 ? streak + ' wk' : runs + '/' + goals.runs) +
         '</span></div>' +
-        '<div class="bar-track"><div class="bar-fill' + (runs >= Lions.WEEKLY_RUN_GOAL ? ' green' : '') + '" style="width:' + runPct + '%"></div></div>' +
+        '<div class="bar-track"><div class="bar-fill' + (runs >= goals.runs ? ' green' : '') + '" style="width:' + runPct + '%"></div></div>' +
       '</div>';
   }
 
   renderWhoBar(false);
+
+  // Pick up new team-mates and any target the coach changed.
+  Lions.refreshRoster(function (changed) {
+    if (changed && !Lions.getPlayer()) renderWhoBar(false);
+  });
+  Lions.refreshGoals(function () { renderGoals(); });
 </script>
 </body>
 </html>
