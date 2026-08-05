@@ -4,47 +4,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lions — Train Today</title>
+<link rel="stylesheet" href="lions.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #111d33;
-    --navy: #1B2A4A;
-    --navy-light: #223260;
-    --surface: #162040;
-    --line: #243358;
-    --red: #CC2229;
-    --red-dim: #4a0a0d;
-    --white: #FFFFFF;
-    --grey: #7a8aaa;
-  }
-  body { background: var(--navy); color: var(--white); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  body { display: flex; flex-direction: column; min-height: 100vh; background: var(--navy); }
   .hero-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(204,34,41,0.08) 0%, transparent 70%); pointer-events: none; }
-  main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 48px 24px; position: relative; }
-  .top-badge { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-  .shield { width: 36px; height: 36px; background: var(--red); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .eyebrow { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 3px; color: var(--grey); text-transform: uppercase; }
-  h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px, 18vw, 88px); line-height: 0.88; color: var(--white); letter-spacing: 1px; margin-bottom: 12px; }
-  h1 span { color: var(--red); }
-  .subtitle { font-size: 13px; color: var(--grey); line-height: 1.7; max-width: 300px; margin-bottom: 40px; }
+  main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px 24px; position: relative; max-width: 560px; margin: 0 auto; width: 100%; }
+  .top-badge { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .shield { width: 36px; height: 36px; background: var(--lion); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); flex-shrink: 0; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px, 16vw, 82px); line-height: 0.88; letter-spacing: 1px; margin-bottom: 12px; }
+  h1 span { color: var(--lion); }
+  .subtitle { font-size: 13px; color: var(--grey); line-height: 1.7; max-width: 320px; margin-bottom: 22px; }
+
+  /* Identity */
+  .who-bar { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .who-name { flex: 1; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; line-height: 1; min-width: 0; }
+  .who-select { flex: 1; min-width: 0; background: var(--surface2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 12px; color: var(--white); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; cursor: pointer; }
+  .who-select:focus { border-color: var(--lion); }
+
+  /* Weekly targets */
+  .goals { display: flex; gap: 8px; margin-bottom: 22px; }
+  .goal { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .goal-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .goal-name { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--grey); letter-spacing: 1px; text-transform: uppercase; }
+  .goal-val { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 1px; line-height: 1; }
+  .goal-val.done { color: var(--green); }
+
   .choices { display: flex; flex-direction: column; gap: 12px; }
-  .choice-card { display: flex; align-items: center; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; text-decoration: none; transition: all 0.2s; }
-  .choice-card:hover { border-color: var(--red); transform: translateY(-2px); background: var(--navy-light); }
+  .choice-card { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; text-decoration: none; transition: all 0.2s; }
+  .choice-card:hover { border-color: var(--lion); transform: translateY(-2px); background: var(--surface2); }
   .choice-card:active { transform: translateY(0); }
-  .choice-icon { font-size: 32px; flex-shrink: 0; width: 48px; text-align: center; }
-  .choice-info { flex: 1; }
-  .choice-name { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--white); letter-spacing: 1px; line-height: 1; margin-bottom: 5px; }
+  .choice-icon { font-size: 30px; flex-shrink: 0; width: 46px; text-align: center; }
+  .choice-info { flex: 1; min-width: 0; }
+  .choice-name { font-family: 'Bebas Neue', sans-serif; font-size: 23px; letter-spacing: 1px; line-height: 1; margin-bottom: 5px; }
   .choice-desc { font-size: 12px; color: var(--grey); line-height: 1.5; }
-  .choice-arrow { font-size: 22px; color: var(--red); flex-shrink: 0; transition: transform 0.2s; }
+  .choice-arrow { font-size: 21px; color: var(--lion); flex-shrink: 0; transition: transform 0.2s; }
   .choice-card:hover .choice-arrow { transform: translateX(4px); }
-  .divider { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
-  .divider-line { flex: 1; height: 1px; background: var(--line); }
-  .divider-text { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 2px; }
   .choice-card.locked { opacity: 0.7; }
   .choice-card.locked:hover { border-color: var(--grey); }
   .choice-card.locked .choice-arrow { color: var(--grey); }
+
+  .split { display: flex; align-items: center; gap: 12px; margin: 2px 0; }
+  .split-line { flex: 1; height: 1px; background: var(--line); }
+  .split-text { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 2px; }
+
   footer { padding: 20px 24px; text-align: center; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; text-transform: uppercase; border-top: 1px solid var(--line); position: relative; }
-  .accent-bar { height: 3px; background: linear-gradient(90deg, var(--red), transparent); width: 100%; }
+  .accent-bar { height: 3px; background: linear-gradient(90deg, var(--lion), transparent); width: 100%; }
 </style>
 </head>
 <body>
@@ -57,6 +61,10 @@
   </div>
   <h1>LET'S<br><span>WORK.</span></h1>
   <p class="subtitle">Pick your session. Put in the reps. No excuses.</p>
+
+  <div class="who-bar" id="who-bar"></div>
+  <div class="goals" id="goals"></div>
+
   <div class="choices">
     <a class="choice-card" href="player-workout.html">
       <div class="choice-icon">🏀</div>
@@ -66,34 +74,101 @@
       </div>
       <div class="choice-arrow">→</div>
     </a>
-    <div class="divider">
-      <div class="divider-line"></div>
-      <div class="divider-text">or</div>
-      <div class="divider-line"></div>
-    </div>
+    <div class="split"><div class="split-line"></div><div class="split-text">or</div><div class="split-line"></div></div>
     <a class="choice-card" href="workout.html">
       <div class="choice-icon">🦁</div>
       <div class="choice-info">
         <div class="choice-name">Coach Ash's Program</div>
-        <div class="choice-desc">Your assigned session for this week. Follow the program.</div>
+        <div class="choice-desc">Your assigned weight room session for this week. Follow the program.</div>
       </div>
       <div class="choice-arrow">→</div>
     </a>
-    <div class="divider">
-      <div class="divider-line"></div>
-      <div class="divider-text">coach</div>
-      <div class="divider-line"></div>
-    </div>
+    <div class="split"><div class="split-line"></div><div class="split-text">or</div><div class="split-line"></div></div>
+    <a class="choice-card" href="run.html">
+      <div class="choice-icon">🏃</div>
+      <div class="choice-info">
+        <div class="choice-name">Weekly Run</div>
+        <div class="choice-desc">Build the engine. Pick your time and type, then let the app coach you through every interval.</div>
+      </div>
+      <div class="choice-arrow">→</div>
+    </a>
+    <div class="split"><div class="split-line"></div><div class="split-text">coach</div><div class="split-line"></div></div>
     <a class="choice-card locked" href="leaderboard.html">
       <div class="choice-icon">🏆</div>
       <div class="choice-info">
         <div class="choice-name">Leaderboard</div>
-        <div class="choice-desc">Shooting rankings & weight room attendance. Coach access only.</div>
+        <div class="choice-desc">Shooting, running & weight room. Coach access only.</div>
       </div>
       <div class="choice-arrow">🔒</div>
     </a>
   </div>
 </main>
 <footer>Lions Program · St. Lawrence · 2026</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="lions.js"></script>
+<script>
+  // ── IDENTITY ──────────────────────────────────────────────
+  function renderWhoBar(forceEdit) {
+    var bar  = document.getElementById('who-bar');
+    var name = Lions.getPlayer();
+
+    if (name && !forceEdit) {
+      bar.innerHTML =
+        '<div style="flex:1;min-width:0">' +
+          '<div class="label">Training as</div>' +
+          '<div class="who-name">' + Lions.escapeHtml(name) + '</div>' +
+        '</div>' +
+        '<button class="btn-ghost" id="who-switch">not you?</button>';
+      document.getElementById('who-switch').addEventListener('click', function () { renderWhoBar(true); });
+    } else {
+      bar.innerHTML =
+        '<span class="label">Name</span>' +
+        '<select class="who-select" id="who-select">' + Lions.rosterOptions(name) + '</select>';
+      document.getElementById('who-select').addEventListener('change', function () {
+        if (!this.value) return;
+        Lions.setPlayer(this.value);
+        renderWhoBar(false);
+        renderGoals();
+        Lions.toast('Welcome, ' + this.value.split(' ')[0]);
+      });
+    }
+    renderGoals();
+  }
+
+  // ── WEEKLY TARGETS ────────────────────────────────────────
+  function renderGoals() {
+    var el = document.getElementById('goals');
+    var name = Lions.getPlayer();
+    if (!name) { el.innerHTML = ''; return; }
+
+    var makes  = Lions.weekMakes(name);
+    var goal   = Lions.WEEKLY_SHOT_GOAL;
+    var runs   = Lions.getRunLog().filter(function (r) {
+      return r.week === Lions.weekKey() && Lions.norm(r.player) === Lions.norm(name);
+    }).length;
+    var streak = Lions.shotStreak(name);
+
+    var shotPct = Math.min(100, Math.round(makes / goal * 100));
+    var runPct  = Math.min(100, Math.round(runs / Lions.WEEKLY_RUN_GOAL * 100));
+
+    el.innerHTML =
+      '<div class="goal">' +
+        '<div class="goal-top"><span class="goal-name">Shots this week</span>' +
+        '<span class="goal-val' + (makes >= goal ? ' done' : '') + '">' + makes + '/' + goal + '</span></div>' +
+        '<div class="bar-track"><div class="bar-fill' + (makes >= goal ? ' green' : '') + '" style="width:' + shotPct + '%"></div></div>' +
+      '</div>' +
+      '<div class="goal">' +
+        '<div class="goal-top"><span class="goal-name">' + (streak > 0 ? '🔥 Streak' : 'Runs this week') + '</span>' +
+        '<span class="goal-val' + ((streak > 0 || runs >= Lions.WEEKLY_RUN_GOAL) ? ' done' : '') + '">' +
+          (streak > 0 ? streak + ' wk' : runs + '/' + Lions.WEEKLY_RUN_GOAL) +
+        '</span></div>' +
+        '<div class="bar-track"><div class="bar-fill' + (runs >= Lions.WEEKLY_RUN_GOAL ? ' green' : '') + '" style="width:' + runPct + '%"></div></div>' +
+      '</div>';
+  }
+
+  renderWhoBar(false);
+</script>
 </body>
 </html>

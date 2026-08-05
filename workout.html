@@ -3,463 +3,452 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lions Weight Room</title>
+<title>Lions — Weight Room</title>
+<link rel="stylesheet" href="lions.css">
 <style>
-  :root {
-    --purple: #26215C;
-    --purple-mid: #534AB7;
-    --purple-light: #EEEDFE;
-    --purple-text: #3C3489;
-    --green-light: #E1F5EE;
-    --green-text: #085041;
-    --amber-light: #FAEEDA;
-    --amber-text: #633806;
-    --gray-50: #F8F8F7;
-    --gray-100: #F0EFEB;
-    --gray-300: #D3D1C7;
-    --gray-500: #888780;
-    --gray-700: #444441;
-    --gray-900: #1A1A18;
-    --text: #1A1A18;
-    --text-muted: #5F5E5A;
-    --border: rgba(0,0,0,0.1);
-    --border-strong: rgba(0,0,0,0.2);
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--text); min-height: 100vh; }
-  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; position: relative; }
-  .screen { display: none; padding: 24px 20px 40px; min-height: 100vh; }
+  .screen { display: none; }
   .screen.active { display: block; }
 
-  /* Header */
-  .app-header { background: var(--purple); color: white; padding: 16px 20px 14px; display: flex; align-items: center; gap: 12px; }
-  .app-header .logo { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
-  .app-header .logo span { opacity: 0.6; font-weight: 400; }
-  .back-btn { background: none; border: none; color: white; cursor: pointer; padding: 4px; display: flex; align-items: center; gap: 4px; font-size: 14px; opacity: 0.8; }
-  .back-btn:hover { opacity: 1; }
+  .hero { background: var(--surface); border-bottom: 1px solid var(--line); padding: 34px 20px 30px; text-align: left; }
+  .hero-inner { max-width: 560px; margin: 0 auto; }
+  .hero .lion { font-size: 38px; margin-bottom: 10px; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 1px; line-height: 1; margin-bottom: 6px; }
+  .hero p { font-size: 13px; color: var(--grey); }
 
-  /* Typography */
-  h2 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-  .sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+  .player-chip { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; cursor: pointer; background: var(--surface); transition: all 0.15s; }
+  .player-chip:hover { border-color: var(--lion); background: var(--surface2); }
+  .player-name { font-size: 14px; font-weight: 600; }
+  .player-loc { font-size: 12px; color: var(--grey); margin-top: 2px; }
+  .chevron { margin-left: auto; color: var(--grey2); font-size: 18px; }
 
-  /* Buttons */
-  .btn { display: block; width: 100%; padding: 13px 16px; border: 1px solid var(--border-strong); background: white; color: var(--text); border-radius: var(--radius); font-size: 15px; cursor: pointer; text-align: center; margin-bottom: 10px; font-weight: 500; transition: background 0.15s; }
-  .btn:hover { background: var(--gray-50); }
-  .btn-primary { background: var(--purple); color: white; border-color: var(--purple); }
-  .btn-primary:hover { background: var(--purple-text); border-color: var(--purple-text); }
-  .btn-sm { display: inline-block; width: auto; padding: 8px 14px; font-size: 13px; margin-bottom: 0; }
-  .btn-ghost { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; padding: 4px 0; display: inline-flex; align-items: center; gap: 4px; }
-  .btn-ghost:hover { color: var(--text); }
+  /* Recognised player */
+  .you-card { border: 1px solid var(--lion); background: var(--lion-glow); border-radius: var(--radius); padding: 16px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.15s; }
+  .you-card:hover { background: rgba(204,34,41,0.2); }
+  .you-name { font-size: 17px; font-weight: 600; }
+  .you-loc { font-size: 12px; color: var(--grey); margin-top: 2px; }
 
-  /* Cards */
-  .card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
-
-  /* Badges */
-  .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 600; margin-bottom: 10px; letter-spacing: 0.03em; }
-  .badge-player { background: var(--green-light); color: var(--green-text); }
-  .badge-ash { background: var(--purple-light); color: var(--purple-text); }
-
-  /* Player list */
-  .player-chip { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; cursor: pointer; background: white; transition: background 0.15s; }
-  .player-chip:hover { background: var(--gray-50); }
-  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--purple-light); color: var(--purple-text); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .player-name { font-size: 15px; font-weight: 500; }
-  .player-loc { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
-  .chevron { margin-left: auto; color: var(--gray-300); font-size: 18px; }
-
-  /* Confirm card */
-  .confirm-card { border: 2px solid var(--purple-mid); border-radius: var(--radius); padding: 0; margin-bottom: 16px; overflow: hidden; }
-  .confirm-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .confirm-card { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; background: var(--surface); }
+  .confirm-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); }
   .confirm-row:last-child { border-bottom: none; }
-  .confirm-label { font-size: 13px; color: var(--text-muted); }
-  .confirm-val { font-size: 14px; font-weight: 600; color: var(--text); }
+  .confirm-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; text-transform: uppercase; }
+  .confirm-val { font-size: 14px; font-weight: 600; }
 
-  /* Chips */
-  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-  .chip { padding: 7px 14px; border: 1px solid var(--border-strong); border-radius: 99px; font-size: 13px; cursor: pointer; background: white; color: var(--text); font-weight: 500; transition: all 0.15s; }
-  .chip:hover { background: var(--gray-50); }
-  .chip.active { background: var(--purple); color: white; border-color: var(--purple); }
-  .section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; margin-top: 16px; }
+  .ex-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 15px; margin-bottom: 10px; background: var(--surface); }
+  .ex-prep { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gold); background: rgba(240,165,0,0.1); border-radius: 4px; padding: 4px 9px; display: inline-block; margin-bottom: 9px; letter-spacing: 0.5px; }
+  .ex-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .ex-detail { font-size: 13px; color: var(--grey); line-height: 1.6; }
+  .ex-note { font-size: 12px; color: var(--grey2); margin-top: 5px; }
+  .btn-timer { display: inline-block; width: auto; padding: 8px 14px; font-size: 14px; margin-top: 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--white); font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; cursor: pointer; }
+  .btn-timer:hover { border-color: var(--lion); }
 
-  /* Exercise cards */
-  .ex-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; background: white; }
-  .ex-prep { font-size: 12px; color: var(--amber-text); background: var(--amber-light); border-radius: 4px; padding: 3px 8px; display: inline-block; margin-bottom: 8px; font-weight: 500; }
-  .ex-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
-  .ex-detail { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-  .ex-note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-  .note-box { background: var(--gray-100); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6; border-left: 3px solid var(--purple-mid); }
-
-  /* Timer */
-  .timer-wrap { display: flex; flex-direction: column; align-items: center; padding: 24px 0 16px; }
-  .timer-exercise { font-size: 14px; color: var(--text-muted); margin-bottom: 4px; text-align: center; }
-  .timer-set { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
-  .timer-display { font-size: 72px; font-weight: 700; color: var(--text); letter-spacing: -3px; line-height: 1; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
-  .timer-status { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
-  .progress-bar { height: 5px; background: var(--gray-100); border-radius: 3px; overflow: hidden; margin-bottom: 20px; width: 100%; }
-  .progress-fill { height: 100%; background: var(--purple-mid); border-radius: 3px; transition: width 0.5s linear; }
-  .timer-done { font-size: 18px; font-weight: 600; color: var(--green-text); background: var(--green-light); padding: 12px 24px; border-radius: var(--radius); margin-bottom: 16px; text-align: center; }
-
-  /* Divider */
-  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-
-  /* Toast */
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--gray-900); color: white; padding: 10px 20px; border-radius: 99px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 999; }
-  .toast.show { opacity: 1; }
-
-  /* Loading */
-  .loading { text-align: center; padding: 32px; color: var(--text-muted); font-size: 14px; }
-  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--purple-mid); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Home hero */
-  .home-hero { background: var(--purple); color: white; margin: -24px -20px 24px; padding: 32px 20px 28px; }
-  .home-hero h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
-  .home-hero p { font-size: 14px; opacity: 0.7; }
-  .home-hero .lion { font-size: 36px; margin-bottom: 12px; }
+  .timer-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 0 16px; }
+  .timer-exercise { font-size: 14px; color: var(--grey); margin-bottom: 4px; text-align: center; }
+  .timer-set { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--grey); letter-spacing: 1px; margin-bottom: 10px; }
+  .timer-big { font-family: 'Bebas Neue', sans-serif; font-size: 82px; letter-spacing: 3px; line-height: 1; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+  .timer-status { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; }
+  .timer-done { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; color: var(--green); background: var(--green-dim); padding: 12px 24px; border-radius: var(--radius); margin-bottom: 16px; }
 </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- HOME -->
-  <div id="screen-home" class="screen active" style="padding-top:0">
-    <div class="home-hero">
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="back-link" id="topbar-back">← HOME</button>
+    <div>
+      <div class="topbar-eyebrow">St. Lawrence · Lions</div>
+      <div class="topbar-title">WEIGHT ROOM</div>
+    </div>
+  </div>
+  <div class="who" id="who-box"></div>
+</div>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="hero">
+    <div class="hero-inner">
       <div class="lion">🦁</div>
-      <h1>Lions Weight Room</h1>
-      <p>Ash's training program</p>
+      <h1>WEIGHT ROOM</h1>
+      <p>Coach Ash's training program</p>
     </div>
-    <button class="btn btn-primary" onclick="goTo('screen-players')">▶ Start my session</button>
-    <button class="btn" onclick="goTo('screen-ash')">⚙ Ash — view roster</button>
   </div>
-
-  <!-- PLAYERS -->
-  <div id="screen-players" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" onclick="goTo('screen-home')">← Back</button>
-      <div class="logo">Lions <span>/ Players</span></div>
+  <div class="wrap">
+    <div class="btn-row" style="flex-direction:column;gap:10px">
+      <button class="btn-primary" id="go-players">▶ START MY SESSION</button>
+      <button class="btn-secondary" id="go-roster" style="width:100%">⚙ ASH — VIEW ROSTER</button>
     </div>
-    <h2>Who are you?</h2>
-    <p class="sub">Select your name to see your session</p>
+  </div>
+</div>
+
+<!-- PLAYERS -->
+<div id="screen-players" class="screen">
+  <div class="wrap">
+    <div class="section-title" id="players-heading">WHO ARE YOU?</div>
+    <p class="section-sub" id="players-sub">Select your name to see your session</p>
+    <div id="you-box"></div>
     <div id="player-list"></div>
-    <div class="divider"></div>
-    <button class="btn-ghost" onclick="addPlayerPrompt()">+ Add my name</button>
+    <hr class="divider-h">
+    <button class="btn-ghost" id="add-player">+ Add my name</button>
   </div>
+</div>
 
-  <!-- CONFIRM -->
-  <div id="screen-confirm" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" onclick="goTo('screen-players')">← Players</button>
-      <div class="logo">Lions <span>/ Session</span></div>
-    </div>
-    <span class="badge badge-player" id="confirm-badge"></span>
-    <h2>Your session</h2>
-    <p class="sub">Confirm or adjust before starting</p>
+<!-- CONFIRM -->
+<div id="screen-confirm" class="screen">
+  <div class="wrap">
+    <span class="badge badge-lion" id="confirm-badge"></span>
+    <div class="section-title" style="margin-top:10px">YOUR SESSION</div>
+    <p class="section-sub">Confirm or adjust before starting</p>
     <div class="confirm-card">
       <div class="confirm-row"><span class="confirm-label">Group</span><span class="confirm-val" id="ci-group"></span></div>
       <div class="confirm-row" id="ci-phase-row"><span class="confirm-label">Phase</span><span class="confirm-val" id="ci-phase"></span></div>
       <div class="confirm-row"><span class="confirm-label">Week</span><span class="confirm-val" id="ci-week"></span></div>
       <div class="confirm-row"><span class="confirm-label">Day</span><span class="confirm-val" id="ci-day"></span></div>
     </div>
-    <button class="btn btn-primary" onclick="launchSession()">▶ Let's go</button>
-    <button class="btn" id="adjust-btn">✎ Adjust</button>
-  </div>
-
-  <!-- ADJUST -->
-  <div id="screen-adjust" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" id="adjust-back-btn">← Back</button>
-      <div class="logo">Lions <span>/ Adjust</span></div>
+    <div class="btn-row" style="flex-direction:column;gap:10px">
+      <button class="btn-primary" id="launch-btn">▶ LET'S GO</button>
+      <button class="btn-secondary" id="adjust-btn" style="width:100%">✎ ADJUST</button>
     </div>
-    <h2>Adjust session</h2>
-    <p class="sub">Tap to change any parameter</p>
-    <div class="section-label">Group</div>
-    <div class="chip-row" id="adj-group"></div>
-    <div id="adj-phase-wrap">
-      <div class="section-label">Phase</div>
-      <div class="chip-row" id="adj-phase"></div>
-    </div>
-    <div class="section-label">Week</div>
-    <div class="chip-row" id="adj-week"></div>
-    <div class="section-label">Day</div>
-    <div class="chip-row" id="adj-day"></div>
-    <button class="btn btn-primary" style="margin-top:8px" onclick="confirmAdjust()">Confirm</button>
   </div>
-
-  <!-- SESSION -->
-  <div id="screen-session" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" onclick="goTo('screen-players')">← Players</button>
-      <div class="logo">Lions <span>/ Workout</span></div>
-    </div>
-    <div id="session-header"></div>
-    <div id="session-content"></div>
-    <div class="divider"></div>
-    <button class="btn btn-primary" onclick="goToFinish()" id="finish-btn">✓ Done</button>
-  </div>
-
-  <!-- TIMER -->
-  <div id="screen-timer" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" onclick="stopTimer()">✕ Close</button>
-      <div class="logo">Lions <span>/ Timer</span></div>
-    </div>
-    <div id="timer-content"></div>
-  </div>
-
-  <!-- ASH ROSTER -->
-  <div id="screen-ash" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" onclick="goTo('screen-home')">← Back</button>
-      <div class="logo">Lions <span>/ Roster</span></div>
-    </div>
-    <span class="badge badge-ash">Ash</span>
-    <h2>Roster</h2>
-    <p class="sub">Live progression — pulled from Google Sheets</p>
-    <div id="ash-roster"><div class="loading"><div class="spinner"></div>Loading...</div></div>
-  </div>
-
 </div>
 
-<div id="screen-finish" class="screen">
-    <div class="app-header" style="margin: -24px -20px 20px;">
-      <button class="back-btn" onclick="goTo('screen-session')">← Back</button>
-      <div class="logo">Lions <span>/ Submit</span></div>
+<!-- ADJUST -->
+<div id="screen-adjust" class="screen">
+  <div class="wrap">
+    <div class="section-title">ADJUST SESSION</div>
+    <p class="section-sub">Tap to change any parameter</p>
+    <div class="label" style="margin-bottom:8px">Group</div>
+    <div class="chip-row" id="adj-group"></div>
+    <div id="adj-phase-wrap">
+      <div class="label" style="margin-bottom:8px">Phase</div>
+      <div class="chip-row" id="adj-phase"></div>
     </div>
-    <div style="text-align:center;padding:12px 0 24px;">
-      <div style="font-size:48px;margin-bottom:12px;">🦁</div>
-      <h2 id="submit-name" style="margin-bottom:4px;"></h2>
-      <p id="submit-detail" class="sub" style="margin-bottom:24px;"></p>
-      <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">Tap the button below to log your session.<br>It opens Google Forms — just hit <strong>Submit</strong>.</p>
-      <a id="submit-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="text-decoration:none;display:block;">📋 Log my session</a>
-      <button class="btn" style="margin-top:8px" onclick="Object.assign(data.players[currentIdx],pending);save();goTo('screen-players')">Skip — already submitted</button>
+    <div class="label" style="margin-bottom:8px">Week</div>
+    <div class="chip-row" id="adj-week"></div>
+    <div class="label" style="margin-bottom:8px">Day</div>
+    <div class="chip-row" id="adj-day"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" id="adjust-back-btn">←</button>
+      <button class="btn-primary" id="confirm-adjust">CONFIRM</button>
     </div>
   </div>
+</div>
+
+<!-- SESSION -->
+<div id="screen-session" class="screen">
+  <div class="wrap">
+    <div id="session-header"></div>
+    <div id="session-content"></div>
+    <hr class="divider-h">
+    <button class="btn-primary" id="finish-btn" style="width:100%">✓ DONE</button>
+  </div>
+</div>
+
+<!-- TIMER -->
+<div id="screen-timer" class="screen">
+  <div class="wrap"><div id="timer-content"></div></div>
+</div>
+
+<!-- ROSTER -->
+<div id="screen-ash" class="screen">
+  <div class="wrap">
+    <span class="badge badge-gold">Ash</span>
+    <div class="section-title" style="margin-top:10px">ROSTER</div>
+    <p class="section-sub">Live progression — pulled from Google Sheets</p>
+    <div id="ash-roster"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+</div>
+
+<!-- FINISH -->
+<div id="screen-finish" class="screen">
+  <div class="wrap center">
+    <div style="font-size:48px;margin:20px 0 12px">🦁</div>
+    <div class="section-title" id="submit-name"></div>
+    <p class="section-sub" id="submit-detail"></p>
+    <p style="font-size:13px;color:var(--grey);margin-bottom:20px;line-height:1.6">
+      Tap below to log your session.<br>It opens Google Forms — just hit <strong>Submit</strong>.
+    </p>
+    <a id="submit-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary" style="margin-bottom:10px">📋 LOG MY SESSION</a>
+    <button class="btn-secondary" id="skip-btn" style="width:100%">SKIP — ALREADY SUBMITTED</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
+<script src="lions.js"></script>
 <script>
-// ─── CONFIG ───────────────────────────────────────────────
-// Paste your Google Apps Script Web App URL here after setup:
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec';
-// ──────────────────────────────────────────────────────────
+'use strict';
 
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-const DEFAULTS = [
-  {name:'Zachary Morin',group:'A',phase:1,week:1,day:'upper'},
-  {name:'Noah Verville',group:'A',phase:1,week:1,day:'upper'},
-  {name:'Thomas Lemay',group:'C',phase:null,week:1,day:'upper'},
-  {name:'William Warford',group:'A',phase:2,week:1,day:'upper'},
-  {name:'Antoine Bergeron',group:'A',phase:1,week:1,day:'upper'},
-  {name:'Léo Lemaire-Martin',group:'A',phase:1,week:2,day:'upper'},
-  {name:'Albert Pomerleau',group:'C',phase:null,week:1,day:'upper'},
-  {name:"Liam O'Farrell",group:'C',phase:null,week:1,day:'upper'},
-  {name:'Thomas Bédard',group:'A',phase:1,week:1,day:'upper'},
-  {name:'Justin Bouffard',group:'A',phase:1,week:1,day:'upper'},
-  {name:'Lucas Godbout-Cech',group:'C',phase:null,week:1,day:'upper'},
-  {name:'Olivier Gagné',group:'C',phase:null,week:1,day:'upper'},
-  {name:'David Vergara',group:'C',phase:null,week:1,day:'upper'},
-  {name:'Antoine Bissonnette',group:'C',phase:null,week:1,day:'upper'},
-  {name:'Aidan Chebariak',group:'B',phase:null,week:1,day:'upper'},
-  {name:'Alex Bédard',group:'A',phase:1,week:1,day:'upper'}
+// ─── PLAYER PROGRESSION DEFAULTS ──────────────────────────
+// Names come from the shared roster in lions.js; the group/phase/week
+// assignment lives here because only this page uses it.
+var DEFAULTS = [
+  { name: 'Zachary Morin',       group: 'A', phase: 1,    week: 1, day: 'upper' },
+  { name: 'Noah Verville',       group: 'A', phase: 1,    week: 1, day: 'upper' },
+  { name: 'Thomas Lemay',        group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: 'William Warford',     group: 'A', phase: 2,    week: 1, day: 'upper' },
+  { name: 'Antoine Bergeron',    group: 'A', phase: 1,    week: 1, day: 'upper' },
+  { name: 'Léo Lemaire-Martin',  group: 'A', phase: 1,    week: 2, day: 'upper' },
+  { name: 'Albert Pomerleau',    group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: "Liam O'Farrell",      group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: 'Thomas Bédard',       group: 'A', phase: 1,    week: 1, day: 'upper' },
+  { name: 'Justin Bouffard',     group: 'A', phase: 1,    week: 1, day: 'upper' },
+  { name: 'Lucas Godbout-Cech',  group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: 'Olivier Gagné',       group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: 'David Vergara',       group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: 'Antoine Bissonnette', group: 'C', phase: null, week: 1, day: 'upper' },
+  { name: 'Aidan Cheberiak',     group: 'B', phase: null, week: 1, day: 'upper' },
+  { name: 'Alex Bédard',         group: 'A', phase: 1,    week: 1, day: 'upper' }
 ];
 
-const SK = 'lions_workout_v1';
-let data = JSON.parse(localStorage.getItem(SK) || 'null');
-if (!data) { data = {players: JSON.parse(JSON.stringify(DEFAULTS))}; save(); }
-DEFAULTS.forEach(dp => { if (!data.players.find(p => p.name === dp.name)) data.players.push({...dp}); });
+var SK = 'lions_workout_v1';
+var data = null;
+try { data = JSON.parse(localStorage.getItem(SK) || 'null'); } catch (e) { data = null; }
+if (!data) data = { players: JSON.parse(JSON.stringify(DEFAULTS)) };
+DEFAULTS.forEach(function (dp) {
+  if (!data.players.find(function (p) { return p.name === dp.name; })) data.players.push(Object.assign({}, dp));
+});
+function save() { try { localStorage.setItem(SK, JSON.stringify(data)); } catch (e) {} }
 save();
 
-function save() { localStorage.setItem(SK, JSON.stringify(data)); }
-
-let currentIdx = null, timerInterval = null, timerState = {}, pending = {};
+var currentIdx = null, timerInterval = null, timerState = {}, pending = {};
+var showFullList = false;
+var esc = Lions.escapeHtml;
 
 // ─── PROGRAM DATA ─────────────────────────────────────────
-const PROGRAM = {
+var PROGRAM = {
   C: {
     upper: { exercises: [
-      {prep:'Butterfly 30 reps, no weight', name:'DB Thrusters', sets:3, reps:15, note:'Hanging stretch 1 min after'},
-      {prep:'Butterfly 30 reps, no weight', name:'DB Bench Press', sets:3, reps:15, note:'Hanging stretch 1 min after'},
-      {prep:'Butterfly 30 reps, no weight', name:'DB Row', sets:3, reps:15, note:'Hanging stretch 1 min after'},
-      {name:'Plank', sets:3, time:60},
-      {name:'Side Plank', sets:2, time:60},
-      {name:'Superman', sets:3, time:60}
+      { prep: 'Butterfly 30 reps, no weight', name: 'DB Thrusters',     sets: 3, reps: 15, note: 'Hanging stretch 1 min after' },
+      { prep: 'Butterfly 30 reps, no weight', name: 'DB Bench Press',   sets: 3, reps: 15, note: 'Hanging stretch 1 min after' },
+      { prep: 'Butterfly 30 reps, no weight', name: 'DB Row',           sets: 3, reps: 15, note: 'Hanging stretch 1 min after' },
+      { name: 'Plank', sets: 3, time: 60 },
+      { name: 'Side Plank', sets: 2, time: 60 },
+      { name: 'Superman', sets: 3, time: 60 }
     ], weekNote: 'Week 2+: aim 10% heavier each week' },
     lower: { exercises: [
-      {prep:'Fire Hydrant 60 reps', name:'DB Thrusters', sets:3, reps:15, note:'Hip flexor stretch 1 min each side'},
-      {prep:'Fire Hydrant 60 reps', name:'Leg Extension', sets:3, reps:15, note:'Hip flexor stretch 1 min each side'},
-      {prep:'Fire Hydrant 60 reps', name:'Leg Curl Machine', sets:3, reps:15, note:'Hip flexor stretch 1 min each side'},
-      {name:'Cat Calf Raise', sets:3, reps:15},
-      {name:'Wall Tibia Raise', sets:3, reps:15}
+      { prep: 'Fire Hydrant 60 reps', name: 'DB Thrusters',     sets: 3, reps: 15, note: 'Hip flexor stretch 1 min each side' },
+      { prep: 'Fire Hydrant 60 reps', name: 'Leg Extension',    sets: 3, reps: 15, note: 'Hip flexor stretch 1 min each side' },
+      { prep: 'Fire Hydrant 60 reps', name: 'Leg Curl Machine', sets: 3, reps: 15, note: 'Hip flexor stretch 1 min each side' },
+      { name: 'Cat Calf Raise', sets: 3, reps: 15 },
+      { name: 'Wall Tibia Raise', sets: 3, reps: 15 }
     ], weekNote: 'Week 2+: aim 10% heavier each week' }
   },
   B: {
     upper: { exercises: [
-      {prep:'Butterfly 30 reps, no weight', name:'DB Thrusters + Pike Push-Ups (superset)', sets:3, reps:10, supersetReps:15, note:'Hanging stretch 1 min'},
-      {prep:'Butterfly 30 reps, no weight', name:'DB Bench Press + Dips (superset)', sets:3, reps:10, supersetReps:15, note:'Hanging stretch 1 min'},
-      {prep:'Butterfly 30 reps, no weight', name:'DB Row + Chin-Ups (superset)', sets:3, reps:10, supersetReps:15, note:'Hanging stretch 1 min'},
-      {name:'Plank + Marches', sets:3, time:60, note:'1 min plank + 1 min marches'},
-      {name:'Superman', sets:3, time:60}
-    ], weekNote: w => w==2 ? 'Week 2: 2×15 all sequences' : w==3 ? 'Week 3: 1 heavy-duty set' : null },
+      { prep: 'Butterfly 30 reps, no weight', name: 'DB Thrusters + Pike Push-Ups (superset)', sets: 3, reps: 10, supersetReps: 15, note: 'Hanging stretch 1 min' },
+      { prep: 'Butterfly 30 reps, no weight', name: 'DB Bench Press + Dips (superset)',        sets: 3, reps: 10, supersetReps: 15, note: 'Hanging stretch 1 min' },
+      { prep: 'Butterfly 30 reps, no weight', name: 'DB Row + Chin-Ups (superset)',            sets: 3, reps: 10, supersetReps: 15, note: 'Hanging stretch 1 min' },
+      { name: 'Plank + Marches', sets: 3, time: 60, note: '1 min plank + 1 min marches' },
+      { name: 'Superman', sets: 3, time: 60 }
+    ], weekNote: function (w) { return w == 2 ? 'Week 2: 2×15 all sequences' : w == 3 ? 'Week 3: 1 heavy-duty set' : null; } },
     lower: { exercises: [
-      {prep:'Fire Hydrant 60 reps', name:'Squat', sets:3, reps:10, note:'Hip flexor stretch 1 min each side'},
-      {prep:'Fire Hydrant 60 reps', name:'Reverse Lunges', sets:3, reps:10, note:'Hip flexor stretch 1 min each side'},
-      {prep:'Fire Hydrant 60 reps', name:'Romanian Deadlift', sets:3, reps:10, note:'Hip flexor stretch 1 min each side'},
-      {name:'Calf Raises', sets:3, reps:10},
-      {name:'Tibia Raise', sets:3, reps:10}
-    ], weekNote: w => w==2 ? 'Week 2: 2×15' : w==3 ? 'Week 3: 1 heavy-duty set' : null }
+      { prep: 'Fire Hydrant 60 reps', name: 'Squat',             sets: 3, reps: 10, note: 'Hip flexor stretch 1 min each side' },
+      { prep: 'Fire Hydrant 60 reps', name: 'Reverse Lunges',    sets: 3, reps: 10, note: 'Hip flexor stretch 1 min each side' },
+      { prep: 'Fire Hydrant 60 reps', name: 'Romanian Deadlift', sets: 3, reps: 10, note: 'Hip flexor stretch 1 min each side' },
+      { name: 'Calf Raises', sets: 3, reps: 10 },
+      { name: 'Tibia Raise', sets: 3, reps: 10 }
+    ], weekNote: function (w) { return w == 2 ? 'Week 2: 2×15' : w == 3 ? 'Week 3: 1 heavy-duty set' : null; } }
   },
   A: {
     1: {
       upper: { exercises: [
-        {prep:'Butterfly 30 reps, 3 lbs', name:'Push-Up Hold', sets:3, time: w => w==1?30:w==2?60:90, note:'Hanging stretch 1 min'},
-        {prep:'Butterfly 30 reps, 3 lbs', name:'Chin-Up Hold', sets:3, time: w => w==1?30:w==2?60:90, note:'Hanging stretch 1 min'},
-        {prep:'Butterfly 30 reps, 3 lbs', name:'Pike Hold', sets:3, time: w => w==1?30:w==2?60:90, note:'Hanging stretch 1 min'},
-        {name:'Plank', sets:3, time: w => w==1?30:w==2?60:90},
-        {name:'Side Plank', sets:2, time: w => w==1?30:w==2?60:90},
-        {name:'Superman Hold', sets:3, time: w => w==1?30:w==2?60:90}
-      ], weekNote: w => `Time under tension: ${w==1?30:w==2?60:90}s` },
+        { prep: 'Butterfly 30 reps, 3 lbs', name: 'Push-Up Hold', sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 60 : 90; }, note: 'Hanging stretch 1 min' },
+        { prep: 'Butterfly 30 reps, 3 lbs', name: 'Chin-Up Hold', sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 60 : 90; }, note: 'Hanging stretch 1 min' },
+        { prep: 'Butterfly 30 reps, 3 lbs', name: 'Pike Hold',    sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 60 : 90; }, note: 'Hanging stretch 1 min' },
+        { name: 'Plank',          sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 60 : 90; } },
+        { name: 'Side Plank',     sets: 2, time: function (w) { return w == 1 ? 30 : w == 2 ? 60 : 90; } },
+        { name: 'Superman Hold',  sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 60 : 90; } }
+      ], weekNote: function (w) { return 'Time under tension: ' + (w == 1 ? 30 : w == 2 ? 60 : 90) + 's'; } },
       lower: { exercises: [
-        {prep:'Fire Hydrant 60 reps', name:'Wall Squat', sets:3, time: w => w==1?60:w==2?90:120, note:'Hip flexor stretch 1 min each side'},
-        {prep:'Fire Hydrant 60 reps', name:'Lunge Hold', sets:3, time: w => w==1?60:w==2?90:120, note:'Hip flexor stretch 1 min each side'},
-        {prep:'Fire Hydrant 60 reps', name:'Romanian DL Hold', sets:3, time: w => w==1?60:w==2?90:120, note:'Hip flexor stretch 1 min each side'},
-        {name:'Calf Raise', sets:3, time: w => w==1?60:w==2?90:120},
-        {name:'Tibia Raise', sets:3, time: w => w==1?60:w==2?90:120}
-      ], weekNote: w => `Time under tension: ${w==1?60:w==2?90:120}s` }
+        { prep: 'Fire Hydrant 60 reps', name: 'Wall Squat',        sets: 3, time: function (w) { return w == 1 ? 60 : w == 2 ? 90 : 120; }, note: 'Hip flexor stretch 1 min each side' },
+        { prep: 'Fire Hydrant 60 reps', name: 'Lunge Hold',        sets: 3, time: function (w) { return w == 1 ? 60 : w == 2 ? 90 : 120; }, note: 'Hip flexor stretch 1 min each side' },
+        { prep: 'Fire Hydrant 60 reps', name: 'Romanian DL Hold',  sets: 3, time: function (w) { return w == 1 ? 60 : w == 2 ? 90 : 120; }, note: 'Hip flexor stretch 1 min each side' },
+        { name: 'Calf Raise',  sets: 3, time: function (w) { return w == 1 ? 60 : w == 2 ? 90 : 120; } },
+        { name: 'Tibia Raise', sets: 3, time: function (w) { return w == 1 ? 60 : w == 2 ? 90 : 120; } }
+      ], weekNote: function (w) { return 'Time under tension: ' + (w == 1 ? 60 : w == 2 ? 90 : 120) + 's'; } }
     },
     2: {
       upper: { exercises: [
-        {prep:'Butterfly 30 reps, 5 lbs', name:'Push-Up Hold + Reps', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hanging stretch 1 min'},
-        {prep:'Butterfly 30 reps, 5 lbs', name:'Chin-Up Hold + Reps', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hanging stretch 1 min'},
-        {prep:'Butterfly 30 reps, 5 lbs', name:'Pike Hold + Reps', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hanging stretch 1 min'},
-        {name:'Plank + KB Drag', sets:1, time:30, reps:30},
-        {name:'Side Plank + Side Raises', sets:1, time:30, reps:10},
-        {name:'Superman + Pumps', sets:1, time:30, reps:10}
-      ], weekNote: w => `Hold ${w==1?30:w==2?20:10}s then ${w==1?10:w==2?7:5} reps` },
+        { prep: 'Butterfly 30 reps, 5 lbs', name: 'Push-Up Hold + Reps', sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; }, note: 'Hanging stretch 1 min' },
+        { prep: 'Butterfly 30 reps, 5 lbs', name: 'Chin-Up Hold + Reps', sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; }, note: 'Hanging stretch 1 min' },
+        { prep: 'Butterfly 30 reps, 5 lbs', name: 'Pike Hold + Reps',    sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; }, note: 'Hanging stretch 1 min' },
+        { name: 'Plank + KB Drag',            sets: 1, time: 30, reps: 30 },
+        { name: 'Side Plank + Side Raises',   sets: 1, time: 30, reps: 10 },
+        { name: 'Superman + Pumps',           sets: 1, time: 30, reps: 10 }
+      ], weekNote: function (w) { return 'Hold ' + (w == 1 ? 30 : w == 2 ? 20 : 10) + 's then ' + (w == 1 ? 10 : w == 2 ? 7 : 5) + ' reps'; } },
       lower: { exercises: [
-        {prep:'Fire Hydrant 60 reps', name:'Squat — 3s eccentric', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hip flexor stretch 1 min each side'},
-        {prep:'Fire Hydrant 60 reps', name:'Lunges', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hip flexor stretch 1 min each side'},
-        {prep:'Fire Hydrant 60 reps', name:'Romanian DL', sets:3, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5, note:'Hip flexor stretch 1 min each side'},
-        {name:'Calf Hold + Reps', sets:1, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5},
-        {name:'Tibia Hold + Reps', sets:1, time: w => w==1?30:w==2?20:10, reps: w => w==1?10:w==2?7:5}
-      ], weekNote: w => `Hold ${w==1?30:w==2?20:10}s then ${w==1?10:w==2?7:5} reps` }
+        { prep: 'Fire Hydrant 60 reps', name: 'Squat — 3s eccentric', sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; }, note: 'Hip flexor stretch 1 min each side' },
+        { prep: 'Fire Hydrant 60 reps', name: 'Lunges',               sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; }, note: 'Hip flexor stretch 1 min each side' },
+        { prep: 'Fire Hydrant 60 reps', name: 'Romanian DL',          sets: 3, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; }, note: 'Hip flexor stretch 1 min each side' },
+        { name: 'Calf Hold + Reps',  sets: 1, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; } },
+        { name: 'Tibia Hold + Reps', sets: 1, time: function (w) { return w == 1 ? 30 : w == 2 ? 20 : 10; }, reps: function (w) { return w == 1 ? 10 : w == 2 ? 7 : 5; } }
+      ], weekNote: function (w) { return 'Hold ' + (w == 1 ? 30 : w == 2 ? 20 : 10) + 's then ' + (w == 1 ? 10 : w == 2 ? 7 : 5) + ' reps'; } }
     },
     3: {
       upper: { exercises: [
-        {prep:'Butterfly 30 reps, 5 lbs', name:'Dynamic Box Push-Ups + Elastic V-Ups', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hanging stretch 1 min'},
-        {prep:'Butterfly 30 reps, 5 lbs', name:'Alt. Dynamic Chin Pull-Ups + Elastic V-Ups', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hanging stretch 1 min'},
-        {prep:'Butterfly 30 reps, 5 lbs', name:'Ball Smash + Elastic V-Ups', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hanging stretch 1 min'},
-        {name:'Rock Climber', sets:1, time:60, note:'All out'},
-        {name:'Superman Pumps', sets:1, time:60, note:'All out'}
-      ], weekNote: w => `${w==1?10:w==2?8:6} reps per exercise` },
+        { prep: 'Butterfly 30 reps, 5 lbs', name: 'Dynamic Box Push-Ups + Elastic V-Ups',          sets: 3, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Hanging stretch 1 min' },
+        { prep: 'Butterfly 30 reps, 5 lbs', name: 'Alt. Dynamic Chin Pull-Ups + Elastic V-Ups',    sets: 3, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Hanging stretch 1 min' },
+        { prep: 'Butterfly 30 reps, 5 lbs', name: 'Ball Smash + Elastic V-Ups',                    sets: 3, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Hanging stretch 1 min' },
+        { name: 'Rock Climber',   sets: 1, time: 60, note: 'All out' },
+        { name: 'Superman Pumps', sets: 1, time: 60, note: 'All out' }
+      ], weekNote: function (w) { return (w == 1 ? 10 : w == 2 ? 8 : 6) + ' reps per exercise'; } },
       lower: { exercises: [
-        {prep:'Fire Hydrant 60 reps', name:'Squat + Box Jump (Floor is Lava)', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hip flexor stretch each side'},
-        {prep:'Fire Hydrant 60 reps', name:'Lunges + Jumping Knee', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hip flexor stretch each side'},
-        {prep:'Fire Hydrant 60 reps', name:'KB Swing + Bronco Jump', sets:3, reps: w => w==1?10:w==2?8:6, note:'Hip flexor stretch each side'},
-        {name:'Calf Raise + Single Leg Land & Jump', sets:1, reps: w => w==1?10:w==2?8:6, note:'Floor is Lava — calf stretch after'},
-        {name:'Tibia Raise', sets:1, reps:'max'}
-      ], weekNote: w => `${w==1?10:w==2?8:6} reps per exercise` }
+        { prep: 'Fire Hydrant 60 reps', name: 'Squat + Box Jump (Floor is Lava)', sets: 3, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Hip flexor stretch each side' },
+        { prep: 'Fire Hydrant 60 reps', name: 'Lunges + Jumping Knee',            sets: 3, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Hip flexor stretch each side' },
+        { prep: 'Fire Hydrant 60 reps', name: 'KB Swing + Bronco Jump',           sets: 3, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Hip flexor stretch each side' },
+        { name: 'Calf Raise + Single Leg Land & Jump', sets: 1, reps: function (w) { return w == 1 ? 10 : w == 2 ? 8 : 6; }, note: 'Floor is Lava — calf stretch after' },
+        { name: 'Tibia Raise', sets: 1, reps: 'max' }
+      ], weekNote: function (w) { return (w == 1 ? 10 : w == 2 ? 8 : 6) + ' reps per exercise'; } }
     }
   }
 };
 
 // ─── HELPERS ──────────────────────────────────────────────
 function R(v, w) { return typeof v === 'function' ? v(w) : v; }
-function initials(n) { return n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
 function locStr(p) {
-  const g = p.group==='A' ? `Group A · Phase ${p.phase}` : p.group==='B' ? 'Group B' : 'Group C';
-  return `${g} · Week ${p.week} · ${p.day==='upper'?'Upper':'Lower'} body`;
-}
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  var g = p.group === 'A' ? 'Group A · Phase ' + p.phase : p.group === 'B' ? 'Group B' : 'Group C';
+  return g + ' · Week ' + p.week + ' · ' + (p.day === 'upper' ? 'Upper' : 'Lower') + ' body';
 }
 function goTo(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   if (id === 'screen-players') renderPlayers();
   if (id === 'screen-ash') loadRoster();
+  window.scrollTo(0, 0);
 }
 
-// ─── PLAYERS SCREEN ───────────────────────────────────────
+// ─── PLAYERS ──────────────────────────────────────────────
 function renderPlayers() {
-  document.getElementById('player-list').innerHTML = data.players.map((p,i) => `
-    <div class="player-chip" onclick="selectPlayer(${i})">
-      <div class="avatar">${escapeHtml(initials(p.name))}</div>
-      <div style="flex:1">
-        <div class="player-name">${escapeHtml(p.name)}</div>
-        <div class="player-loc">${escapeHtml(locStr(p))}</div>
-      </div>
-      <span class="chevron">›</span>
-    </div>`).join('');
+  renderYouBox();
+  document.getElementById('player-list').innerHTML = data.players.map(function (p, i) {
+    return '<div class="player-chip" data-i="' + i + '">' +
+      '<div class="avatar">' + esc(Lions.initials(p.name)) + '</div>' +
+      '<div style="flex:1;min-width:0"><div class="player-name">' + esc(p.name) + '</div>' +
+      '<div class="player-loc">' + esc(locStr(p)) + '</div></div>' +
+      '<span class="chevron">›</span></div>';
+  }).join('');
+  document.querySelectorAll('#player-list .player-chip').forEach(function (el) {
+    el.addEventListener('click', function () { selectPlayer(+this.dataset.i); });
+  });
 }
 
-function addPlayerPrompt() {
-  const name = prompt('Enter your name:');
-  if (name && name.trim()) {
-    data.players.push({name:name.trim(), group:'C', phase:null, week:1, day:'upper'});
-    save(); renderPlayers();
+// If we already know who this is, greet them instead of making them
+// hunt through the roster. The full list stays one tap away.
+function renderYouBox() {
+  var box = document.getElementById('you-box');
+  var list = document.getElementById('player-list');
+  var heading = document.getElementById('players-heading');
+  var sub = document.getElementById('players-sub');
+  var addBtn = document.getElementById('add-player');
+
+  var name = Lions.getPlayer();
+  var idx = name ? data.players.findIndex(function (p) { return Lions.norm(p.name) === Lions.norm(name); }) : -1;
+
+  if (idx === -1 || showFullList) {
+    box.innerHTML = '';
+    list.style.display = '';
+    addBtn.style.display = '';
+    heading.textContent = 'WHO ARE YOU?';
+    sub.textContent = 'Select your name to see your session';
+    return;
   }
+
+  var p = data.players[idx];
+  var sug = nextSession(p);
+  heading.textContent = 'WELCOME BACK';
+  sub.textContent = "Here's what's next for you";
+  list.style.display = 'none';
+  addBtn.style.display = 'none';
+  box.innerHTML =
+    '<div class="you-card" id="you-go">' +
+      '<div class="avatar">' + esc(Lions.initials(p.name)) + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="label" style="color:var(--lion)">Continue as</div>' +
+        '<div class="you-name">' + esc(p.name) + '</div>' +
+        '<div class="you-loc">Up next · ' + esc(locStr(Object.assign({}, p, sug))) + '</div>' +
+      '</div><span class="chevron">›</span></div>' +
+    '<div class="center" style="margin:12px 0 4px">' +
+      '<button class="btn-ghost" id="show-roster">Not you? Pick a different name</button></div>';
+
+  document.getElementById('you-go').addEventListener('click', function () { selectPlayer(idx); });
+  document.getElementById('show-roster').addEventListener('click', function () {
+    showFullList = true; renderPlayers();
+  });
 }
 
 // ─── CONFIRM / ADJUST ─────────────────────────────────────
 function nextSession(p) {
-  let {group, phase, week, day} = p;
-  if (day === 'upper') return {group, phase, week, day:'lower'};
-  if (week < 3) return {group, phase, week:week+1, day:'upper'};
-  if (group==='A' && phase < 3) return {group, phase:phase+1, week:1, day:'upper'};
-  if (group==='A' && phase===3) return {group:'B', phase:null, week:1, day:'upper'};
-  if (group==='B') return {group:'C', phase:null, week:1, day:'upper'};
-  return {group, phase, week:1, day:'upper'};
+  var group = p.group, phase = p.phase, week = p.week, day = p.day;
+  if (day === 'upper') return { group: group, phase: phase, week: week, day: 'lower' };
+  if (week < 3) return { group: group, phase: phase, week: week + 1, day: 'upper' };
+  if (group === 'A' && phase < 3) return { group: group, phase: phase + 1, week: 1, day: 'upper' };
+  if (group === 'A' && phase === 3) return { group: 'B', phase: null, week: 1, day: 'upper' };
+  if (group === 'B') return { group: 'C', phase: null, week: 1, day: 'upper' };
+  return { group: group, phase: phase, week: 1, day: 'upper' };
 }
 
 function selectPlayer(idx) {
   currentIdx = idx;
-  pending = {...nextSession(data.players[idx])};
+  Lions.setPlayer(data.players[idx].name);
+  showFullList = false;
+  pending = Object.assign({}, nextSession(data.players[idx]));
+  renderWho();
   showConfirm(data.players[idx].name, pending);
 }
 
 function showConfirm(name, sug) {
   document.getElementById('confirm-badge').textContent = name;
-  document.getElementById('ci-group').textContent = sug.group==='A'?'Group A':sug.group==='B'?'Group B':'Group C';
-  const pr = document.getElementById('ci-phase-row');
-  if (sug.group==='A') { pr.style.display='flex'; document.getElementById('ci-phase').textContent=`Phase ${sug.phase}`; }
-  else { pr.style.display='none'; }
-  document.getElementById('ci-week').textContent = `Week ${sug.week}`;
-  document.getElementById('ci-day').textContent = sug.day==='upper' ? 'Upper body' : 'Lower body';
-  document.getElementById('adjust-btn').onclick = openAdjust;
+  document.getElementById('ci-group').textContent = sug.group === 'A' ? 'Group A' : sug.group === 'B' ? 'Group B' : 'Group C';
+  var pr = document.getElementById('ci-phase-row');
+  if (sug.group === 'A') { pr.style.display = 'flex'; document.getElementById('ci-phase').textContent = 'Phase ' + sug.phase; }
+  else { pr.style.display = 'none'; }
+  document.getElementById('ci-week').textContent = 'Week ' + sug.week;
+  document.getElementById('ci-day').textContent = sug.day === 'upper' ? 'Upper body' : 'Lower body';
   goTo('screen-confirm');
 }
 
 function openAdjust() {
-  document.getElementById('adj-group').innerHTML = ['C','B','A'].map(g =>
-    `<span class="chip${pending.group===g?' active':''}" onclick="adjGroup('${g}')">${g==='A'?'Group A':g==='B'?'Group B':'Group C'}</span>`).join('');
-  document.getElementById('adj-phase-wrap').style.display = pending.group==='A' ? 'block' : 'none';
+  document.getElementById('adj-group').innerHTML = ['C', 'B', 'A'].map(function (g) {
+    return '<span class="chip' + (pending.group === g ? ' active' : '') + '" data-g="' + g + '">' +
+      (g === 'A' ? 'Group A' : g === 'B' ? 'Group B' : 'Group C') + '</span>';
+  }).join('');
+  document.querySelectorAll('#adj-group .chip').forEach(function (c) {
+    c.addEventListener('click', function () { adjGroup(this.dataset.g); });
+  });
+  document.getElementById('adj-phase-wrap').style.display = pending.group === 'A' ? 'block' : 'none';
   renderAdjPhase(); renderAdjWeek(); renderAdjDay();
-  document.getElementById('adjust-back-btn').onclick = () => showConfirm(data.players[currentIdx].name, pending);
   goTo('screen-adjust');
 }
 function adjGroup(g) {
   pending.group = g;
-  if (g==='A' && !pending.phase) pending.phase = 1;
-  if (g!=='A') pending.phase = null;
-  document.querySelectorAll('#adj-group .chip').forEach(c => c.classList.toggle('active',
-    (g==='A'&&c.textContent==='Group A')||(g==='B'&&c.textContent==='Group B')||(g==='C'&&c.textContent==='Group C')));
-  document.getElementById('adj-phase-wrap').style.display = g==='A' ? 'block' : 'none';
-  renderAdjPhase();
+  if (g === 'A' && !pending.phase) pending.phase = 1;
+  if (g !== 'A') pending.phase = null;
+  openAdjust();
 }
-function renderAdjPhase() { if(pending.group!=='A') return; document.getElementById('adj-phase').innerHTML=[1,2,3].map(ph=>`<span class="chip${pending.phase===ph?' active':''}" onclick="adjPhase(${ph})">Phase ${ph}</span>`).join(''); }
-function adjPhase(ph) { pending.phase=ph; renderAdjPhase(); }
-function renderAdjWeek() { document.getElementById('adj-week').innerHTML=[1,2,3].map(w=>`<span class="chip${pending.week===w?' active':''}" onclick="adjWeek(${w})">Week ${w}</span>`).join(''); }
-function adjWeek(w) { pending.week=w; renderAdjWeek(); }
-function renderAdjDay() { document.getElementById('adj-day').innerHTML=[{v:'upper',l:'Upper body'},{v:'lower',l:'Lower body'}].map(d=>`<span class="chip${pending.day===d.v?' active':''}" onclick="adjDay('${d.v}')">${d.l}</span>`).join(''); }
-function adjDay(d) { pending.day=d; renderAdjDay(); }
-function confirmAdjust() { showConfirm(data.players[currentIdx].name, pending); }
+function renderAdjPhase() {
+  if (pending.group !== 'A') return;
+  document.getElementById('adj-phase').innerHTML = [1, 2, 3].map(function (ph) {
+    return '<span class="chip' + (pending.phase === ph ? ' active' : '') + '" data-p="' + ph + '">Phase ' + ph + '</span>';
+  }).join('');
+  document.querySelectorAll('#adj-phase .chip').forEach(function (c) {
+    c.addEventListener('click', function () { pending.phase = +this.dataset.p; renderAdjPhase(); });
+  });
+}
+function renderAdjWeek() {
+  document.getElementById('adj-week').innerHTML = [1, 2, 3].map(function (w) {
+    return '<span class="chip' + (pending.week === w ? ' active' : '') + '" data-w="' + w + '">Week ' + w + '</span>';
+  }).join('');
+  document.querySelectorAll('#adj-week .chip').forEach(function (c) {
+    c.addEventListener('click', function () { pending.week = +this.dataset.w; renderAdjWeek(); });
+  });
+}
+function renderAdjDay() {
+  document.getElementById('adj-day').innerHTML = [{ v: 'upper', l: 'Upper body' }, { v: 'lower', l: 'Lower body' }].map(function (d) {
+    return '<span class="chip' + (pending.day === d.v ? ' active' : '') + '" data-d="' + d.v + '">' + d.l + '</span>';
+  }).join('');
+  document.querySelectorAll('#adj-day .chip').forEach(function (c) {
+    c.addEventListener('click', function () { pending.day = this.dataset.d; renderAdjDay(); });
+  });
+}
 
 // ─── SESSION ──────────────────────────────────────────────
 function launchSession() {
@@ -470,175 +459,183 @@ function launchSession() {
 }
 
 function renderSessionScreen(p) {
-  const w = p.week;
-  let exData;
-  if (p.group==='C') exData = PROGRAM.C[p.day];
-  else if (p.group==='B') exData = PROGRAM.B[p.day];
+  var w = p.week, exData;
+  if (p.group === 'C') exData = PROGRAM.C[p.day];
+  else if (p.group === 'B') exData = PROGRAM.B[p.day];
   else exData = PROGRAM.A[p.phase][p.day];
 
-  document.getElementById('session-header').innerHTML = `
-    <span class="badge badge-player">${escapeHtml(p.name)}</span>
-    <h2>${p.day==='upper'?'Upper body':'Lower body'}</h2>
-    <p class="sub">${p.group==='A'?`Group A · Phase ${p.phase}`:p.group==='B'?'Group B':'Group C'} · Week ${w}</p>`;
+  document.getElementById('session-header').innerHTML =
+    '<span class="badge badge-lion">' + esc(p.name) + '</span>' +
+    '<div class="section-title" style="margin-top:10px">' + (p.day === 'upper' ? 'UPPER BODY' : 'LOWER BODY') + '</div>' +
+    '<p class="section-sub">' + (p.group === 'A' ? 'Group A · Phase ' + p.phase : p.group === 'B' ? 'Group B' : 'Group C') + ' · Week ' + w + '</p>';
 
-  const wn = exData.weekNote ? R(exData.weekNote, w) : null;
-  let html = wn ? `<div class="note-box">ℹ ${wn}</div>` : '';
+  var wn = exData.weekNote ? R(exData.weekNote, w) : null;
+  var html = wn ? '<div class="note-box">' + esc(wn) + '</div>' : '';
 
-  exData.exercises.forEach(ex => {
-    const t = ex.time ? R(ex.time, w) : null;
-    const r = ex.reps !== undefined && ex.reps !== 'max' ? R(ex.reps, w) : ex.reps;
-    const sets = ex.sets || 1;
-    let details = '';
-    if (t && r) details = `${sets} set${sets>1?'s':''} · ${t}s hold + ${r} reps`;
-    else if (t) details = `${sets} set${sets>1?'s':''} · ${t}s`;
-    else if (r === 'max') details = `${sets} set${sets>1?'s':''} · max reps`;
-    else if (r) details = `${sets} set${sets>1?'s':''} × ${r} reps`;
-    if (ex.supersetReps) details += ` + ${ex.supersetReps} reps (superset)`;
-    html += `<div class="ex-card">
-      ${ex.prep ? `<div class="ex-prep">→ ${ex.prep}</div>` : ''}
-      <div class="ex-name">${ex.name}</div>
-      <div class="ex-detail">${details}</div>
-      ${ex.note ? `<div class="ex-note">⏱ ${ex.note}</div>` : ''}
-      ${t ? `<button class="btn btn-sm" style="margin-top:10px" onclick="launchTimer('${ex.name.replace(/'/g,"\\'")}',${t},${sets})">▶ Start ${t}s timer</button>` : ''}
-    </div>`;
+  exData.exercises.forEach(function (ex, i) {
+    var t = ex.time ? R(ex.time, w) : null;
+    var r = (ex.reps !== undefined && ex.reps !== 'max') ? R(ex.reps, w) : ex.reps;
+    var sets = ex.sets || 1;
+    var details = '';
+    if (t && r) details = sets + ' set' + (sets > 1 ? 's' : '') + ' · ' + t + 's hold + ' + r + ' reps';
+    else if (t) details = sets + ' set' + (sets > 1 ? 's' : '') + ' · ' + t + 's';
+    else if (r === 'max') details = sets + ' set' + (sets > 1 ? 's' : '') + ' · max reps';
+    else if (r) details = sets + ' set' + (sets > 1 ? 's' : '') + ' × ' + r + ' reps';
+    if (ex.supersetReps) details += ' + ' + ex.supersetReps + ' reps (superset)';
+
+    html += '<div class="ex-card">' +
+      (ex.prep ? '<div class="ex-prep">→ ' + esc(ex.prep) + '</div>' : '') +
+      '<div class="ex-name">' + esc(ex.name) + '</div>' +
+      '<div class="ex-detail">' + esc(details) + '</div>' +
+      (ex.note ? '<div class="ex-note">⏱ ' + esc(ex.note) + '</div>' : '') +
+      (t ? '<button class="btn-timer" data-ex="' + i + '" data-t="' + t + '" data-s="' + sets + '">▶ START ' + t + 'S TIMER</button>' : '') +
+      '</div>';
   });
   document.getElementById('session-content').innerHTML = html;
-}
 
-const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeZjGjDxRXBdrQ2NY9FL5iWfyITCYX_DoWY_adDspy-sL7Okw/formResponse';
-
-function buildFormURL(p) {
-  const params = new URLSearchParams({
-    'entry.2115284305': p.name,
-    'entry.1660752183': p.group,
-    'entry.1461489066': String(p.phase || '-'),
-    'entry.1984450758': String(p.week),
-    'entry.372827159': p.day === 'upper' ? 'Upper body' : 'Lower body',
-    'entry.980302362': new Date().toISOString().split('T')[0],
-    'entry.390357744': new Date().toLocaleString('en-CA')
+  document.querySelectorAll('#session-content .btn-timer').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var ex = exData.exercises[+this.dataset.ex];
+      launchTimer(ex.name, +this.dataset.t, +this.dataset.s);
+    });
   });
-  return FORM_URL + '?' + params.toString();
 }
+
+var FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeZjGjDxRXBdrQ2NY9FL5iWfyITCYX_DoWY_adDspy-sL7Okw/formResponse';
 
 function goToFinish() {
-  const p = data.players[currentIdx];
+  var p = data.players[currentIdx];
   Object.assign(data.players[currentIdx], pending);
   save();
-  const params = new URLSearchParams({
-    name: p.name,
-    group: p.group,
-    phase: p.phase || '-',
-    week: p.week,
-    day: p.day
+  var params = new URLSearchParams({
+    name: p.name, group: p.group, phase: p.phase || '-', week: p.week, day: p.day
   });
   window.location.href = 'submit.html?' + params.toString();
 }
 
-function finishSession() { goTo('screen-players'); }
-
-// ─── GOOGLE SHEETS ────────────────────────────────────────
-async function logToSheet(p) {
-  if (!SHEET_URL || SHEET_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') return;
-  const payload = {
-    action: 'log',
-    name: p.name,
-    group: p.group,
-    phase: p.phase || '',
-    week: p.week,
-    day: p.day,
-    date: new Date().toISOString().split('T')[0],
-    timestamp: new Date().toLocaleString('en-CA')
-  };
-  await fetch(SHEET_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  });
-}
-
-async function loadRoster() {
-  const el = document.getElementById('ash-roster');
-  if (!SHEET_URL || SHEET_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-    renderLocalRoster(el); return;
-  }
+// ─── ROSTER (Ash) ─────────────────────────────────────────
+function loadRoster() {
+  var el = document.getElementById('ash-roster');
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading from sheet...</div>';
-  try {
-    const res = await fetch(`${SHEET_URL}?action=roster`);
-    const rows = await res.json();
-    if (!rows.length) { renderLocalRoster(el); return; }
-    el.innerHTML = rows.map(r => `
-      <div class="card" style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="avatar">${escapeHtml(initials(r.name))}</div>
-          <div style="flex:1">
-            <div style="font-size:15px;font-weight:600">${escapeHtml(r.name)}</div>
-            <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(r.location)} · Last: ${escapeHtml(r.lastDate)}</div>
-          </div>
-          <div style="font-size:13px;font-weight:600;color:var(--purple-text)">${escapeHtml(r.sessions)} sessions</div>
-        </div>
-      </div>`).join('');
-  } catch(e) { renderLocalRoster(el); }
+  fetch(Lions.ENDPOINT + '?action=roster')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      if (!rows || !rows.length) { renderLocalRoster(el); return; }
+      el.innerHTML = rows.map(function (r) {
+        return '<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:12px">' +
+          '<div class="avatar">' + esc(Lions.initials(r.name)) + '</div>' +
+          '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + esc(r.name) + '</div>' +
+          '<div style="font-size:12px;color:var(--grey)">' + esc(r.location) + ' · Last: ' + esc(r.lastDate) + '</div></div>' +
+          '<div class="badge badge-lion">' + esc(r.sessions) + '</div></div></div>';
+      }).join('');
+    })
+    .catch(function () { renderLocalRoster(el); });
 }
 
 function renderLocalRoster(el) {
-  el.innerHTML = data.players.map(p => `
-    <div class="card" style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div class="avatar">${escapeHtml(initials(p.name))}</div>
-        <div>
-          <div style="font-size:15px;font-weight:600">${escapeHtml(p.name)}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(locStr(p))}</div>
-        </div>
-      </div>
-    </div>`).join('');
+  el.innerHTML = data.players.map(function (p) {
+    return '<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:12px">' +
+      '<div class="avatar">' + esc(Lions.initials(p.name)) + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + esc(p.name) + '</div>' +
+      '<div style="font-size:12px;color:var(--grey)">' + esc(locStr(p)) + '</div></div></div></div>';
+  }).join('');
 }
 
 // ─── TIMER ────────────────────────────────────────────────
 function launchTimer(name, duration, totalSets) {
   clearInterval(timerInterval);
-  timerState = {name, duration, totalSets, currentSet:1, remaining:duration, running:false};
+  timerState = { name: name, duration: duration, totalSets: totalSets, currentSet: 1, remaining: duration, running: false };
   renderTimerScreen(); goTo('screen-timer');
 }
-function renderTimerScreen() {
-  const s = timerState, pct = Math.round((1-(s.remaining/s.duration))*100);
-  const done = s.remaining === 0 && !s.running;
-  document.getElementById('timer-content').innerHTML = `
-    <div class="timer-wrap">
-      <div class="timer-exercise">${s.name}</div>
-      <div class="timer-set">Set ${s.currentSet} of ${s.totalSets}</div>
-      ${done ? `<div class="timer-done">✓ Set complete!</div>` : `<div class="timer-display">${fmtTime(s.remaining)}</div>`}
-      <div class="timer-status">${s.running ? 'Hold…' : done ? 'Rest, then start next set' : 'Ready'}</div>
-      <div class="progress-bar"><div class="progress-fill" id="prog" style="width:${pct}%"></div></div>
-      <div style="display:flex;gap:10px;width:100%;margin-bottom:10px">
-        <button class="btn${s.running ? '' : ' btn-primary'}" onclick="toggleTimer()" style="flex:1">
-          ${s.running ? '⏸ Pause' : done ? '↺ Restart' : '▶ Start'}
-        </button>
-        <button class="btn btn-sm" onclick="resetTimer()" style="padding:13px 16px">↺</button>
-      </div>
-      ${s.currentSet < s.totalSets ? `<button class="btn" onclick="nextSet()">Next set →</button>` : ''}
-    </div>`;
+function fmtTime(s) {
+  var m = Math.floor(s / 60), sec = s % 60;
+  return m > 0 ? m + ':' + String(sec).padStart(2, '0') : sec + 's';
 }
-function fmtTime(s) { const m = Math.floor(s/60), sec = s%60; return m > 0 ? `${m}:${sec.toString().padStart(2,'0')}` : `${sec}s`; }
+function renderTimerScreen() {
+  var s = timerState;
+  var pct = Math.round((1 - (s.remaining / s.duration)) * 100);
+  var done = s.remaining === 0 && !s.running;
+  document.getElementById('timer-content').innerHTML =
+    '<div class="timer-wrap">' +
+      '<div class="timer-exercise">' + esc(s.name) + '</div>' +
+      '<div class="timer-set">SET ' + s.currentSet + ' OF ' + s.totalSets + '</div>' +
+      (done ? '<div class="timer-done">✓ SET COMPLETE</div>'
+            : '<div class="timer-big">' + fmtTime(s.remaining) + '</div>') +
+      '<div class="timer-status">' + (s.running ? 'Hold…' : done ? 'Rest, then next set' : 'Ready') + '</div>' +
+      '<div class="bar-track" style="width:100%;margin-bottom:20px"><div class="bar-fill" id="prog" style="width:' + pct + '%"></div></div>' +
+      '<div class="btn-row" style="width:100%;margin-bottom:10px">' +
+        '<button class="btn-primary" id="t-toggle">' + (s.running ? '⏸ PAUSE' : done ? '↺ RESTART' : '▶ START') + '</button>' +
+        '<button class="btn-secondary" id="t-reset">↺</button>' +
+      '</div>' +
+      (s.currentSet < s.totalSets ? '<button class="btn-secondary" id="t-next" style="width:100%">NEXT SET →</button>' : '') +
+      '<button class="btn-ghost" id="t-close" style="margin-top:14px">✕ Close timer</button>' +
+    '</div>';
+
+  document.getElementById('t-toggle').addEventListener('click', toggleTimer);
+  document.getElementById('t-reset').addEventListener('click', resetTimer);
+  var n = document.getElementById('t-next');
+  if (n) n.addEventListener('click', nextSet);
+  document.getElementById('t-close').addEventListener('click', stopTimer);
+}
 function toggleTimer() {
   if (timerState.running) { clearInterval(timerInterval); timerState.running = false; renderTimerScreen(); return; }
-  if (timerState.remaining === 0) { timerState.remaining = timerState.duration; }
-  timerState.running = true; renderTimerScreen();
-  timerInterval = setInterval(() => {
+  if (timerState.remaining === 0) timerState.remaining = timerState.duration;
+  timerState.running = true;
+  Lions.beep(660, 0.2);          // audible "go" — also unlocks audio on phones
+  renderTimerScreen();
+  timerInterval = setInterval(function () {
     timerState.remaining--;
     if (timerState.remaining <= 0) {
-      clearInterval(timerInterval); timerState.running = false; timerState.remaining = 0;
-      try { const a=new AudioContext(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=880; g.gain.setValueAtTime(0.3,a.currentTime); g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.8); o.start(); o.stop(a.currentTime+0.8); } catch(e){}
+      clearInterval(timerInterval);
+      timerState.running = false; timerState.remaining = 0;
+      Lions.doneBeep();          // two-note finish + vibrate
       renderTimerScreen(); return;
     }
-    const d = document.querySelector('.timer-display'), p = document.getElementById('prog');
+    if (timerState.remaining <= 3) Lions.tickBeep();   // 3 … 2 … 1
+    var d = document.querySelector('.timer-big'), p = document.getElementById('prog');
     if (d) d.textContent = fmtTime(timerState.remaining);
-    if (p) p.style.width = Math.round((1-(timerState.remaining/timerState.duration))*100) + '%';
+    if (p) p.style.width = Math.round((1 - (timerState.remaining / timerState.duration)) * 100) + '%';
   }, 1000);
 }
 function resetTimer() { clearInterval(timerInterval); timerState.remaining = timerState.duration; timerState.running = false; renderTimerScreen(); }
-function nextSet() { clearInterval(timerInterval); timerState.currentSet++; timerState.remaining = timerState.duration; timerState.running = false; renderTimerScreen(); }
+function nextSet() {
+  clearInterval(timerInterval);
+  timerState.currentSet++;
+  timerState.remaining = timerState.duration;
+  timerState.running = false;
+  Lions.beep(560, 0.22);         // set change
+  renderTimerScreen();
+}
 function stopTimer() { clearInterval(timerInterval); goTo('screen-session'); }
+
+// ─── IDENTITY CHIP ────────────────────────────────────────
+function renderWho() {
+  Lions.renderWho('who-box', function () { showFullList = true; goTo('screen-players'); });
+}
+
+// ─── WIRING ───────────────────────────────────────────────
+document.getElementById('topbar-back').addEventListener('click', function () { location.href = 'index.html'; });
+document.getElementById('go-players').addEventListener('click', function () { goTo('screen-players'); });
+document.getElementById('go-roster').addEventListener('click', function () { goTo('screen-ash'); });
+document.getElementById('launch-btn').addEventListener('click', launchSession);
+document.getElementById('adjust-btn').addEventListener('click', openAdjust);
+document.getElementById('adjust-back-btn').addEventListener('click', function () { showConfirm(data.players[currentIdx].name, pending); });
+document.getElementById('confirm-adjust').addEventListener('click', function () { showConfirm(data.players[currentIdx].name, pending); });
+document.getElementById('finish-btn').addEventListener('click', goToFinish);
+document.getElementById('skip-btn').addEventListener('click', function () {
+  Object.assign(data.players[currentIdx], pending); save(); goTo('screen-players');
+});
+document.getElementById('add-player').addEventListener('click', function () {
+  var name = prompt('Enter your name:');
+  if (name && name.trim()) {
+    data.players.push({ name: name.trim(), group: 'C', phase: null, week: 1, day: 'upper' });
+    Lions.setPlayer(name.trim());
+    showFullList = false;
+    save(); renderPlayers(); renderWho();
+  }
+});
+
+renderWho();
 </script>
 </body>
 </html>

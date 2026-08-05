@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions — Run</title>
+<link rel="stylesheet" href="lions.css">
+<style>
+  .who { text-align: right; }
+
+  /* ── SESSION ── */
+  .session-hero { border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 20px; }
+  .session-title { font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: 1px; line-height: 1; margin-bottom: 8px; }
+  .session-meta { display: flex; gap: 14px; flex-wrap: wrap; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; }
+
+  .phase { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .phase-header { display: flex; align-items: center; gap: 12px; padding: 15px 18px; }
+  .phase-indicator { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .phase-name { flex: 1; font-family: 'Bebas Neue', sans-serif; font-size: 19px; letter-spacing: 1px; }
+  .phase-time { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--lion); letter-spacing: 1px; }
+  .phase-body { padding: 0 18px 16px; }
+  .drill-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .drill-check { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface2); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: transparent; transition: all 0.15s; padding: 0; }
+  .drill-check:hover { border-color: var(--lion); }
+  .drill-check.done { background: var(--green); border-color: var(--green); color: var(--green-dim); }
+  .drill-info { flex: 1; min-width: 0; }
+  .drill-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .drill-detail { font-size: 12px; color: var(--grey); line-height: 1.55; }
+
+  .time-picker { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; text-align: center; margin-bottom: 24px; }
+  .time-display { font-family: 'Bebas Neue', sans-serif; font-size: 64px; line-height: 1; color: var(--lion); letter-spacing: 2px; }
+  .time-unit { font-family: 'Space Mono', monospace; font-size: 14px; color: var(--grey); letter-spacing: 2px; }
+  .time-presets { display: flex; gap: 8px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+
+  /* ── NAME GATE ── */
+  #name-gate { min-height: 66vh; display: flex; flex-direction: column; justify-content: center; }
+  .gate-icon { font-size: 44px; margin-bottom: 14px; }
+  .gate-title { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 1px; line-height: 1; margin-bottom: 8px; }
+  .gate-sub { font-size: 13px; color: var(--grey); line-height: 1.6; margin-bottom: 26px; }
+  .gate-select { width: 100%; background: var(--surface); border: 2px solid var(--line); border-radius: 10px; padding: 15px 16px; color: var(--white); font-family: 'Inter', sans-serif; font-size: 16px; outline: none; margin-bottom: 14px; cursor: pointer; }
+  .gate-select:focus { border-color: var(--lion); }
+
+  /* ── GUIDED PLAYER ── */
+  #guided {
+    position: fixed; inset: 0; z-index: 200; background: var(--bg);
+    display: none; flex-direction: column; padding: 20px 20px 28px;
+    transition: background 0.4s ease;
+  }
+  #guided.on { display: flex; }
+  #guided.kind-hard  { background: #2a0709; }
+  #guided.kind-easy  { background: #07203a; }
+  #guided.kind-warm  { background: #14243f; }
+  #guided.kind-cool  { background: #10241c; }
+  #guided.kind-stride{ background: #2a2207; }
+
+  .g-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .g-exit { background: none; border: none; color: var(--grey); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; cursor: pointer; flex-shrink: 0; }
+  .g-count { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; flex-shrink: 0; }
+  .g-gps {
+    font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+    color: rgba(255,255,255,0.55); text-align: center; flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .g-gps.live { color: var(--white); }
+  .g-gps.weak { color: var(--gold); }
+
+  /* GPS toggle on the session screen */
+  .gps-opt { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .gps-opt-info { flex: 1; min-width: 0; }
+  .gps-opt-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .gps-opt-desc { font-size: 11px; color: var(--grey); line-height: 1.5; }
+  .switch { width: 46px; height: 26px; border-radius: 99px; background: var(--surface2); border: 1px solid var(--line); position: relative; cursor: pointer; flex-shrink: 0; transition: all 0.18s; padding: 0; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--grey); transition: all 0.18s; }
+  .switch.on { background: var(--lion-glow); border-color: var(--lion); }
+  .switch.on::after { left: 22px; background: var(--lion); }
+
+  .gps-note { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--grey); margin-top: 6px; }
+  .g-progress { height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden; margin-bottom: 26px; }
+  .g-progress-fill { height: 100%; background: var(--white); border-radius: 2px; transition: width 0.9s linear; }
+
+  .g-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .g-kind {
+    font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 4px;
+    text-transform: uppercase; margin-bottom: 10px; opacity: 0.75;
+  }
+  .g-label { font-family: 'Bebas Neue', sans-serif; font-size: clamp(38px, 12vw, 62px); line-height: 0.95; letter-spacing: 1px; margin-bottom: 18px; }
+  .g-clock {
+    font-family: 'Bebas Neue', sans-serif; font-size: clamp(90px, 30vw, 150px);
+    line-height: 0.85; letter-spacing: 3px; font-variant-numeric: tabular-nums; margin-bottom: 14px;
+  }
+  .g-cue { font-size: 14px; color: rgba(255,255,255,0.72); line-height: 1.6; max-width: 340px; margin-bottom: 22px; }
+  .g-next { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+
+  .g-controls { display: flex; gap: 10px; margin-top: 22px; }
+  .g-btn {
+    flex: 1; padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08); color: var(--white);
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; cursor: pointer;
+  }
+  .g-btn.main { background: var(--white); color: var(--bg); border-color: var(--white); }
+  .g-btn:hover { opacity: 0.88; }
+
+  .g-done { text-align: center; }
+  .g-done-icon { font-size: 60px; margin-bottom: 14px; }
+
+  /* ── LOG ── */
+  .log-field { margin-bottom: 14px; }
+  .pace-readout { text-align: center; padding: 14px; background: var(--surface2); border-radius: var(--radius-sm); margin-bottom: 16px; }
+  .pace-val { font-family: 'Bebas Neue', sans-serif; font-size: 34px; color: var(--lion); line-height: 1; }
+
+  .done-screen { text-align: center; padding: 36px 0; }
+  .done-icon { font-size: 56px; margin-bottom: 14px; }
+  .done-title { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 1px; line-height: 1; margin-bottom: 10px; }
+  .done-sub { font-size: 13px; color: var(--grey); line-height: 1.7; margin-bottom: 24px; }
+  .log-status { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; min-height: 16px; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="index.html">← HOME</a>
+    <div>
+      <div class="topbar-eyebrow">St. Lawrence · Lions</div>
+      <div class="topbar-title">RUN</div>
+    </div>
+  </div>
+  <div class="who" id="who-box"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ── NAME GATE ── -->
+  <div id="name-gate">
+    <div class="gate-icon">🏃</div>
+    <div class="gate-title">WHO'S RUNNING?</div>
+    <p class="gate-sub">Pick your name once. The app remembers it everywhere — court sessions, weight room, runs.</p>
+    <select class="gate-select" id="gate-select"></select>
+    <button class="btn-primary" id="gate-btn" disabled>LET'S GO →</button>
+  </div>
+
+  <!-- ── STEP 1: TIME ── -->
+  <div id="step-time" class="hidden">
+    <div class="steps-bar">
+      <div class="step-dot active">1</div><div class="step-line"></div>
+      <div class="step-dot">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="section-title">HOW LONG YOU GOT?</div>
+    <p class="section-sub">Be honest. A real 20 minutes beats a fake hour.</p>
+    <div class="time-picker">
+      <div class="time-display" id="time-display">30</div>
+      <div class="time-unit">MINUTES</div>
+      <div class="time-presets" id="time-presets"></div>
+    </div>
+    <div class="btn-row"><button class="btn-primary" id="to-type">NEXT →</button></div>
+  </div>
+
+  <!-- ── STEP 2: TYPE ── -->
+  <div id="step-type" class="hidden">
+    <div class="steps-bar">
+      <div class="step-dot done">1</div><div class="step-line"></div>
+      <div class="step-dot active">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="section-title">WHAT KIND OF RUN?</div>
+    <p class="section-sub">Not sure? Take the easy run. Most players need more of those than they think.</p>
+    <div class="option-grid" id="type-grid"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" id="back-time">←</button>
+      <button class="btn-primary" id="build-btn" disabled>BUILD MY RUN →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: SESSION ── -->
+  <div id="step-session" class="hidden">
+    <div class="session-hero">
+      <div class="session-title" id="session-title"></div>
+      <div class="session-meta" id="session-meta"></div>
+    </div>
+    <div class="note-box" id="why-box"></div>
+
+    <div class="gps-opt" id="gps-opt">
+      <span style="font-size:22px">📍</span>
+      <div class="gps-opt-info">
+        <div class="gps-opt-name">Track my distance</div>
+        <div class="gps-opt-desc">Uses your phone's GPS during the run and fills in the distance for you. Keep the screen on.</div>
+      </div>
+      <button class="switch" id="gps-switch" aria-label="Toggle GPS tracking"></button>
+    </div>
+
+    <button class="btn-primary" id="start-guided" style="margin-bottom:20px;font-size:22px;padding:18px">
+      ▶ START GUIDED RUN
+    </button>
+    <p class="section-sub center" style="margin-top:-12px">
+      The app calls out every interval — you just run.
+    </p>
+
+    <div id="phases"></div>
+
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn-secondary" id="back-type">←</button>
+      <button class="btn-primary" id="to-log">✅ LOG MY RUN</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: LOG ── -->
+  <div id="step-log" class="hidden">
+    <div class="card">
+      <div class="section-title">HOW'D IT GO?</div>
+      <p class="section-sub">Use whatever app or watch you already run with — then drop the numbers here.</p>
+      <div class="log-field">
+        <label class="label" for="log-dist">Distance (km)</label>
+        <input class="input input-mono" id="log-dist" type="number" step="0.01" min="0" placeholder="5.2" inputmode="decimal">
+      </div>
+      <div class="log-field">
+        <label class="label" for="log-time">Time (minutes)</label>
+        <input class="input input-mono" id="log-time" type="number" step="0.1" min="0" placeholder="28" inputmode="decimal">
+      </div>
+      <div class="pace-readout">
+        <div class="pace-val" id="pace-val">—</div>
+        <div class="stat-label">Pace per km</div>
+      </div>
+      <div class="gps-note center" id="autofill-note" style="margin-bottom:14px"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="back-session">←</button>
+        <button class="btn-primary" id="submit-run">SUBMIT ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DONE ── -->
+  <div id="step-done" class="hidden">
+    <div class="done-screen">
+      <div class="done-icon">🦁</div>
+      <div class="done-title">MILES IN THE BANK.</div>
+      <p class="done-sub">The engine you build in the off-season is the one still running in the 4th quarter. See you next week.</p>
+      <div class="stat-row" id="done-stats" style="margin-bottom:8px"></div>
+      <div class="log-status" id="log-status"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="location.href='index.html'">HOME</button>
+        <button class="btn-primary" id="again-btn">ANOTHER RUN</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ GUIDED PLAYER ══ -->
+<div id="guided">
+  <div class="g-top">
+    <button class="g-exit" id="g-exit">✕ EXIT</button>
+    <div class="g-gps" id="g-gps"></div>
+    <div class="g-count" id="g-count"></div>
+  </div>
+  <div class="g-progress"><div class="g-progress-fill" id="g-progress"></div></div>
+
+  <div class="g-body" id="g-body">
+    <div class="g-kind" id="g-kind"></div>
+    <div class="g-label" id="g-label"></div>
+    <div class="g-clock" id="g-clock">0:00</div>
+    <div class="g-cue" id="g-cue"></div>
+    <div class="g-next" id="g-next"></div>
+  </div>
+
+  <div class="g-controls">
+    <button class="g-btn" id="g-prev">◀ BACK</button>
+    <button class="g-btn main" id="g-play">PAUSE</button>
+    <button class="g-btn" id="g-skip">SKIP ▶</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="lions.js"></script>
+<script>
+'use strict';
+
+var state = { time: 30, type: null, session: null };
+var TIME_OPTIONS = [20, 30, 45, 60];
+
+// ═══ RUN TYPES ═══════════════════════════════════════════
+// Each build() returns { phases, segments }:
+//   phases   — what the player reads before heading out
+//   segments — the timeline the guided player actually runs
+var RUN_TYPES = {
+  easy: {
+    name: 'Easy / Base Run', icon: '🌱',
+    desc: 'Steady conversational pace. The boring one that actually builds the engine.',
+    why: 'Most of your running should be easy. This grows the aerobic base that lets you recover between sprints — the difference between fresh legs and dead legs in the 4th.',
+    build: function (t) {
+      var warm = t <= 25 ? 4 : 5, cool = t <= 25 ? 3 : 5;
+      var main = Math.max(5, t - warm - cool);
+      return {
+        phases: [
+          { icon: '🚶', name: 'WARM-UP', time: warm, items: [
+            { name: 'Walk → easy jog', detail: 'Start walking, ease into a jog over a few minutes. Let the ankles, calves and hips wake up.' }]},
+          { icon: '🌱', name: 'MAIN', time: main, items: [
+            { name: 'Steady easy run — ' + main + ' min', detail: 'Conversational pace. You should be able to say a full sentence out loud without gasping. If you can\'t, slow down — that\'s the point.' }]},
+          { icon: '🧘', name: 'COOL-DOWN', time: cool, items: [
+            { name: 'Walk + stretch', detail: '30s each: calves, quads, hamstrings, hip flexors. Don\'t skip the hip flexors.' }]}
+        ],
+        segments: [
+          { kind: 'warm', label: 'WARM UP',   secs: warm * 60, cue: 'Walk, then ease into an easy jog. No rush.' },
+          { kind: 'easy', label: 'EASY RUN',  secs: main * 60, cue: 'Conversational pace. Full sentences, no gasping.' },
+          { kind: 'cool', label: 'COOL DOWN', secs: cool * 60, cue: 'Walk it out, then stretch calves, quads, hamstrings, hip flexors.' }
+        ]
+      };
+    }
+  },
+
+  intervals: {
+    name: 'Intervals', icon: '⚡',
+    desc: 'Hard efforts with jog recovery. Builds your top-end and repeat-sprint ability.',
+    why: 'Basketball is a repeat-sprint sport — go hard, recover, go again. Intervals train exactly that. This is the session that shows up when you need one more closeout late in a game.',
+    build: function (t) {
+      var warm = t <= 25 ? 6 : 10, cool = t <= 25 ? 4 : 6;
+      var main = Math.max(6, t - warm - cool);
+      var work, rest;
+      if (t <= 25)      { work = 2; rest = 1; }
+      else if (t <= 40) { work = 3; rest = 1.5; }
+      else if (t <= 50) { work = 4; rest = 2; }
+      else              { work = 5; rest = 2; }
+      var reps = Math.min(8, Math.max(3, Math.floor(main / (work + rest))));
+      var setTime = Math.round(reps * (work + rest));
+      cool += Math.max(0, main - setTime);
+      var fmt = function (n) { return Number.isInteger(n) ? n + ' min' : Math.round(n * 60) + 's'; };
+
+      var segs = [{ kind: 'warm', label: 'WARM UP', secs: (warm - 2) * 60, cue: 'Genuinely easy jog. Cold legs plus intervals is how you pull something.' }];
+      for (var s = 1; s <= 4; s++) {
+        segs.push({ kind: 'stride', label: 'STRIDE ' + s + '/4', secs: 20, cue: 'Build to fast — not a full sprint. Tall and relaxed.' });
+        segs.push({ kind: 'easy',   label: 'WALK BACK',          secs: 25, cue: 'Walk it back. Shake the arms out.' });
+      }
+      for (var i = 1; i <= reps; i++) {
+        segs.push({ kind: 'hard', label: 'HARD ' + i + '/' + reps, secs: Math.round(work * 60), cue: 'About 8/10 — strong and controlled, not an all-out sprint.' });
+        if (i < reps) segs.push({ kind: 'easy', label: 'RECOVER', secs: Math.round(rest * 60), cue: 'Keep jogging. The recovery jog is training, not a break.' });
+      }
+      segs.push({ kind: 'cool', label: 'COOL DOWN', secs: cool * 60, cue: 'Jog easy until the breathing settles, then walk and stretch.' });
+
+      return {
+        phases: [
+          { icon: '🚶', name: 'WARM-UP', time: warm, items: [
+            { name: 'Easy jog', detail: (warm - 2) + ' min genuinely easy. Do not rush this.' },
+            { name: '4 × strides', detail: '4 × 20s building to fast (not a full sprint), walk back between each.' }]},
+          { icon: '⚡', name: 'MAIN SET', time: setTime, items: [
+            { name: reps + ' × ' + fmt(work) + ' HARD', detail: 'Hard means about 8/10 — strong and controlled. Finish each rep thinking you could\'ve done one more.' },
+            { name: fmt(rest) + ' easy jog between reps', detail: 'Keep moving. Jog it, don\'t stand around.' }]},
+          { icon: '🧘', name: 'COOL-DOWN', time: cool, items: [
+            { name: 'Easy jog → walk → stretch', detail: 'Jog until the breathing settles, then walk, then stretch.' }]}
+        ],
+        segments: segs
+      };
+    }
+  },
+
+  tempo: {
+    name: 'Tempo Run', icon: '🔥',
+    desc: 'Sustained "comfortably hard" effort. Teaches you to hold pace under fatigue.',
+    why: 'Tempo work raises the effort you can hold before you fall apart. Translation: you stay sharp deeper into games and deeper into practices.',
+    build: function (t) {
+      var warm = t <= 25 ? 6 : 10, cool = t <= 25 ? 4 : 6;
+      var main = Math.max(6, t - warm - cool);
+      return {
+        phases: [
+          { icon: '🚶', name: 'WARM-UP', time: warm, items: [
+            { name: 'Easy jog', detail: warm + ' min easy, building gradually. The last minute should feel close to tempo effort.' }]},
+          { icon: '🔥', name: 'TEMPO', time: main, items: [
+            { name: main + ' min continuous — comfortably hard', detail: 'The pace where you can get out 3–4 words, not a whole sentence. Controlled but demanding.' }]},
+          { icon: '🧘', name: 'COOL-DOWN', time: cool, items: [
+            { name: 'Easy jog → walk → stretch', detail: 'Bring the heart rate down gradually, then stretch.' }]}
+        ],
+        segments: [
+          { kind: 'warm', label: 'WARM UP',   secs: warm * 60, cue: 'Easy jog, building gradually toward tempo effort.' },
+          { kind: 'hard', label: 'TEMPO',     secs: main * 60, cue: '3–4 words, not a full sentence. Controlled but demanding — settle in and hold it.' },
+          { kind: 'cool', label: 'COOL DOWN', secs: cool * 60, cue: 'Ease down gradually, then walk and stretch.' }
+        ]
+      };
+    }
+  },
+
+  hills: {
+    name: 'Hills', icon: '⛰️',
+    desc: 'Short hard climbs, jog down to recover. Strength and power without a weight room.',
+    why: 'Hills are strength work disguised as running. They build the drive you use every time you explode off the floor — and they\'re easier on the legs than flat-out sprinting.',
+    build: function (t) {
+      var warm = t <= 25 ? 6 : 10, cool = t <= 25 ? 4 : 6;
+      var main = Math.max(5, t - warm - cool);
+      var reps = Math.min(8, Math.max(4, Math.floor(main / 2.5)));
+      var setTime = Math.round(reps * 2.5);
+      cool += Math.max(0, main - setTime);
+
+      var segs = [{ kind: 'warm', label: 'WARM UP', secs: warm * 60, cue: 'Easy jog to your hill. Find one that takes 45–60s to climb hard.' }];
+      for (var i = 1; i <= reps; i++) {
+        segs.push({ kind: 'hard', label: 'UPHILL ' + i + '/' + reps, secs: 50, cue: 'Drive the knees, pump the arms, stay tall. Don\'t hunch.' });
+        segs.push({ kind: 'easy', label: 'JOG DOWN',                 secs: 100, cue: 'Easy jog back down. Take the full recovery.' });
+      }
+      segs.push({ kind: 'cool', label: 'COOL DOWN', secs: cool * 60, cue: 'Easy jog, walk, then give the calves extra stretching.' });
+
+      return {
+        phases: [
+          { icon: '🚶', name: 'WARM-UP', time: warm, items: [
+            { name: 'Easy jog to your hill', detail: warm + ' min easy. Find a hill that takes roughly 45–60s to climb at a hard effort.' }]},
+          { icon: '⛰️', name: 'HILL REPS', time: setTime, items: [
+            { name: reps + ' × 45–60s uphill HARD', detail: 'Drive the knees, pump the arms, stay tall. Form breaking down means you\'re done for the day.' },
+            { name: 'Jog down to recover', detail: 'Easy jog back down, no rush. That descent is your full recovery.' }]},
+          { icon: '🧘', name: 'COOL-DOWN', time: cool, items: [
+            { name: 'Easy jog → walk → stretch', detail: 'Calves will be tight. Give them 45s a side, twice.' }]}
+        ],
+        segments: segs
+      };
+    }
+  }
+};
+
+// ═══ NAVIGATION ══════════════════════════════════════════
+var STEPS = ['time', 'type', 'session', 'log', 'done'];
+function goStep(step) {
+  document.getElementById('name-gate').classList.toggle('hidden', step !== 'name');
+  STEPS.forEach(function (s) {
+    document.getElementById('step-' + s).classList.toggle('hidden', s !== step);
+  });
+  window.scrollTo(0, 0);
+}
+
+// ═══ NAME GATE ═══════════════════════════════════════════
+function initGate() {
+  var sel = document.getElementById('gate-select');
+  var btn = document.getElementById('gate-btn');
+  sel.innerHTML = Lions.rosterOptions(Lions.getPlayer());
+  btn.disabled = !sel.value;
+  sel.addEventListener('change', function () { btn.disabled = !sel.value; });
+  btn.addEventListener('click', function () {
+    if (!sel.value) return;
+    Lions.setPlayer(sel.value);
+    renderWho();
+    goStep('time');
+  });
+}
+function renderWho() {
+  Lions.renderWho('who-box', function () {
+    document.getElementById('gate-select').innerHTML = Lions.rosterOptions(Lions.getPlayer());
+    document.getElementById('gate-btn').disabled = false;
+    goStep('name');
+  });
+}
+
+// ═══ STEP 1: TIME ════════════════════════════════════════
+function renderTimePresets() {
+  document.getElementById('time-presets').innerHTML = TIME_OPTIONS.map(function (t) {
+    return '<button class="chip' + (state.time === t ? ' active' : '') + '" data-t="' + t + '">' + t + ' min</button>';
+  }).join('');
+  document.getElementById('time-display').textContent = state.time;
+  document.querySelectorAll('#time-presets .chip').forEach(function (b) {
+    b.addEventListener('click', function () { state.time = +this.dataset.t; renderTimePresets(); });
+  });
+}
+
+// ═══ STEP 2: TYPE ════════════════════════════════════════
+function renderTypes() {
+  document.getElementById('type-grid').innerHTML = Object.keys(RUN_TYPES).map(function (key) {
+    var rt = RUN_TYPES[key];
+    return '<button class="option-card' + (state.type === key ? ' selected' : '') + '" data-k="' + key + '">' +
+      '<div class="option-icon">' + rt.icon + '</div>' +
+      '<div class="option-info"><div class="option-name">' + Lions.escapeHtml(rt.name) + '</div>' +
+      '<div class="option-desc">' + Lions.escapeHtml(rt.desc) + '</div></div>' +
+      '<div class="option-check">✓</div></button>';
+  }).join('');
+  document.getElementById('build-btn').disabled = !state.type;
+  document.querySelectorAll('#type-grid .option-card').forEach(function (b) {
+    b.addEventListener('click', function () { state.type = this.dataset.k; renderTypes(); });
+  });
+}
+
+// ═══ STEP 3: BUILD ═══════════════════════════════════════
+function buildRun() {
+  if (!state.type) return;
+  var rt = RUN_TYPES[state.type];
+  var built = rt.build(state.time);
+  state.session = built;
+
+  document.getElementById('session-title').textContent = rt.name.toUpperCase();
+  document.getElementById('session-meta').innerHTML =
+    '<span>⏱ ' + state.time + ' MIN</span><span>' + rt.icon + ' ' + Lions.escapeHtml(rt.name.toUpperCase()) + '</span>';
+  document.getElementById('why-box').innerHTML =
+    '<strong>Why this run</strong>' + Lions.escapeHtml(rt.why);
+
+  document.getElementById('phases').innerHTML = built.phases.map(function (ph) {
+    return '<div class="phase"><div class="phase-header">' +
+      '<div class="phase-indicator">' + ph.icon + '</div>' +
+      '<div class="phase-name">' + Lions.escapeHtml(ph.name) + '</div>' +
+      '<div class="phase-time">' + ph.time + ' MIN</div></div>' +
+      '<div class="phase-body">' + ph.items.map(function (it) {
+        return '<div class="drill-item"><button class="drill-check" aria-label="Mark done">✓</button>' +
+          '<div class="drill-info"><div class="drill-name">' + Lions.escapeHtml(it.name) + '</div>' +
+          '<div class="drill-detail">' + Lions.escapeHtml(it.detail) + '</div></div></div>';
+      }).join('') + '</div></div>';
+  }).join('');
+
+  document.querySelectorAll('#phases .drill-check').forEach(function (b) {
+    b.addEventListener('click', function () {
+      this.classList.toggle('done');
+      if (this.classList.contains('done')) Lions.toast('Done ✓');
+    });
+  });
+
+  goStep('session');
+}
+
+// ═══ GPS DISTANCE TRACKING ═══════════════════════════════
+// Optional. Manual entry is always still available — if permission is
+// denied or the signal is poor, nothing here blocks logging a run.
+//
+// Raw GPS jitters: a phone sitting still reports positions wandering by
+// several metres, which naive accumulation turns into invented distance.
+// So every fix has to clear three gates before it counts.
+var GPS = {
+  on: false,            // player opted in
+  watchId: null,
+  wakeLock: null,
+  last: null,           // last ACCEPTED fix
+  metres: 0,
+  fixes: 0,
+  rejected: 0,
+  accuracy: null,
+  startedAt: null,
+  supported: ('geolocation' in navigator)
+};
+
+var GPS_MAX_ACCURACY = 30;   // metres — ignore fixes vaguer than this
+var GPS_MIN_STEP     = 2.5;  // metres — noise floor for a good fix
+var GPS_MAX_SPEED    = 8;    // m/s (~28.8 km/h) — faster than a player runs, so it's a GPS jump
+var GPS_STILL_SPEED  = 0.6;  // m/s — below this the phone reports "not really moving"
+
+// The step floor has to stay under a real running stride between fixes.
+// GPS updates roughly once a second, and 5:00/km pace is only ~3.3 m per
+// second — so a fixed 4 m floor would have discarded genuine running.
+// Instead the floor scales with how vague the fix is: a precise fix can
+// trust a small move, a fuzzy one can't.
+function minStepFor(accuracy) {
+  return Math.max(GPS_MIN_STEP, (accuracy || 0) * 0.35);
+}
+
+// Great-circle distance between two lat/lon points, in metres.
+function haversine(a, b) {
+  var R = 6371000;
+  var toRad = function (d) { return d * Math.PI / 180; };
+  var dLat = toRad(b.lat - a.lat);
+  var dLon = toRad(b.lon - a.lon);
+  var la1 = toRad(a.lat), la2 = toRad(b.lat);
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function gpsOnFix(pos) {
+  var c = pos.coords;
+  GPS.accuracy = c.accuracy;
+
+  // Gate 1 — the fix itself must be reasonably precise.
+  if (c.accuracy != null && c.accuracy > GPS_MAX_ACCURACY) { GPS.rejected++; renderGpsReadout(); return; }
+
+  var now = { lat: c.latitude, lon: c.longitude, t: pos.timestamp || Date.now() };
+  if (!GPS.last) { GPS.last = now; GPS.fixes++; renderGpsReadout(); return; }
+
+  // Gate 2 — the phone's own speed reading (doppler-derived, and more
+  // trustworthy than comparing positions) says we're standing still.
+  if (c.speed != null && c.speed >= 0 && c.speed < GPS_STILL_SPEED) {
+    GPS.rejected++; GPS.last = now; renderGpsReadout(); return;
+  }
+
+  var d  = haversine(GPS.last, now);
+  var dt = (now.t - GPS.last.t) / 1000;
+
+  // Gate 3 — movement smaller than this fix's noise floor isn't movement.
+  if (d < minStepFor(c.accuracy)) { GPS.rejected++; renderGpsReadout(); return; }
+
+  // Gate 4 — too fast to be running: a satellite re-lock, not a sprint.
+  if (dt > 0 && (d / dt) > GPS_MAX_SPEED) { GPS.rejected++; GPS.last = now; renderGpsReadout(); return; }
+
+  GPS.metres += d;
+  GPS.last = now;
+  GPS.fixes++;
+  renderGpsReadout();
+}
+
+function gpsStart() {
+  if (!GPS.on || !GPS.supported || GPS.watchId !== null) return;
+  GPS.last = null; GPS.metres = 0; GPS.fixes = 0; GPS.rejected = 0;
+  GPS.startedAt = Date.now();
+  try {
+    GPS.watchId = navigator.geolocation.watchPosition(gpsOnFix, function (err) {
+      GPS.watchId = null;
+      var el = document.getElementById('g-gps');
+      if (el) {
+        el.className = 'g-gps weak';
+        el.textContent = err && err.code === 1 ? '📍 GPS OFF' : '📍 NO SIGNAL';
+      }
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+  } catch (e) { GPS.watchId = null; }
+  requestWakeLock();
+  renderGpsReadout();
+}
+
+function gpsStop() {
+  if (GPS.watchId !== null) {
+    try { navigator.geolocation.clearWatch(GPS.watchId); } catch (e) {}
+    GPS.watchId = null;
+  }
+  releaseWakeLock();
+}
+
+function gpsKm() { return GPS.metres / 1000; }
+
+function renderGpsReadout() {
+  var el = document.getElementById('g-gps');
+  if (!el) return;
+  if (!GPS.on) { el.textContent = ''; el.className = 'g-gps'; return; }
+  if (GPS.watchId === null && GPS.fixes === 0) { el.textContent = '📍 GPS…'; el.className = 'g-gps'; return; }
+  if (!GPS.fixes) { el.textContent = '📍 FINDING SIGNAL…'; el.className = 'g-gps'; return; }
+  var weak = GPS.accuracy != null && GPS.accuracy > GPS_MAX_ACCURACY;
+  el.className = 'g-gps ' + (weak ? 'weak' : 'live');
+  el.textContent = '📍 ' + gpsKm().toFixed(2) + ' KM' + (weak ? ' (weak)' : '');
+}
+
+// Keep the screen awake so tracking isn't suspended mid-run.
+function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && navigator.wakeLock.request) {
+      navigator.wakeLock.request('screen').then(function (l) { GPS.wakeLock = l; }).catch(function () {});
+    }
+  } catch (e) {}
+}
+function releaseWakeLock() {
+  try { if (GPS.wakeLock) { GPS.wakeLock.release(); GPS.wakeLock = null; } } catch (e) {}
+}
+// If the player switches apps, the OS drops the lock — take it back on return.
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && GPS.on && GPS.watchId !== null) requestWakeLock();
+});
+
+// ═══ GUIDED PLAYER ═══════════════════════════════════════
+var G = { segs: [], i: 0, left: 0, timer: null, running: false };
+
+var KIND_TEXT = {
+  warm:   'Warm up',
+  hard:   'Go hard',
+  easy:   'Recover',
+  cool:   'Cool down',
+  stride: 'Stride'
+};
+
+function startGuided() {
+  if (!state.session) return;
+  G.segs = state.session.segments;
+  G.i = 0;
+  G.left = G.segs[0].secs;
+  G.running = true;
+  G.startedAt = Date.now();
+  document.getElementById('guided').classList.add('on');
+  gpsStart();
+  renderGuided();
+  renderGpsReadout();
+  tick();
+  Lions.beep(660);
+}
+
+// Push whatever the run measured into the log fields, leaving them editable.
+function autofillLog() {
+  var distEl = document.getElementById('log-dist');
+  var timeEl = document.getElementById('log-time');
+
+  if (GPS.on && gpsKm() > 0.05 && !distEl.value) {
+    distEl.value = gpsKm().toFixed(2);
+  }
+  if (G.startedAt && !timeEl.value) {
+    var mins = (Date.now() - G.startedAt) / 60000;
+    if (mins >= 0.5) timeEl.value = mins.toFixed(1);
+  }
+  updatePace();
+
+  var note = document.getElementById('autofill-note');
+  if (note) {
+    if (GPS.on && gpsKm() > 0.05) {
+      note.textContent = '📍 Distance measured by GPS (' + GPS.fixes + ' fixes). Edit if your watch says different.';
+      note.style.color = 'var(--grey)';
+    } else if (GPS.on) {
+      note.textContent = '📍 GPS didn\'t get enough signal — enter it manually.';
+      note.style.color = 'var(--gold)';
+    } else {
+      note.textContent = '';
+    }
+  }
+}
+
+function renderGuided() {
+  var g = document.getElementById('guided');
+  var seg = G.segs[G.i];
+  if (!seg) return;
+
+  g.className = 'on kind-' + seg.kind;
+  document.getElementById('g-kind').textContent = KIND_TEXT[seg.kind] || '';
+  document.getElementById('g-label').textContent = seg.label;
+  document.getElementById('g-cue').textContent = seg.cue;
+  document.getElementById('g-count').textContent = 'STEP ' + (G.i + 1) + ' / ' + G.segs.length;
+
+  var next = G.segs[G.i + 1];
+  document.getElementById('g-next').textContent = next ? 'UP NEXT — ' + next.label : 'LAST ONE — FINISH STRONG';
+
+  var m = Math.floor(G.left / 60), s = G.left % 60;
+  document.getElementById('g-clock').textContent = m + ':' + String(s).padStart(2, '0');
+  document.getElementById('g-progress').style.width =
+    Math.round((1 - G.left / seg.secs) * 100) + '%';
+  document.getElementById('g-play').textContent = G.running ? 'PAUSE' : 'RESUME';
+}
+
+function tick() {
+  clearInterval(G.timer);
+  if (!G.running) return;
+  G.timer = setInterval(function () {
+    G.left--;
+    if (G.left <= 3 && G.left > 0) Lions.tickBeep();   // 3 … 2 … 1
+    if (G.left <= 0) { nextSeg(true); return; }
+    renderGuided();
+  }, 1000);
+}
+
+function nextSeg(auto) {
+  clearInterval(G.timer);
+  if (G.i >= G.segs.length - 1) { finishGuided(); return; }
+  G.i++;
+  G.left = G.segs[G.i].secs;
+  var kind = G.segs[G.i].kind;
+  var hard = (kind === 'hard' || kind === 'stride');
+  Lions.beep(hard ? 990 : 550, 0.3);
+  Lions.buzz(hard ? [200, 80, 200] : 150);
+  renderGuided();
+  if (G.running) tick();
+}
+
+function prevSeg() {
+  clearInterval(G.timer);
+  if (G.i > 0) G.i--;
+  G.left = G.segs[G.i].secs;
+  renderGuided();
+  if (G.running) tick();
+}
+
+function finishGuided() {
+  clearInterval(G.timer);
+  G.running = false;
+  gpsStop();
+  Lions.doneBeep();
+  var g = document.getElementById('guided');
+  g.className = 'on kind-cool';
+  document.getElementById('g-body').innerHTML =
+    '<div class="g-done"><div class="g-done-icon">🦁</div>' +
+    '<div class="g-label">RUN COMPLETE</div>' +
+    (GPS.on && gpsKm() > 0.05
+      ? '<div class="g-clock" style="font-size:clamp(52px,16vw,80px)">' + gpsKm().toFixed(2) + ' km</div>'
+      : '') +
+    '<div class="g-cue">Every one of those banks up. Log it so Coach sees the work.</div></div>';
+  document.querySelector('.g-controls').innerHTML =
+    '<button class="g-btn main" id="g-log">LOG MY RUN →</button>';
+  document.getElementById('g-log').addEventListener('click', function () {
+    exitGuided(); goStep('log'); autofillLog();
+  });
+}
+
+function exitGuided() {
+  clearInterval(G.timer);
+  G.running = false;
+  gpsStop();
+  var g = document.getElementById('guided');
+  g.classList.remove('on');
+  g.className = '';
+  // restore the player body for the next run
+  document.getElementById('g-body').innerHTML =
+    '<div class="g-kind" id="g-kind"></div><div class="g-label" id="g-label"></div>' +
+    '<div class="g-clock" id="g-clock">0:00</div><div class="g-cue" id="g-cue"></div>' +
+    '<div class="g-next" id="g-next"></div>';
+  document.querySelector('.g-controls').innerHTML =
+    '<button class="g-btn" id="g-prev">◀ BACK</button>' +
+    '<button class="g-btn main" id="g-play">PAUSE</button>' +
+    '<button class="g-btn" id="g-skip">SKIP ▶</button>';
+  wireGuidedControls();
+}
+
+function wireGuidedControls() {
+  var p = document.getElementById('g-play');
+  var s = document.getElementById('g-skip');
+  var b = document.getElementById('g-prev');
+  if (p) p.addEventListener('click', function () {
+    G.running = !G.running;
+    renderGuided();
+    if (G.running) tick(); else clearInterval(G.timer);
+  });
+  if (s) s.addEventListener('click', function () { nextSeg(false); });
+  if (b) b.addEventListener('click', prevSeg);
+}
+
+// ═══ STEP 4: LOG ═════════════════════════════════════════
+function paceString() {
+  var d = parseFloat(document.getElementById('log-dist').value);
+  var m = parseFloat(document.getElementById('log-time').value);
+  if (!d || !m || d <= 0 || m <= 0) return '';
+  var p = m / d, mm = Math.floor(p), ss = Math.round((p - mm) * 60);
+  if (ss === 60) { mm++; ss = 0; }
+  return mm + ':' + String(ss).padStart(2, '0');
+}
+function updatePace() {
+  document.getElementById('pace-val').textContent = paceString() || '—';
+}
+
+function submitRun() {
+  var dist = parseFloat(document.getElementById('log-dist').value);
+  var mins = parseFloat(document.getElementById('log-time').value);
+  if (!dist || !mins || dist <= 0 || mins <= 0) { Lions.toast('Enter distance and time'); return; }
+
+  var name = Lions.getPlayer() || 'Anonymous';
+  var pace = paceString();
+  var ts = Lions.stamp();
+  var rt = RUN_TYPES[state.type];
+
+  Lions.addRunSession({
+    week: Lions.weekKey(), player: name, date: ts,
+    runType: rt ? rt.name : '', distanceKm: dist, durationMin: mins
+  });
+
+  document.getElementById('done-stats').innerHTML =
+    '<div class="stat"><div class="stat-val">' + dist.toFixed(2) + '</div><div class="stat-label">km</div></div>' +
+    '<div class="stat"><div class="stat-val">' + Math.round(mins) + '</div><div class="stat-label">minutes</div></div>' +
+    '<div class="stat"><div class="stat-val">' + Lions.escapeHtml(pace) + '</div><div class="stat-label">per km</div></div>';
+
+  goStep('done');
+
+  var el = document.getElementById('log-status');
+  el.textContent = '⏳ Saving to Coach\'s sheet...';
+  el.style.color = 'var(--grey)';
+  Lions.post({
+    type: 'run', date: ts, player: name,
+    runType: rt ? rt.name : '', plannedMin: state.time,
+    distanceKm: dist, durationMin: mins, pacePerKm: pace
+  }).then(function () {
+    el.textContent = '✅ Run saved to Coach\'s sheet';
+    el.style.color = 'var(--green)';
+  }).catch(function () {
+    el.textContent = '⚠️ Could not save — screenshot this and send it to Coach';
+    el.style.color = 'var(--gold)';
+  });
+}
+
+// ═══ WIRING ══════════════════════════════════════════════
+document.getElementById('to-type').addEventListener('click', function () { goStep('type'); });
+document.getElementById('back-time').addEventListener('click', function () { goStep('time'); });
+document.getElementById('build-btn').addEventListener('click', buildRun);
+document.getElementById('back-type').addEventListener('click', function () { goStep('type'); });
+document.getElementById('to-log').addEventListener('click', function () { goStep('log'); });
+document.getElementById('back-session').addEventListener('click', function () { goStep('session'); });
+document.getElementById('submit-run').addEventListener('click', submitRun);
+document.getElementById('start-guided').addEventListener('click', startGuided);
+document.getElementById('g-exit').addEventListener('click', function () { exitGuided(); });
+
+// ── GPS opt-in ────────────────────────────────────────────
+// Remembered per device, so a player sets it once.
+var GPS_PREF = 'lions_gps_on';
+function renderGpsSwitch() {
+  var sw = document.getElementById('gps-switch');
+  var opt = document.getElementById('gps-opt');
+  if (!GPS.supported) { opt.style.display = 'none'; GPS.on = false; return; }
+  sw.classList.toggle('on', GPS.on);
+  sw.setAttribute('aria-checked', GPS.on ? 'true' : 'false');
+}
+try { GPS.on = localStorage.getItem(GPS_PREF) === '1'; } catch (e) {}
+document.getElementById('gps-switch').addEventListener('click', function () {
+  GPS.on = !GPS.on;
+  try { localStorage.setItem(GPS_PREF, GPS.on ? '1' : '0'); } catch (e) {}
+  renderGpsSwitch();
+  if (GPS.on) Lions.toast('GPS on — allow location when asked');
+});
+renderGpsSwitch();
+document.getElementById('log-dist').addEventListener('input', updatePace);
+document.getElementById('log-time').addEventListener('input', updatePace);
+document.getElementById('again-btn').addEventListener('click', function () {
+  state.type = null;
+  document.getElementById('log-dist').value = '';
+  document.getElementById('log-time').value = '';
+  updatePace(); renderTypes(); goStep('time');
+});
+wireGuidedControls();
+
+// ═══ INIT ════════════════════════════════════════════════
+initGate();
+renderTimePresets();
+renderTypes();
+renderWho();
+goStep(Lions.getPlayer() ? 'time' : 'name');
+</script>
+</body>
+</html>

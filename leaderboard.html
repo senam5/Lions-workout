@@ -4,521 +4,393 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lions · Leaderboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lions.css">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:     #111d33;
-    --navy:   #1B2A4A;
-    --s1:     #162040;
-    --s2:     #1e2d4a;
-    --line:   #243358;
-    --red:    #CC2229;
-    --red2:   rgba(204,34,41,0.12);
-    --green:  #2ecc71;
-    --gold:   #f0a500;
-    --blue:   #3b82f6;
-    --white:  #FFFFFF;
-    --grey:   #7a8aaa;
-    --grey2:  #5a6a8a;
-  }
-  html, body { background: var(--bg); color: var(--white); font-family: 'Inter', sans-serif; min-height: 100%; }
-
-  /* ── LOCK SCREEN ── */
+  /* ── LOCK ── */
   #lock {
     min-height: 100vh; display: flex; flex-direction: column;
     align-items: center; justify-content: center; padding: 32px 24px;
     background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(204,34,41,0.08) 0%, transparent 70%);
   }
   .lock-icon { font-size: 48px; margin-bottom: 16px; }
-  .lock-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--white); letter-spacing: 1px; margin-bottom: 4px; }
+  .lock-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 1px; margin-bottom: 4px; }
   .lock-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 2px; margin-bottom: 32px; }
   .lock-input {
-    width: 100%; max-width: 320px; background: var(--s1); border: 2px solid var(--line);
+    width: 100%; max-width: 320px; background: var(--surface); border: 2px solid var(--line);
     border-radius: 10px; padding: 16px 18px; color: var(--white);
     font-family: 'Space Mono', monospace; font-size: 18px; letter-spacing: 4px;
-    text-align: center; outline: none; margin-bottom: 12px;
-    transition: border-color 0.15s;
+    text-align: center; outline: none; margin-bottom: 12px; transition: border-color 0.15s;
   }
-  .lock-input:focus { border-color: var(--red); }
-  .lock-input.error { border-color: var(--red); animation: shake 0.3s; }
+  .lock-input:focus { border-color: var(--lion); }
+  .lock-input.error { border-color: var(--lion); animation: shake 0.3s; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-  .lock-btn {
-    width: 100%; max-width: 320px; padding: 15px; background: var(--red);
-    border: none; border-radius: 8px; color: var(--white);
-    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px;
-    cursor: pointer; transition: opacity 0.15s;
-  }
-  .lock-btn:hover { opacity: 0.88; }
-  .lock-error { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--red); letter-spacing: 1px; margin-top: 10px; min-height: 16px; }
+  .lock-error { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--lion); letter-spacing: 1px; margin-top: 10px; min-height: 16px; }
 
-  /* ── DASHBOARD ── */
   #dashboard { display: none; }
 
-  /* Header */
-  .header {
-    background: var(--s1); border-bottom: 1px solid var(--line);
-    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 20;
-  }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .back-link {
-    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey);
-    letter-spacing: 1px; text-decoration: none; transition: color 0.15s;
-  }
-  .back-link:hover { color: var(--white); }
-  .header-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; }
-  .header-eyebrow { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--red); letter-spacing: 2px; }
-  .btn-refresh {
-    background: none; border: 1px solid var(--line); border-radius: 6px;
-    color: var(--grey); font-family: 'Space Mono', monospace; font-size: 9px;
-    padding: 6px 10px; letter-spacing: 1px; cursor: pointer; transition: all 0.15s;
-  }
-  .btn-refresh:hover { border-color: var(--red); color: var(--red); }
-
-  /* Tabs */
-  .tabs {
-    display: flex; border-bottom: 1px solid var(--line);
-    background: var(--s1); position: sticky; top: 57px; z-index: 19;
-  }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 57px; z-index: 19; }
   .tab {
-    flex: 1; padding: 12px; text-align: center;
-    font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+    flex: 1; padding: 12px 6px; text-align: center;
+    font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px;
     color: var(--grey); cursor: pointer; border-bottom: 2px solid transparent;
-    transition: all 0.15s; text-transform: uppercase;
+    transition: all 0.15s; text-transform: uppercase; background: none; border-top: none; border-left: none; border-right: none;
   }
-  .tab.active { color: var(--white); border-bottom-color: var(--red); }
+  .tab.active { color: var(--white); border-bottom-color: var(--lion); }
 
-  /* Main */
-  .main { padding: 16px 16px 60px; max-width: 600px; margin: 0 auto; }
-
-  /* Week badge */
   .week-badge {
     display: flex; align-items: center; justify-content: space-between;
-    background: var(--s1); border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
     padding: 10px 14px; margin-bottom: 16px;
   }
-  .week-label { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; }
-  .week-val { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--red); letter-spacing: 1px; }
+  .week-val { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--lion); letter-spacing: 1px; }
 
-  /* Leaderboard rows */
-  .lb-card { background: var(--s1); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
-  .lb-card-title { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--red); letter-spacing: 2px; padding: 12px 16px 0; text-transform: uppercase; }
-
-  .lb-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 16px; border-bottom: 1px solid var(--line);
-    transition: background 0.15s;
-  }
+  .lb-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
   .lb-row:last-child { border-bottom: none; }
-  .lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 28px; width: 32px; text-align: center; flex-shrink: 0; }
-  .rank-1 { color: var(--gold); }
-  .rank-2 { color: #c0c0c0; }
-  .rank-3 { color: #cd7f32; }
-  .rank-other { color: var(--grey2); }
-  .lb-avatar {
-    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-    background: var(--s2); border: 2px solid var(--line);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--grey);
-  }
-  .lb-avatar.top { border-color: var(--gold); color: var(--gold); background: rgba(240,165,0,0.1); }
+  .lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 26px; width: 30px; text-align: center; flex-shrink: 0; }
+  .rank-1 { color: var(--gold); } .rank-2 { color: #c0c0c0; } .rank-3 { color: #cd7f32; } .rank-other { color: var(--grey2); }
   .lb-info { flex: 1; min-width: 0; }
-  .lb-name { font-size: 14px; font-weight: 600; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lb-sub { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 0.5px; margin-top: 3px; }
   .lb-score { text-align: right; flex-shrink: 0; }
-  .lb-score-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; }
+  .lb-score-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; }
   .lb-score-label { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--grey); letter-spacing: 1px; }
 
-  /* Mini bars */
-  .lb-bars { display: flex; flex-direction: column; gap: 5px; width: 100px; flex-shrink: 0; }
+  .lb-bars { display: flex; flex-direction: column; gap: 5px; width: 96px; flex-shrink: 0; }
   .lb-bar-row { display: flex; align-items: center; gap: 5px; }
-  .lb-bar-track { flex: 1; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
-  .lb-bar-fill { height: 100%; border-radius: 2px; }
-  .fill-red { background: var(--red); }
-  .fill-gold { background: var(--gold); }
-  .fill-blue { background: var(--blue); }
   .lb-bar-pct { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--grey); width: 26px; text-align: right; }
 
-  /* Attendance */
-  .att-grid { display: flex; flex-direction: column; gap: 2px; padding: 0 16px 16px; }
-  .att-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-  .att-row:last-child { border-bottom: none; }
-  .att-rank { font-family: 'Bebas Neue', sans-serif; font-size: 20px; width: 24px; text-align: center; flex-shrink: 0; }
-  .att-name { flex: 1; font-size: 13px; font-weight: 600; }
-  .att-dots { display: flex; gap: 4px; }
-  .att-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-  .att-dot.present { background: var(--green); }
-  .att-count { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--green); width: 32px; text-align: right; }
-
-  /* Admin panel */
-  .admin-panel {
-    background: var(--s1); border: 1px solid var(--line); border-radius: 12px;
-    padding: 16px; margin-bottom: 16px;
-  }
-  .admin-title { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--gold); letter-spacing: 2px; margin-bottom: 12px; }
+  /* Attendance — manual, Ash only */
   .admin-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .admin-row:last-child { margin-bottom: 0; }
-  .admin-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--white); }
+  .admin-name { flex: 1; font-size: 13px; font-weight: 600; }
   .att-toggle {
     width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line);
-    background: var(--s2); color: var(--grey); font-size: 13px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s; flex-shrink: 0;
+    background: var(--surface2); color: var(--grey); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
   }
-  .att-toggle.marked { background: var(--green); border-color: var(--green); color: var(--bg); }
-  .btn-save-att {
-    width: 100%; padding: 12px; background: var(--red); border: none;
-    border-radius: 8px; color: var(--white); font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px; letter-spacing: 2px; cursor: pointer; margin-top: 12px;
-    transition: opacity 0.15s;
-  }
-  .btn-save-att:hover { opacity: 0.88; }
-
-  /* Empty */
-  .empty { text-align: center; padding: 40px 20px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; line-height: 2; }
-
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--s2); border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 18px; font-family: 'Space Mono', monospace; font-size: 10px;
-    color: var(--white); letter-spacing: 1px; opacity: 0;
-    transition: all 0.25s; pointer-events: none; white-space: nowrap; z-index: 100;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .att-toggle.marked { background: var(--green); border-color: var(--green); color: var(--green-dim); }
+  .att-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .att-row:last-child { border-bottom: none; }
+  .att-rank { font-family: 'Bebas Neue', sans-serif; font-size: 19px; width: 22px; text-align: center; flex-shrink: 0; }
+  .att-name { flex: 1; font-size: 13px; font-weight: 600; }
+  .att-dots { display: flex; gap: 4px; flex-wrap: wrap; max-width: 130px; justify-content: flex-end; }
+  .att-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .att-dot.present { background: var(--green); }
+  .att-count { font-family: 'Bebas Neue', sans-serif; font-size: 19px; color: var(--green); width: 30px; text-align: right; }
 </style>
 </head>
 <body>
 
-<!-- LOCK SCREEN -->
+<!-- LOCK -->
 <div id="lock">
   <div class="lock-icon">🔒</div>
   <div class="lock-title">LIONS LEADERBOARD</div>
   <div class="lock-sub">Coach access only</div>
-  <input class="lock-input" id="pw-input" type="password" placeholder="••••••••" maxlength="20"
-    onkeydown="if(event.key==='Enter') checkPassword()">
-  <button class="lock-btn" onclick="checkPassword()">ENTER →</button>
+  <input class="lock-input" id="pw-input" type="password" placeholder="••••••••" maxlength="20">
+  <button class="btn-primary" id="pw-btn" style="max-width:320px">ENTER →</button>
   <div class="lock-error" id="pw-error"></div>
 </div>
 
 <!-- DASHBOARD -->
 <div id="dashboard">
-
-  <div class="header">
-    <div class="header-left">
+  <div class="topbar">
+    <div class="topbar-left">
       <a class="back-link" href="index.html">← HOME</a>
       <div>
-        <div class="header-eyebrow">St. Lawrence · Lions</div>
-        <div class="header-title">LEADERBOARD</div>
+        <div class="topbar-eyebrow">St. Lawrence · Lions</div>
+        <div class="topbar-title">LEADERBOARD</div>
       </div>
     </div>
-    <button class="btn-refresh" onclick="loadAll()">↻ REFRESH</button>
+    <button class="back-link" id="refresh-btn">↻ REFRESH</button>
   </div>
 
   <div class="tabs">
-    <div class="tab active" id="tab-shooting" onclick="switchTab('shooting')">🎯 Shooting</div>
-    <div class="tab" id="tab-attendance" onclick="switchTab('attendance')">💪 Weight Room</div>
+    <button class="tab active" data-tab="shooting">🎯 Shooting</button>
+    <button class="tab" data-tab="running">🏃 Running</button>
+    <button class="tab" data-tab="attendance">💪 Weight Room</button>
   </div>
 
-  <!-- SHOOTING TAB -->
-  <div class="main" id="pane-shooting">
+  <!-- SHOOTING -->
+  <div class="wrap-wide pane" id="pane-shooting">
     <div class="week-badge">
-      <div class="week-label">WEEK OF</div>
+      <div class="label">Week of</div>
       <div class="week-val" id="shooting-week">—</div>
     </div>
-    <div id="shooting-lb"><div class="empty">Loading shooting data...</div></div>
+    <div id="shooting-lb"><div class="loading"><div class="spinner"></div>Loading shooting data...</div></div>
   </div>
 
-  <!-- ATTENDANCE TAB -->
-  <div class="main" id="pane-attendance" style="display:none;">
+  <!-- RUNNING -->
+  <div class="wrap-wide pane hidden" id="pane-running">
     <div class="week-badge">
-      <div class="week-label">SESSIONS THIS WEEK</div>
+      <div class="label">This week</div>
+      <div class="week-val" id="running-week">—</div>
+    </div>
+    <div id="running-lb"><div class="loading"><div class="spinner"></div>Loading runs...</div></div>
+  </div>
+
+  <!-- ATTENDANCE — manual, Ash only -->
+  <div class="wrap-wide pane hidden" id="pane-attendance">
+    <div class="week-badge">
+      <div class="label">Sessions this week</div>
       <div class="week-val" id="att-week-label">—</div>
     </div>
 
-    <!-- Mark attendance -->
-    <div class="admin-panel">
-      <div class="admin-title">⚡ MARK TODAY'S ATTENDANCE</div>
+    <div class="card">
+      <div class="card-title" style="color:var(--gold)">⚡ Mark today's attendance</div>
       <div id="att-admin-rows"></div>
-      <button class="btn-save-att" onclick="saveAttendance()">SAVE ATTENDANCE ✓</button>
+      <button class="btn-primary" id="save-att" style="margin-top:12px">SAVE ATTENDANCE ✓</button>
     </div>
 
-    <!-- Leaderboard -->
-    <div class="lb-card">
-      <div class="lb-card-title">Weight Room Rankings</div>
+    <div class="card">
+      <div class="card-title">Weight Room Rankings</div>
       <div id="att-lb"></div>
     </div>
   </div>
-
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="lions.js"></script>
 <script>
-  function escapeHtml(str) {
-    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+'use strict';
+var esc = Lions.escapeHtml;
+
+var PASSWORD  = 'Dexter';
+var SHOTS_CSV = 'https://docs.google.com/spreadsheets/d/' + Lions.SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=shots';
+
+// ── LOCK ──────────────────────────────────────────────────
+function checkPassword() {
+  var input = document.getElementById('pw-input');
+  var err = document.getElementById('pw-error');
+  if (input.value === PASSWORD) {
+    document.getElementById('lock').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadAll();
+  } else {
+    input.classList.add('error');
+    err.textContent = 'Wrong password. Try again.';
+    input.value = '';
+    setTimeout(function () { input.classList.remove('error'); }, 400);
   }
+}
+document.getElementById('pw-btn').addEventListener('click', checkPassword);
+document.getElementById('pw-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') checkPassword();
+});
 
-  const PASSWORD = 'Dexter';
-  const SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';
-  const SHOTS_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=shots`;
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWW_jOP8hthumnYI9nLbIMQmRqtHX5bCB07HC5wko2JfCvrFHaU5V4erxk1tXkR0gJ/exec';
-
-  const ROSTER = [
-    'Thomas Lemay','William Warford','Antoine Bergeron','Léo Lemaire-Martin',
-    'Albert Pomerleau','Liam O\'Farrell','Thomas Bédard','Lucas Godbout-Cech',
-    'Olivier Gagné','Antoine Bissonnette','Alex Bédard','Zachary Morin',
-    'Noah Verville','Justin Bouffard','David Vergara','Aidan Cheberiak'
-  ];
-
-  // ── PASSWORD ──
-  function checkPassword() {
-    const val = document.getElementById('pw-input').value;
-    const input = document.getElementById('pw-input');
-    const err = document.getElementById('pw-error');
-    if (val === PASSWORD) {
-      document.getElementById('lock').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      loadAll();
-    } else {
-      input.classList.add('error');
-      err.textContent = 'Wrong password. Try again.';
-      input.value = '';
-      setTimeout(() => input.classList.remove('error'), 400);
-    }
-  }
-
-  // ── TABS ──
-  function switchTab(tab) {
-    document.getElementById('tab-shooting').classList.toggle('active', tab === 'shooting');
-    document.getElementById('tab-attendance').classList.toggle('active', tab === 'attendance');
-    document.getElementById('pane-shooting').style.display = tab === 'shooting' ? '' : 'none';
-    document.getElementById('pane-attendance').style.display = tab === 'attendance' ? '' : 'none';
-  }
-
-  // ── LOAD ALL ──
-  function loadAll() {
-    loadShooting();
-    loadAttendance();
-  }
-
-  // ── SHOOTING LEADERBOARD ──
-  async function loadShooting() {
-    const el = document.getElementById('shooting-lb');
-    try {
-      const res = await fetch(SHOTS_CSV);
-      const csv = await res.text();
-      const sessions = parseCSV(csv);
-      renderShootingLB(sessions, el);
-    } catch(e) {
-      el.innerHTML = '<div class="empty">Could not load shooting data.<br>Check sheet permissions.</div>';
-    }
-  }
-
-  function parseCSV(csv) {
-    const lines = csv.trim().split('\n').slice(1);
-    return lines.map(line => {
-      const cols = line.match(/(".*?"|[^,]+)(?=,|$)/g) || [];
-      const c = cols.map(x => x.replace(/^"|"$/g,'').trim());
-      return {
-        date: c[0]||'', player: c[1]||'',
-        threesMade: parseInt(c[2])||0, threesAtt: parseInt(c[3])||0,
-        threesPct: parseFloat((c[4]||'0').replace('%','').replace(',','.'))||0,
-        midMade: parseInt(c[5])||0, midAtt: parseInt(c[6])||0,
-        midPct: parseFloat((c[7]||'0').replace('%','').replace(',','.'))||0,
-        ftMade: parseInt(c[8])||0, ftAtt: parseInt(c[9])||0,
-        ftPct: parseFloat((c[10]||'0').replace('%','').replace(',','.'))||0,
-      };
-    }).filter(s => s.player);
-  }
-
-  function renderShootingLB(sessions, el) {
-    if (!sessions.length) {
-      el.innerHTML = '<div class="empty">No sessions logged yet.<br>Share the app link with your players.</div>';
-      return;
-    }
-
-    // Week label
-    const dates = sessions.map(s => s.date).filter(Boolean);
-    document.getElementById('shooting-week').textContent = dates.length ? dates[dates.length-1].slice(0,12) : '—';
-
-    // Aggregate
-    const byPlayer = {};
-    sessions.forEach(s => {
-      if (!byPlayer[s.player]) byPlayer[s.player] = { threes:[], mid:[], ft:[], sessions:0 };
-      byPlayer[s.player].threes.push(s.threesPct);
-      byPlayer[s.player].mid.push(s.midPct);
-      byPlayer[s.player].ft.push(s.ftPct);
-      byPlayer[s.player].sessions++;
+// ── TABS ──────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(function (t) {
+  t.addEventListener('click', function () {
+    var tab = this.dataset.tab;
+    document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x.dataset.tab === tab); });
+    ['shooting', 'running', 'attendance'].forEach(function (p) {
+      document.getElementById('pane-' + p).classList.toggle('hidden', p !== tab);
     });
+  });
+});
 
-    const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
-    const players = Object.entries(byPlayer).map(([name,d]) => ({
-      name, sessions: d.sessions,
-      threes: avg(d.threes), mid: avg(d.mid), ft: avg(d.ft),
-      overall: Math.round((avg(d.threes)+avg(d.mid)+avg(d.ft))/3)
-    })).sort((a,b) => b.overall - a.overall);
+function loadAll() { loadShooting(); loadRunning(); loadAttendance(); }
+document.getElementById('refresh-btn').addEventListener('click', loadAll);
 
-    const rankColors = ['rank-1','rank-2','rank-3'];
-    const rankSymbols = ['🥇','🥈','🥉'];
-
-    el.innerHTML = `
-      <div class="lb-card">
-        <div class="lb-card-title">Overall Shooting Average</div>
-        ${players.map((p,i) => `
-          <div class="lb-row">
-            <div class="lb-rank ${rankColors[i]||'rank-other'}">${rankSymbols[i]||i+1}</div>
-            <div class="lb-avatar ${i===0?'top':''}">${escapeHtml(initials(p.name))}</div>
-            <div class="lb-info">
-              <div class="lb-name">${escapeHtml(p.name.split(' ')[0])} ${escapeHtml(p.name.split(' ').slice(-1)[0])}</div>
-              <div class="lb-sub">${p.sessions} session${p.sessions>1?'s':''}</div>
-            </div>
-            <div class="lb-bars">
-              <div class="lb-bar-row">
-                <div class="lb-bar-track"><div class="lb-bar-fill fill-red" style="width:${p.threes}%"></div></div>
-                <div class="lb-bar-pct">${p.threes}%</div>
-              </div>
-              <div class="lb-bar-row">
-                <div class="lb-bar-track"><div class="lb-bar-fill fill-gold" style="width:${p.mid}%"></div></div>
-                <div class="lb-bar-pct">${p.mid}%</div>
-              </div>
-              <div class="lb-bar-row">
-                <div class="lb-bar-track"><div class="lb-bar-fill fill-blue" style="width:${p.ft}%"></div></div>
-                <div class="lb-bar-pct">${p.ft}%</div>
-              </div>
-            </div>
-            <div class="lb-score">
-              <div class="lb-score-val" style="color:${i===0?'var(--gold)':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--white)'}">${p.overall}%</div>
-              <div class="lb-score-label">overall</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>`;
-  }
-
-  // ── ATTENDANCE ──
-  let todayMarked = {};
-  let attSheetData = {}; // { playerName: totalCount } loaded from Sheets
-
-  async function loadAttendance() {
-    try {
-      const res = await fetch(ENDPOINT + '?action=attendance');
-      const rows = await res.json();
-      // Aggregate total sessions per player from all rows
-      attSheetData = {};
-      rows.forEach(r => {
-        if (r.present === 'Yes') {
-          attSheetData[r.player] = (attSheetData[r.player] || 0) + 1;
-        }
-      });
-    } catch(e) {
-      // If sheet fetch fails, attSheetData stays empty — leaderboard shows 0s
-    }
-    renderAttendance();
-  }
-
-  function renderAttendance() {
-    // Admin rows — mark today
-    const adminEl = document.getElementById('att-admin-rows');
-    adminEl.innerHTML = ROSTER.map(name => `
-      <div class="admin-row">
-        <div class="admin-name">${name.split(' ')[0]} ${name.split(' ').slice(-1)[0]}</div>
-        <button class="att-toggle ${todayMarked[name]?'marked':''}" id="att-${safeid(name)}"
-          onclick="toggleAttMark('${name}')">
-          ${todayMarked[name]?'✓':''}
-        </button>
-      </div>
-    `).join('');
-
-    // Leaderboard — ranked by total sessions from sheet
-    const ranked = ROSTER.map(name => ({
-      name,
-      count: attSheetData[name] || 0
-    })).sort((a,b) => b.count - a.count);
-
-    const maxSessions = Math.max(...ranked.map(p => p.count), 1);
-    const attEl = document.getElementById('att-lb');
-    const rankColors = ['rank-1','rank-2','rank-3'];
-
-    // Week label
-    const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - now.getDay() + 1);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    document.getElementById('att-week-label').textContent =
-      monday.toLocaleDateString('en-CA',{month:'short',day:'numeric'}) + ' – ' +
-      sunday.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
-
-    attEl.innerHTML = `<div class="att-grid">` + ranked.map((p,i) => `
-      <div class="att-row">
-        <div class="att-rank ${rankColors[i]||'rank-other'}">${i+1}</div>
-        <div class="att-name">${p.name.split(' ')[0]}</div>
-        <div class="att-dots">
-          ${Array.from({length: Math.max(maxSessions, 3)}).map((_,di) =>
-            `<div class="att-dot ${di < p.count ? 'present' : ''}"></div>`
-          ).join('')}
-        </div>
-        <div class="att-count">${p.count}</div>
-      </div>
-    `).join('') + `</div>`;
-  }
-
-  function safeid(name) { return name.replace(/[^a-z0-9]/gi,'_'); }
-
-  function toggleAttMark(name) {
-    todayMarked[name] = !todayMarked[name];
-    const btn = document.getElementById('att-' + safeid(name));
-    btn.classList.toggle('marked', !!todayMarked[name]);
-    btn.textContent = todayMarked[name] ? '✓' : '';
-  }
-
-  async function saveAttendance() {
-    const marked = Object.entries(todayMarked).filter(([,v]) => v);
-    if (!marked.length) { showToast('No players selected'); return; }
-
-    const now = new Date();
-    const date = now.toLocaleString('en-CA', {
-      timeZone: 'America/Toronto',
-      weekday: 'short', year: 'numeric', month: 'short',
-      day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
-    });
-
-    const payload = {
-      type: 'attendance',
-      date,
-      players: ROSTER.map(name => ({ name, present: !!todayMarked[name] }))
+// ── SHOOTING ──────────────────────────────────────────────
+function parseCSV(csv) {
+  return csv.trim().split('\n').slice(1).map(function (line) {
+    var cols = line.match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    var c = cols.map(function (x) { return x.replace(/^"|"$/g, '').trim(); });
+    var num = function (v) { return parseFloat(String(v || '0').replace('%', '').replace(',', '.')) || 0; };
+    return {
+      date: c[0] || '', player: c[1] || '',
+      threesPct: num(c[4]), midPct: num(c[7]), ftPct: num(c[10])
     };
+  }).filter(function (s) { return s.player; });
+}
 
-    showToast('⏳ Saving...');
+function loadShooting() {
+  var el = document.getElementById('shooting-lb');
+  fetch(SHOTS_CSV).then(function (r) { return r.text(); })
+    .then(function (csv) { renderShooting(parseCSV(csv), el); })
+    .catch(function () {
+      el.innerHTML = '<div class="empty">Could not load shooting data.<br>Check sheet permissions.</div>';
+    });
+}
 
-    try {
-      await fetch(ENDPOINT, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+function renderShooting(sessions, el) {
+  if (!sessions.length) {
+    el.innerHTML = '<div class="empty">No sessions logged yet.<br>Share the app link with your players.</div>';
+    return;
+  }
+  var dates = sessions.map(function (s) { return s.date; }).filter(Boolean);
+  document.getElementById('shooting-week').textContent = dates.length ? dates[dates.length - 1].slice(0, 12) : '—';
+
+  var byPlayer = {};
+  sessions.forEach(function (s) {
+    if (!byPlayer[s.player]) byPlayer[s.player] = { threes: [], mid: [], ft: [], n: 0 };
+    byPlayer[s.player].threes.push(s.threesPct);
+    byPlayer[s.player].mid.push(s.midPct);
+    byPlayer[s.player].ft.push(s.ftPct);
+    byPlayer[s.player].n++;
+  });
+
+  var avg = function (a) { return a.length ? Math.round(a.reduce(function (x, y) { return x + y; }, 0) / a.length) : 0; };
+  var players = Object.keys(byPlayer).map(function (name) {
+    var d = byPlayer[name];
+    return {
+      name: name, n: d.n, threes: avg(d.threes), mid: avg(d.mid), ft: avg(d.ft),
+      overall: Math.round((avg(d.threes) + avg(d.mid) + avg(d.ft)) / 3)
+    };
+  }).sort(function (a, b) { return b.overall - a.overall; });
+
+  var rc = ['rank-1', 'rank-2', 'rank-3'], rs = ['🥇', '🥈', '🥉'];
+  el.innerHTML = '<div class="card" style="padding:0"><div class="card-title" style="padding:14px 16px 0">Overall Shooting Average</div>' +
+    players.map(function (p, i) {
+      var bar = function (v, cls) {
+        return '<div class="lb-bar-row"><div class="bar-track" style="flex:1;height:3px"><div class="bar-fill ' + cls + '" style="width:' + v + '%"></div></div>' +
+               '<div class="lb-bar-pct">' + v + '%</div></div>';
+      };
+      return '<div class="lb-row">' +
+        '<div class="lb-rank ' + (rc[i] || 'rank-other') + '">' + (rs[i] || (i + 1)) + '</div>' +
+        '<div class="avatar' + (i === 0 ? ' top' : '') + '">' + esc(Lions.initials(p.name)) + '</div>' +
+        '<div class="lb-info"><div class="lb-name">' + esc(p.name) + '</div>' +
+        '<div class="lb-sub">' + p.n + ' session' + (p.n > 1 ? 's' : '') + '</div></div>' +
+        '<div class="lb-bars">' + bar(p.threes, '') + bar(p.mid, 'gold') + bar(p.ft, 'blue') + '</div>' +
+        '<div class="lb-score"><div class="lb-score-val" style="color:' +
+          (i === 0 ? 'var(--gold)' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--white)') + '">' + p.overall + '%</div>' +
+        '<div class="lb-score-label">overall</div></div></div>';
+    }).join('') + '</div>';
+}
+
+// ── RUNNING ───────────────────────────────────────────────
+function loadRunning() {
+  var el = document.getElementById('running-lb');
+  document.getElementById('running-week').textContent = Lions.weekLabel();
+  fetch(Lions.ENDPOINT + '?action=runs')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) { renderRunning(rows || [], el); })
+    .catch(function () {
+      el.innerHTML = '<div class="empty">Could not load runs.<br>Add the <strong>runs</strong> handler to your Apps Script.</div>';
+    });
+}
+
+function renderRunning(rows, el) {
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">No runs logged yet.<br>Players log them from the Run page.</div>';
+    return;
+  }
+  var byPlayer = {};
+  rows.forEach(function (r) {
+    var name = r.player || r.name;
+    if (!name) return;
+    if (!byPlayer[name]) byPlayer[name] = { km: 0, mins: 0, n: 0 };
+    byPlayer[name].km   += parseFloat(r.distanceKm) || 0;
+    byPlayer[name].mins += parseFloat(r.durationMin) || 0;
+    byPlayer[name].n++;
+  });
+
+  var players = Object.keys(byPlayer).map(function (name) {
+    var d = byPlayer[name];
+    return { name: name, km: d.km, mins: d.mins, n: d.n, pace: d.km > 0 ? d.mins / d.km : 0 };
+  }).sort(function (a, b) { return b.km - a.km; });
+
+  var rc = ['rank-1', 'rank-2', 'rank-3'], rs = ['🥇', '🥈', '🥉'];
+  var totalKm = players.reduce(function (a, p) { return a + p.km; }, 0);
+
+  el.innerHTML =
+    '<div class="stat-row" style="margin-bottom:14px">' +
+      '<div class="stat"><div class="stat-val">' + totalKm.toFixed(0) + '</div><div class="stat-label">team km</div></div>' +
+      '<div class="stat"><div class="stat-val green">' + rows.length + '</div><div class="stat-label">runs logged</div></div>' +
+      '<div class="stat"><div class="stat-val gold">' + players.length + '</div><div class="stat-label">runners</div></div>' +
+    '</div>' +
+    '<div class="card" style="padding:0"><div class="card-title" style="padding:14px 16px 0">Distance Leaders</div>' +
+    players.map(function (p, i) {
+      var pm = Math.floor(p.pace), ps = Math.round((p.pace - pm) * 60);
+      if (ps === 60) { pm++; ps = 0; }
+      return '<div class="lb-row">' +
+        '<div class="lb-rank ' + (rc[i] || 'rank-other') + '">' + (rs[i] || (i + 1)) + '</div>' +
+        '<div class="avatar' + (i === 0 ? ' top' : '') + '">' + esc(Lions.initials(p.name)) + '</div>' +
+        '<div class="lb-info"><div class="lb-name">' + esc(p.name) + '</div>' +
+        '<div class="lb-sub">' + p.n + ' run' + (p.n > 1 ? 's' : '') +
+          (p.pace > 0 ? ' · ' + pm + ':' + String(ps).padStart(2, '0') + '/km avg' : '') + '</div></div>' +
+        '<div class="lb-score"><div class="lb-score-val" style="color:' +
+          (i === 0 ? 'var(--gold)' : 'var(--white)') + '">' + p.km.toFixed(1) + '</div>' +
+        '<div class="lb-score-label">km</div></div></div>';
+    }).join('') + '</div>';
+}
+
+// ── ATTENDANCE (manual — Ash's private view) ──────────────
+var todayMarked = {};
+var attSheetData = {};
+
+function loadAttendance() {
+  fetch(Lions.ENDPOINT + '?action=attendance')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      attSheetData = {};
+      (rows || []).forEach(function (r) {
+        if (r.present === 'Yes') attSheetData[r.player] = (attSheetData[r.player] || 0) + 1;
       });
-      // Optimistically update local data
-      marked.forEach(([name]) => {
-        attSheetData[name] = (attSheetData[name] || 0) + 1;
-      });
-      todayMarked = {};
-      renderAttendance();
-      showToast(`✅ ${marked.length} player${marked.length!==1?'s':''} marked present`);
-    } catch(e) {
-      showToast('⚠️ Could not save — check connection');
+    })
+    .catch(function () { /* leaderboard just shows zeros */ })
+    .then(renderAttendance);
+}
+
+function safeid(name) { return name.replace(/[^a-z0-9]/gi, '_'); }
+
+function renderAttendance() {
+  document.getElementById('att-admin-rows').innerHTML = Lions.ROSTER.map(function (name) {
+    return '<div class="admin-row">' +
+      '<div class="admin-name">' + esc(name) + '</div>' +
+      '<button class="att-toggle ' + (todayMarked[name] ? 'marked' : '') + '" id="att-' + safeid(name) + '" data-n="' + esc(name) + '">' +
+      (todayMarked[name] ? '✓' : '') + '</button></div>';
+  }).join('');
+  document.querySelectorAll('.att-toggle').forEach(function (b) {
+    b.addEventListener('click', function () { toggleAttMark(this.dataset.n); });
+  });
+
+  var ranked = Lions.ROSTER.map(function (name) {
+    return { name: name, count: attSheetData[name] || 0 };
+  }).sort(function (a, b) { return b.count - a.count; });
+
+  var maxS = Math.max.apply(null, ranked.map(function (p) { return p.count; }).concat([1]));
+  var rc = ['rank-1', 'rank-2', 'rank-3'];
+  document.getElementById('att-week-label').textContent = Lions.weekLabel();
+
+  document.getElementById('att-lb').innerHTML = ranked.map(function (p, i) {
+    var dots = '';
+    for (var d = 0; d < Math.min(Math.max(maxS, 3), 14); d++) {
+      dots += '<div class="att-dot' + (d < p.count ? ' present' : '') + '"></div>';
     }
-  }
+    return '<div class="att-row">' +
+      '<div class="att-rank ' + (rc[i] || 'rank-other') + '">' + (i + 1) + '</div>' +
+      '<div class="att-name">' + esc(p.name.split(' ')[0]) + '</div>' +
+      '<div class="att-dots">' + dots + '</div>' +
+      '<div class="att-count">' + p.count + '</div></div>';
+  }).join('');
+}
 
-  // ── HELPERS ──
-  function initials(n) { return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function toggleAttMark(name) {
+  todayMarked[name] = !todayMarked[name];
+  var btn = document.getElementById('att-' + safeid(name));
+  btn.classList.toggle('marked', !!todayMarked[name]);
+  btn.textContent = todayMarked[name] ? '✓' : '';
+}
 
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
-  }
+document.getElementById('save-att').addEventListener('click', function () {
+  var marked = Object.keys(todayMarked).filter(function (k) { return todayMarked[k]; });
+  if (!marked.length) { Lions.toast('No players selected'); return; }
+  Lions.toast('⏳ Saving...');
+  Lions.post({
+    type: 'attendance',
+    date: Lions.stamp(),
+    players: Lions.ROSTER.map(function (name) { return { name: name, present: !!todayMarked[name] }; })
+  }).then(function () {
+    marked.forEach(function (n) { attSheetData[n] = (attSheetData[n] || 0) + 1; });
+    todayMarked = {};
+    renderAttendance();
+    Lions.toast('✅ ' + marked.length + ' player' + (marked.length !== 1 ? 's' : '') + ' marked present');
+  }).catch(function () {
+    Lions.toast('⚠️ Could not save — check connection');
+  });
+});
 </script>
 </body>
 </html>
