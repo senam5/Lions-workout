@@ -256,6 +256,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   const PASSWORD = 'Dexter';
   const SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';
   const SHOTS_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=shots`;
@@ -365,9 +369,9 @@
         ${players.map((p,i) => `
           <div class="lb-row">
             <div class="lb-rank ${rankColors[i]||'rank-other'}">${rankSymbols[i]||i+1}</div>
-            <div class="lb-avatar ${i===0?'top':''}">${initials(p.name)}</div>
+            <div class="lb-avatar ${i===0?'top':''}">${escapeHtml(initials(p.name))}</div>
             <div class="lb-info">
-              <div class="lb-name">${p.name.split(' ')[0]} ${p.name.split(' ').slice(-1)[0]}</div>
+              <div class="lb-name">${escapeHtml(p.name.split(' ')[0])} ${escapeHtml(p.name.split(' ').slice(-1)[0])}</div>
               <div class="lb-sub">${p.sessions} session${p.sessions>1?'s':''}</div>
             </div>
             <div class="lb-bars">

@@ -232,7 +232,7 @@
       <h2 id="submit-name" style="margin-bottom:4px;"></h2>
       <p id="submit-detail" class="sub" style="margin-bottom:24px;"></p>
       <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">Tap the button below to log your session.<br>It opens Google Forms — just hit <strong>Submit</strong>.</p>
-      <a id="submit-link" href="#" target="_blank" class="btn btn-primary" style="text-decoration:none;display:block;">📋 Log my session</a>
+      <a id="submit-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="text-decoration:none;display:block;">📋 Log my session</a>
       <button class="btn" style="margin-top:8px" onclick="Object.assign(data.players[currentIdx],pending);save();goTo('screen-players')">Skip — already submitted</button>
     </div>
   </div>
@@ -244,6 +244,10 @@
 // Paste your Google Apps Script Web App URL here after setup:
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyb88_ISrSO0b_jzQiuOOJ1FruuMAjTklMYxBERfHroVRbHonsSHTHFiyvmNHotVIWw/exec';
 // ──────────────────────────────────────────────────────────
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 const DEFAULTS = [
   {name:'Zachary Morin',group:'A',phase:1,week:1,day:'upper'},
@@ -386,10 +390,10 @@ function goTo(id) {
 function renderPlayers() {
   document.getElementById('player-list').innerHTML = data.players.map((p,i) => `
     <div class="player-chip" onclick="selectPlayer(${i})">
-      <div class="avatar">${initials(p.name)}</div>
+      <div class="avatar">${escapeHtml(initials(p.name))}</div>
       <div style="flex:1">
-        <div class="player-name">${p.name}</div>
-        <div class="player-loc">${locStr(p)}</div>
+        <div class="player-name">${escapeHtml(p.name)}</div>
+        <div class="player-loc">${escapeHtml(locStr(p))}</div>
       </div>
       <span class="chevron">›</span>
     </div>`).join('');
@@ -473,7 +477,7 @@ function renderSessionScreen(p) {
   else exData = PROGRAM.A[p.phase][p.day];
 
   document.getElementById('session-header').innerHTML = `
-    <span class="badge badge-player">${p.name}</span>
+    <span class="badge badge-player">${escapeHtml(p.name)}</span>
     <h2>${p.day==='upper'?'Upper body':'Lower body'}</h2>
     <p class="sub">${p.group==='A'?`Group A · Phase ${p.phase}`:p.group==='B'?'Group B':'Group C'} · Week ${w}</p>`;
 
@@ -566,12 +570,12 @@ async function loadRoster() {
     el.innerHTML = rows.map(r => `
       <div class="card" style="margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:12px">
-          <div class="avatar">${initials(r.name)}</div>
+          <div class="avatar">${escapeHtml(initials(r.name))}</div>
           <div style="flex:1">
-            <div style="font-size:15px;font-weight:600">${r.name}</div>
-            <div style="font-size:12px;color:var(--text-muted)">${r.location} · Last: ${r.lastDate}</div>
+            <div style="font-size:15px;font-weight:600">${escapeHtml(r.name)}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(r.location)} · Last: ${escapeHtml(r.lastDate)}</div>
           </div>
-          <div style="font-size:13px;font-weight:600;color:var(--purple-text)">${r.sessions} sessions</div>
+          <div style="font-size:13px;font-weight:600;color:var(--purple-text)">${escapeHtml(r.sessions)} sessions</div>
         </div>
       </div>`).join('');
   } catch(e) { renderLocalRoster(el); }
@@ -581,10 +585,10 @@ function renderLocalRoster(el) {
   el.innerHTML = data.players.map(p => `
     <div class="card" style="margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="avatar">${initials(p.name)}</div>
+        <div class="avatar">${escapeHtml(initials(p.name))}</div>
         <div>
-          <div style="font-size:15px;font-weight:600">${p.name}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${locStr(p)}</div>
+          <div style="font-size:15px;font-weight:600">${escapeHtml(p.name)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(locStr(p))}</div>
         </div>
       </div>
     </div>`).join('');
