@@ -1132,6 +1132,9 @@
   let totalDrills = 0;
   let completedDrills = 0;
 
+  // So Lions.isShutdown() reflects the coach's current setting before a save is attempted.
+  Lions.refreshGoals();
+
   // DRILL DATABASE
   const drills = {
     handle: {
@@ -1788,6 +1791,17 @@
       return '<div style="display:flex;justify-content:space-between;padding:10px 0;' + border + 'font-size:13px;"><div style="color:var(--white);">' + label + '</div><div style="font-family:\'Space Mono\',monospace;color:var(--lion);">' + makes + '/' + attempts + ' · ' + pctStr(z) + '</div></div>';
     });
     document.getElementById('qs-breakdown').innerHTML = rowsArr.join('');
+
+    // Shutdown mode: show the raw numbers, but don't count them toward
+    // goals/streaks/milestones or send anything to the sheet.
+    if (Lions.isShutdown()) {
+      document.getElementById('qs-rewards').innerHTML = '';
+      document.getElementById('qs-screenshot-hint').innerHTML = '';
+      Lions.saveResult(false, 'Not live yet',
+        "Coach hasn't opened the app for real sessions. This session wasn't saved — come back once it's live!", null);
+      document.getElementById('qs-summary').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
 
     // ── Goal / streak / PB / milestone ──
     // Capture the "before" picture first, so we can tell what this session broke.
