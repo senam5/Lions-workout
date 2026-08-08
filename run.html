@@ -353,6 +353,45 @@ var RUN_TYPES = {
     }
   },
 
+  sprints: {
+    name: 'Sprints', icon: '💨',
+    desc: 'Short all-out efforts, full recovery between reps. Pure top-end speed.',
+    why: 'Top speed and acceleration — the gap between you and a loose ball, or beating your man down the floor. This needs full recovery between reps, or you\'re just doing intervals, not building speed.',
+    build: function (t) {
+      var warm = t <= 25 ? 6 : 8, cool = t <= 25 ? 4 : 6;
+      var main = Math.max(6, t - warm - cool);
+      var work = 12, rest = 75;
+      var reps = Math.min(10, Math.max(4, Math.floor(main * 60 / (work + rest))));
+      var setTime = Math.round(reps * (work + rest) / 60);
+      cool += Math.max(0, main - setTime);
+
+      var segs = [{ kind: 'warm', label: 'WARM UP', secs: (warm - 2) * 60, cue: 'Easy jog. Cold legs plus max-effort sprints is how you pull something.' }];
+      for (var s = 1; s <= 3; s++) {
+        segs.push({ kind: 'stride', label: 'STRIDE ' + s + '/3', secs: 20, cue: 'Build to fast, not max effort yet. Tall and relaxed.' });
+        segs.push({ kind: 'easy',   label: 'WALK BACK',          secs: 30, cue: 'Walk it back fully. No rush into the next one.' });
+      }
+      for (var i = 1; i <= reps; i++) {
+        segs.push({ kind: 'hard', label: 'SPRINT ' + i + '/' + reps, secs: work, cue: 'ALL OUT. This is the one rep you don\'t hold anything back on.' });
+        if (i < reps) segs.push({ kind: 'easy', label: 'WALK / REST', secs: rest, cue: 'Full recovery — walk it out. Only go again once you\'re ready to hit the same speed.' });
+      }
+      segs.push({ kind: 'cool', label: 'COOL DOWN', secs: cool * 60, cue: 'Easy jog until breathing settles, then walk and stretch.' });
+
+      return {
+        phases: [
+          { icon: '🚶', name: 'WARM-UP', time: warm, items: [
+            { name: 'Easy jog', detail: (warm - 2) + ' min genuinely easy.' },
+            { name: '3 × strides', detail: '3 × 20s building to fast (not max effort), full walk back between each.' }]},
+          { icon: '💨', name: 'MAIN SET', time: setTime, items: [
+            { name: reps + ' × ' + work + 's ALL-OUT sprint', detail: 'Max effort, every rep. If you can\'t hit the same speed as rep 1, you\'re done — more reps at half-speed doesn\'t build anything.' },
+            { name: rest + 's full recovery between reps', detail: 'Walk it out completely. This isn\'t jogging recovery like intervals — you need to be ready to go max effort again.' }]},
+          { icon: '🧘', name: 'COOL-DOWN', time: cool, items: [
+            { name: 'Easy jog → walk → stretch', detail: 'Bring it down gradually, then stretch — hamstrings especially after max-effort work.' }]}
+        ],
+        segments: segs
+      };
+    }
+  },
+
   tempo: {
     name: 'Tempo Run', icon: '🔥',
     desc: 'Sustained "comfortably hard" effort. Teaches you to hold pace under fatigue.',
