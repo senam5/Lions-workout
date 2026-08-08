@@ -1658,6 +1658,9 @@
     btn.disabled = !ok;
     btn.style.opacity = ok ? '1' : '0.3';
     renderGoalPreview(input.value);
+    // Instant render from whatever this device already has, then pull
+    // this player's real history back from the sheet and re-render.
+    if (input.value) Lions.syncShotHistory(input.value, () => renderGoalPreview(input.value));
     window.scrollTo(0, 0);
   }
 
@@ -1672,6 +1675,7 @@
     btn.style.opacity = ok ? '1' : '0.3';
     if (ok) Lions.setPlayer(val);
     renderGoalPreview(val);
+    if (ok) Lions.syncShotHistory(val, () => renderGoalPreview(val));
   }
 
   // Weekly goal + streak, shown before the player starts shooting.
@@ -1680,27 +1684,33 @@
     if (!el) return;
     if (!name) { el.innerHTML = ''; return; }
 
-    const goal   = Lions.getGoals().shots;
+    const goals  = Lions.getGoals();
+    const goal   = goals.shots;
+    const boost  = goals.boost;
     const makes  = Lions.weekMakes(name);
     const streak = Lions.shotStreak(name);
-    const career = Lions.careerMakes(name);
-    const next   = Lions.nextMilestone(career);
+    const score  = Lions.seasonScore(name);
+    const next   = Lions.nextMilestone(score);
     const pct    = Math.min(100, Math.round(makes / goal * 100));
     const hit    = makes >= goal;
+    const boosted = makes >= boost;
 
     el.innerHTML =
-      '<div style="background:var(--surface);border:1px solid ' + (hit ? 'var(--green)' : 'var(--line)') + ';border-radius:10px;padding:14px 16px;">' +
+      '<div style="background:var(--surface);border:1px solid ' + (boosted ? 'var(--gold)' : hit ? 'var(--green)' : 'var(--line)') + ';border-radius:10px;padding:14px 16px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">' +
           '<span style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;text-transform:uppercase;">Makes this week</span>' +
-          '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;letter-spacing:1px;color:' + (hit ? 'var(--green)' : 'var(--white)') + ';">' + makes + ' / ' + goal + '</span>' +
+          '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;letter-spacing:1px;color:' + (boosted ? 'var(--gold)' : hit ? 'var(--green)' : 'var(--white)') + ';">' + makes + ' / ' + goal + '</span>' +
         '</div>' +
         '<div style="height:6px;background:var(--line);border-radius:3px;overflow:hidden;">' +
-          '<div style="height:100%;width:' + pct + '%;background:' + (hit ? 'var(--green)' : 'var(--lion)') + ';border-radius:3px;transition:width .4s;"></div>' +
+          '<div style="height:100%;width:' + pct + '%;background:' + (boosted ? 'var(--gold)' : hit ? 'var(--green)' : 'var(--lion)') + ';border-radius:3px;transition:width .4s;"></div>' +
         '</div>' +
+        (boosted
+          ? '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--gold);letter-spacing:1px;margin-top:8px;">🚀 BOOST TIER HIT — +' + Lions.BOOST_BONUS + ' BONUS THIS WEEK</div>'
+          : '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;margin-top:8px;">🚀 ' + (boost - makes) + ' MORE FOR THE +' + Lions.BOOST_BONUS + ' BOOST (' + boost + '/week)</div>') +
         (streak > 0 || next ?
           '<div style="display:flex;gap:12px;margin-top:10px;font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;">' +
             (streak > 0 ? '<span>🔥 ' + streak + ' WEEK STREAK</span>' : '') +
-            (next ? '<span style="margin-left:auto;">' + next.icon + ' ' + (next.at - career) + ' TO ' + next.name.toUpperCase() + '</span>' : '') +
+            (next ? '<span style="margin-left:auto;">' + next.icon + ' ' + (next.at - score) + ' TO ' + next.name.toUpperCase() + '</span>' : '') +
           '</div>' : '') +
       '</div>';
   }
@@ -1806,7 +1816,7 @@
     // ── Goal / streak / PB / milestone ──
     // Capture the "before" picture first, so we can tell what this session broke.
     const pbBefore     = Lions.personalBests(name);
-    const careerBefore = Lions.careerMakes(name);
+    const scoreBefore  = Lions.seasonScore(name);
     const makesBefore  = Lions.weekMakes(name);
 
     const sessionMakes = qz.threes.makes + qz.mid.makes + qz.ft.makes;
@@ -1819,7 +1829,7 @@
     });
 
     renderSessionRewards({
-      name, sessionMakes, pbBefore, careerBefore, makesBefore, pctOf
+      name, sessionMakes, pbBefore, scoreBefore, makesBefore, pctOf
     });
 
     // Screenshot hint
@@ -1840,29 +1850,44 @@
     const el = document.getElementById('qs-rewards');
     if (!el) return;
 
-    const goal      = Lions.getGoals().shots;
+    const goals     = Lions.getGoals();
+    const goal      = goals.shots;
+    const boost     = goals.boost;
     const makesNow  = Lions.weekMakes(ctx.name);
-    const careerNow = Lions.careerMakes(ctx.name);
+    const scoreNow  = Lions.seasonScore(ctx.name);
     const streak    = Lions.shotStreak(ctx.name);
     const pct       = Math.min(100, Math.round(makesNow / goal * 100));
-    const justHit   = ctx.makesBefore < goal && makesNow >= goal;
+    const justHitGoal  = ctx.makesBefore < goal  && makesNow >= goal;
+    const justHitBoost = ctx.makesBefore < boost && makesNow >= boost;
 
     let cards = '';
 
     // Weekly goal
     cards +=
-      '<div style="background:var(--surface);border:1px solid ' + (makesNow >= goal ? 'var(--green)' : 'var(--line)') + ';border-radius:8px;padding:14px 16px;margin-bottom:8px;">' +
+      '<div style="background:var(--surface);border:1px solid ' + (makesNow >= boost ? 'var(--gold)' : makesNow >= goal ? 'var(--green)' : 'var(--line)') + ';border-radius:8px;padding:14px 16px;margin-bottom:8px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">' +
           '<span style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;">WEEKLY GOAL</span>' +
-          '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:' + (makesNow >= goal ? 'var(--green)' : 'var(--white)') + ';letter-spacing:1px;">' + makesNow + ' / ' + goal + '</span>' +
+          '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:' + (makesNow >= boost ? 'var(--gold)' : makesNow >= goal ? 'var(--green)' : 'var(--white)') + ';letter-spacing:1px;">' + makesNow + ' / ' + goal + '</span>' +
         '</div>' +
         '<div style="height:6px;background:var(--line);border-radius:3px;overflow:hidden;">' +
-          '<div style="height:100%;width:' + pct + '%;background:' + (makesNow >= goal ? 'var(--green)' : 'var(--lion)') + ';border-radius:3px;"></div>' +
+          '<div style="height:100%;width:' + pct + '%;background:' + (makesNow >= boost ? 'var(--gold)' : makesNow >= goal ? 'var(--green)' : 'var(--lion)') + ';border-radius:3px;"></div>' +
         '</div>' +
-        (justHit
-          ? '<div style="font-family:\'Space Mono\',monospace;font-size:10px;color:var(--green);letter-spacing:1px;margin-top:8px;">✅ GOAL HIT — WEEK BANKED</div>'
-          : '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;margin-top:8px;">' + Math.max(0, goal - makesNow) + ' MAKES TO GO</div>') +
+        (makesNow >= boost
+          ? '<div style="font-family:\'Space Mono\',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;margin-top:8px;">🚀 BOOST TIER HIT</div>'
+          : justHitGoal
+            ? '<div style="font-family:\'Space Mono\',monospace;font-size:10px;color:var(--green);letter-spacing:1px;margin-top:8px;">✅ GOAL HIT — WEEK BANKED</div>'
+            : '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;margin-top:8px;">' + Math.max(0, goal - makesNow) + ' MAKES TO GO</div>') +
       '</div>';
+
+    // Boost bonus banked this session
+    if (justHitBoost) {
+      cards +=
+        '<div style="background:rgba(240,165,0,0.1);border:1px solid var(--gold);border-radius:8px;padding:14px 16px;margin-bottom:8px;text-align:center;">' +
+          '<div style="font-size:24px;margin-bottom:4px;">🚀</div>' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:19px;letter-spacing:1px;color:var(--white);">BOOST HIT — +' + Lions.BOOST_BONUS + ' BONUS</div>' +
+          '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;margin-top:4px;">' + boost + '+ MAKES THIS WEEK · ADDED TO YOUR SEASON SCORE</div>' +
+        '</div>';
+    }
 
     // Personal bests broken this session
     const zoneNames = { threes: '3-Pointers', mid: 'Mid-Range', ft: 'Free Throws' };
@@ -1879,20 +1904,22 @@
         '</div>';
     }
 
-    // Milestone crossed
-    const msBefore = Lions.milestoneFor(ctx.careerBefore);
-    const msNow    = Lions.milestoneFor(careerNow);
+    // Milestone crossed — driven by season score (makes + boost bonuses),
+    // not raw makes, so the top badges are only reachable by consistently
+    // going past the base goal across the season.
+    const msBefore = Lions.milestoneFor(ctx.scoreBefore);
+    const msNow    = Lions.milestoneFor(scoreNow);
     if (msNow && (!msBefore || msNow.at !== msBefore.at)) {
       cards +=
         '<div style="background:var(--lion-glow);border:1px solid var(--lion);border-radius:8px;padding:16px;margin-bottom:8px;text-align:center;">' +
           '<div style="font-size:32px;margin-bottom:4px;">' + msNow.icon + '</div>' +
           '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);">' + msNow.name.toUpperCase() + ' UNLOCKED</div>' +
-          '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;margin-top:4px;">' + careerNow.toLocaleString() + ' CAREER MAKES</div>' +
+          '<div style="font-family:\'Space Mono\',monospace;font-size:9px;color:var(--grey);letter-spacing:1px;margin-top:4px;">' + scoreNow.toLocaleString() + ' SEASON SCORE</div>' +
         '</div>';
     }
 
-    // Streak + career footer
-    const next = Lions.nextMilestone(careerNow);
+    // Streak + season score footer
+    const next = Lions.nextMilestone(scoreNow);
     cards +=
       '<div style="display:flex;gap:8px;">' +
         '<div style="flex:1;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;">' +
@@ -1900,14 +1927,14 @@
           '<div style="font-family:\'Space Mono\',monospace;font-size:8px;color:var(--grey);letter-spacing:1px;margin-top:4px;">WEEK STREAK</div>' +
         '</div>' +
         '<div style="flex:1;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;">' +
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;color:var(--white);line-height:1;">' + careerNow.toLocaleString() + '</div>' +
-          '<div style="font-family:\'Space Mono\',monospace;font-size:8px;color:var(--grey);letter-spacing:1px;margin-top:4px;">' + (next ? next.at - careerNow : 0) + ' TO ' + (next ? next.name.toUpperCase() : 'MAX') + '</div>' +
+          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;color:var(--white);line-height:1;">' + scoreNow.toLocaleString() + '</div>' +
+          '<div style="font-family:\'Space Mono\',monospace;font-size:8px;color:var(--grey);letter-spacing:1px;margin-top:4px;">' + (next ? next.at - scoreNow : 0) + ' TO ' + (next ? next.name.toUpperCase() : 'MAX') + '</div>' +
         '</div>' +
       '</div>';
 
     el.innerHTML = cards;
 
-    if (justHit || pbs.length || (msNow && (!msBefore || msNow.at !== msBefore.at))) {
+    if (justHitGoal || justHitBoost || pbs.length || (msNow && (!msBefore || msNow.at !== msBefore.at))) {
       Lions.beep(880);
       setTimeout(() => Lions.beep(1100), 200);
     }
