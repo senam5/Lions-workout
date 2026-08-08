@@ -38,8 +38,15 @@
   .ex-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   .ex-detail { font-size: 13px; color: var(--grey); line-height: 1.6; }
   .ex-note { font-size: 12px; color: var(--grey2); margin-top: 5px; }
-  .btn-timer { display: inline-block; width: auto; padding: 8px 14px; font-size: 14px; margin-top: 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--white); font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; cursor: pointer; }
+  .btn-timer { display: inline-block; width: auto; padding: 8px 14px; font-size: 14px; margin-top: 10px; margin-right: 8px; background: var(--surface2); border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--white); font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; cursor: pointer; }
   .btn-timer:hover { border-color: var(--lion); }
+  .btn-rest { background: transparent; border-color: var(--gold); color: var(--gold); }
+
+  .ex-check { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-family: 'Space Mono', monospace; font-size: 11px; color: var(--grey); letter-spacing: 1px; cursor: pointer; user-select: none; }
+  .ex-check input { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; }
+  .ex-card.ex-done { border-color: var(--green); }
+  .session-progress { margin-bottom: 16px; }
+  .session-progress-row { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; margin-bottom: 6px; }
 
   .timer-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 0 16px; }
   .timer-exercise { font-size: 14px; color: var(--grey); margin-bottom: 4px; text-align: center; }
@@ -103,6 +110,8 @@
       <div class="confirm-row"><span class="confirm-label">Week</span><span class="confirm-val" id="ci-week"></span></div>
       <div class="confirm-row"><span class="confirm-label">Day</span><span class="confirm-val" id="ci-day"></span></div>
     </div>
+    <div class="label" style="margin-bottom:8px">Rest between sets</div>
+    <div class="chip-row" id="confirm-rest"></div>
     <div class="btn-row" style="flex-direction:column;gap:10px">
       <button class="btn-primary" id="launch-btn">▶ LET'S GO</button>
       <button class="btn-secondary" id="adjust-btn" style="width:100%">✎ ADJUST</button>
@@ -230,7 +239,33 @@ save();
 
 var currentIdx = null, timerInterval = null, timerState = {}, pending = {};
 var showFullList = false;
+var doneEx = {}, currentExData = null;
 var esc = Lions.escapeHtml;
+
+// ─── REST TIMER: duration is picked once before the workout starts ──
+var REST_KEY = 'lions_rest_seconds';
+var REST_PRESETS = [30, 60, 90, 120, 180, 300];
+var restSeconds = parseInt(localStorage.getItem(REST_KEY), 10) || 120;
+if (REST_PRESETS.indexOf(restSeconds) === -1) restSeconds = 120;
+function fmtRest(s) {
+  if (s < 60) return s + 's';
+  var m = Math.floor(s / 60), sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+function renderRestChips() {
+  var el = document.getElementById('confirm-rest');
+  if (!el) return;
+  el.innerHTML = REST_PRESETS.map(function (s) {
+    return '<span class="chip' + (restSeconds === s ? ' active' : '') + '" data-r="' + s + '">' + fmtRest(s) + '</span>';
+  }).join('');
+  el.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      restSeconds = +this.dataset.r;
+      try { localStorage.setItem(REST_KEY, restSeconds); } catch (e) {}
+      renderRestChips();
+    });
+  });
+}
 
 // ─── PROGRAM DATA ─────────────────────────────────────────
 var PROGRAM = {
@@ -440,6 +475,7 @@ function showConfirm(name, sug) {
   else { pr.style.display = 'none'; }
   document.getElementById('ci-week').textContent = 'Week ' + sug.week;
   document.getElementById('ci-day').textContent = sug.day === 'upper' ? 'Upper body' : 'Lower body';
+  renderRestChips();
   goTo('screen-confirm');
 }
 
@@ -503,10 +539,15 @@ function renderSessionScreen(p) {
   else if (p.group === 'B') exData = PROGRAM.B[p.day];
   else exData = PROGRAM.A[p.phase][p.day];
 
+  currentExData = exData;
+  doneEx = {};
+
   document.getElementById('session-header').innerHTML =
     '<span class="badge badge-lion">' + esc(p.name) + '</span>' +
     '<div class="section-title" style="margin-top:10px">' + (p.day === 'upper' ? 'UPPER BODY' : 'LOWER BODY') + '</div>' +
-    '<p class="section-sub">' + (p.group === 'A' ? 'Group A · Phase ' + p.phase : p.group === 'B' ? 'Group B' : 'Group C') + ' · Week ' + w + '</p>';
+    '<p class="section-sub">' + (p.group === 'A' ? 'Group A · Phase ' + p.phase : p.group === 'B' ? 'Group B' : 'Group C') + ' · Week ' + w + '</p>' +
+    '<div class="session-progress" id="session-progress"></div>';
+  updateSessionProgress();
 
   var wn = exData.weekNote ? R(exData.weekNote, w) : null;
   var html = wn ? '<div class="note-box">' + esc(wn) + '</div>' : '';
@@ -522,22 +563,50 @@ function renderSessionScreen(p) {
     else if (r) details = sets + ' set' + (sets > 1 ? 's' : '') + ' × ' + r + ' reps';
     if (ex.supersetReps) details += ' + ' + ex.supersetReps + ' reps (superset)';
 
-    html += '<div class="ex-card">' +
+    html += '<div class="ex-card" id="ex-card-' + i + '">' +
       (ex.prep ? '<div class="ex-prep">→ ' + esc(ex.prep) + '</div>' : '') +
       '<div class="ex-name">' + esc(ex.name) + '</div>' +
       '<div class="ex-detail">' + esc(details) + '</div>' +
       (ex.note ? '<div class="ex-note">⏱ ' + esc(ex.note) + '</div>' : '') +
       (t ? '<button class="btn-timer" data-ex="' + i + '" data-t="' + t + '" data-s="' + sets + '">▶ START ' + t + 'S TIMER</button>' : '') +
+      '<button class="btn-timer btn-rest" data-rest="' + i + '">⏱ REST (' + fmtRest(restSeconds) + ')</button>' +
+      '<label class="ex-check"><input type="checkbox" data-done="' + i + '"> MARK EXERCISE DONE</label>' +
       '</div>';
   });
   document.getElementById('session-content').innerHTML = html;
 
-  document.querySelectorAll('#session-content .btn-timer').forEach(function (b) {
+  document.querySelectorAll('#session-content .btn-timer[data-ex]').forEach(function (b) {
     b.addEventListener('click', function () {
       var ex = exData.exercises[+this.dataset.ex];
       launchTimer(ex.name, +this.dataset.t, +this.dataset.s);
     });
   });
+  document.querySelectorAll('#session-content .btn-rest').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var ex = exData.exercises[+this.dataset.rest];
+      launchRest(ex.name, restSeconds);
+    });
+  });
+  document.querySelectorAll('#session-content .ex-check input').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var i = this.dataset.done;
+      doneEx[i] = this.checked;
+      document.getElementById('ex-card-' + i).classList.toggle('ex-done', this.checked);
+      updateSessionProgress();
+    });
+  });
+}
+
+/** Not required to finish — just a visual "how much of today is checked off". */
+function updateSessionProgress() {
+  var el = document.getElementById('session-progress');
+  if (!el || !currentExData) return;
+  var total = currentExData.exercises.length;
+  var done = Object.keys(doneEx).filter(function (k) { return doneEx[k]; }).length;
+  var pct = total ? Math.round(done / total * 100) : 0;
+  el.innerHTML =
+    '<div class="session-progress-row"><span>WORKOUT PROGRESS</span><span>' + done + ' / ' + total + '</span></div>' +
+    '<div class="bar-track"><div class="bar-fill' + (pct === 100 ? ' green' : '') + '" style="width:' + pct + '%"></div></div>';
 }
 
 // Sessions now go straight to the sheet — no Google Forms round-trip.
@@ -610,7 +679,14 @@ function renderLocalRoster(el) {
 // ─── TIMER ────────────────────────────────────────────────
 function launchTimer(name, duration, totalSets) {
   clearInterval(timerInterval);
-  timerState = { name: name, duration: duration, totalSets: totalSets, currentSet: 1, remaining: duration, running: false };
+  timerState = { kind: 'hold', name: name, duration: duration, totalSets: totalSets, currentSet: 1, remaining: duration, running: false };
+  renderTimerScreen(); goTo('screen-timer');
+}
+// A rest timer is just a single-set countdown between exercises/sets —
+// same machinery as the hold timer, different labels and no set count.
+function launchRest(name, duration) {
+  clearInterval(timerInterval);
+  timerState = { kind: 'rest', name: name, duration: duration, totalSets: 1, currentSet: 1, remaining: duration, running: false };
   renderTimerScreen(); goTo('screen-timer');
 }
 function fmtTime(s) {
@@ -621,19 +697,21 @@ function renderTimerScreen() {
   var s = timerState;
   var pct = Math.round((1 - (s.remaining / s.duration)) * 100);
   var done = s.remaining === 0 && !s.running;
+  var isRest = s.kind === 'rest';
   document.getElementById('timer-content').innerHTML =
     '<div class="timer-wrap">' +
-      '<div class="timer-exercise">' + esc(s.name) + '</div>' +
-      '<div class="timer-set">SET ' + s.currentSet + ' OF ' + s.totalSets + '</div>' +
-      (done ? '<div class="timer-done">✓ SET COMPLETE</div>'
+      '<div class="timer-exercise">' + (isRest ? '⏱ REST — ' + esc(s.name) : esc(s.name)) + '</div>' +
+      (isRest ? '' : '<div class="timer-set">SET ' + s.currentSet + ' OF ' + s.totalSets + '</div>') +
+      (done ? '<div class="timer-done">' + (isRest ? '✓ REST OVER' : '✓ SET COMPLETE') + '</div>'
             : '<div class="timer-big">' + fmtTime(s.remaining) + '</div>') +
-      '<div class="timer-status">' + (s.running ? 'Hold…' : done ? 'Rest, then next set' : 'Ready') + '</div>' +
+      '<div class="timer-status">' + (s.running ? (isRest ? 'Resting…' : 'Hold…') : done ? (isRest ? 'Back to it' : 'Rest, then next set') : 'Ready') + '</div>' +
       '<div class="bar-track" style="width:100%;margin-bottom:20px"><div class="bar-fill" id="prog" style="width:' + pct + '%"></div></div>' +
       '<div class="btn-row" style="width:100%;margin-bottom:10px">' +
         '<button class="btn-primary" id="t-toggle">' + (s.running ? '⏸ PAUSE' : done ? '↺ RESTART' : '▶ START') + '</button>' +
         '<button class="btn-secondary" id="t-reset">↺</button>' +
       '</div>' +
-      (s.currentSet < s.totalSets ? '<button class="btn-secondary" id="t-next" style="width:100%">NEXT SET →</button>' : '') +
+      (!isRest && s.currentSet < s.totalSets ? '<button class="btn-secondary" id="t-next" style="width:100%">NEXT SET →</button>' : '') +
+      (pipSupported() ? '<button class="btn-secondary" id="t-pip" style="width:100%;margin-top:10px">⧉ POP OUT TIMER</button>' : '') +
       '<button class="btn-ghost" id="t-close" style="margin-top:14px">✕ Close timer</button>' +
     '</div>';
 
@@ -641,7 +719,10 @@ function renderTimerScreen() {
   document.getElementById('t-reset').addEventListener('click', resetTimer);
   var n = document.getElementById('t-next');
   if (n) n.addEventListener('click', nextSet);
+  var pipBtn = document.getElementById('t-pip');
+  if (pipBtn) pipBtn.addEventListener('click', startPip);
   document.getElementById('t-close').addEventListener('click', stopTimer);
+  drawPipFrame();
 }
 function toggleTimer() {
   if (timerState.running) { clearInterval(timerInterval); timerState.running = false; renderTimerScreen(); return; }
@@ -661,6 +742,7 @@ function toggleTimer() {
     var d = document.querySelector('.timer-big'), p = document.getElementById('prog');
     if (d) d.textContent = fmtTime(timerState.remaining);
     if (p) p.style.width = Math.round((1 - (timerState.remaining / timerState.duration)) * 100) + '%';
+    drawPipFrame();
   }, 1000);
 }
 function resetTimer() { clearInterval(timerInterval); timerState.remaining = timerState.duration; timerState.running = false; renderTimerScreen(); }
@@ -672,7 +754,50 @@ function nextSet() {
   Lions.beep(560, 0.22);         // set change
   renderTimerScreen();
 }
-function stopTimer() { clearInterval(timerInterval); goTo('screen-session'); }
+function stopTimer() { clearInterval(timerInterval); stopPip(); goTo('screen-session'); }
+
+// ─── PICTURE-IN-PICTURE ─────────────────────────────────────
+// iOS only supports PIP on a <video> element, not arbitrary DOM content,
+// so the countdown is drawn onto a canvas, piped into a hidden video via
+// captureStream(), and that video is what actually pops out. Works the
+// same way on Android/desktop Chrome, so one code path covers everyone.
+var pipCanvas = null, pipVideo = null;
+function pipSupported() {
+  return !!(document.pictureInPictureEnabled && window.HTMLVideoElement &&
+    'requestPictureInPicture' in HTMLVideoElement.prototype);
+}
+function ensurePipElements() {
+  if (pipCanvas) return;
+  pipCanvas = document.createElement('canvas');
+  pipCanvas.width = 320; pipCanvas.height = 180;
+  pipVideo = document.createElement('video');
+  pipVideo.muted = true; pipVideo.playsInline = true;
+  pipVideo.style.cssText = 'position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+  document.body.appendChild(pipVideo);
+}
+function drawPipFrame() {
+  if (!pipCanvas) return;
+  var s = timerState, ctx = pipCanvas.getContext('2d');
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, pipCanvas.width, pipCanvas.height);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = s.kind === 'rest' ? '#f0a500' : '#9aa4b2';
+  ctx.font = '600 22px sans-serif';
+  ctx.fillText((s.kind === 'rest' ? 'REST — ' : '') + (s.name || ''), pipCanvas.width / 2, 42);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 68px monospace';
+  ctx.fillText(fmtTime(s.remaining), pipCanvas.width / 2, 120);
+}
+function startPip() {
+  ensurePipElements();
+  drawPipFrame();
+  if (!pipVideo.srcObject) pipVideo.srcObject = pipCanvas.captureStream(2);
+  pipVideo.play()
+    .then(function () { return pipVideo.requestPictureInPicture(); })
+    .catch(function () { Lions.toast("Picture-in-picture isn't available on this browser"); });
+}
+function stopPip() {
+  if (document.pictureInPictureElement) document.exitPictureInPicture().catch(function () {});
+}
 
 // ─── IDENTITY CHIP ────────────────────────────────────────
 function renderWho() {

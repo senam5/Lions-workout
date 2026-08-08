@@ -139,6 +139,11 @@
         <label class="label" for="goal-shots">Makes per week</label>
         <input class="input input-mono" id="goal-shots" type="number" min="1" step="10" inputmode="numeric">
       </div>
+      <div style="margin-bottom:14px">
+        <label class="label" for="goal-boost">Boost tier — makes/week for a bonus</label>
+        <input class="input input-mono" id="goal-boost" type="number" min="1" step="10" inputmode="numeric">
+        <p class="section-sub" style="margin:6px 0 0;font-size:11px">Hitting this instead of the base goal adds +250 to a player's season score — rewards going past the target, not just meeting it.</p>
+      </div>
       <div style="margin-bottom:16px">
         <label class="label" for="goal-runs">Runs per week</label>
         <input class="input input-mono" id="goal-runs" type="number" min="1" step="1" inputmode="numeric">
@@ -292,24 +297,28 @@ var shutdownOn = false;
 
 function renderGoalInputs(g) {
   document.getElementById('goal-shots').value = g.shots;
+  document.getElementById('goal-boost').value = g.boost;
   document.getElementById('goal-runs').value = g.runs;
   shutdownOn = !!g.shutdown;
   document.getElementById('shutdown-switch').classList.toggle('on', shutdownOn);
 }
 
-// Reads the two number fields, whatever their current (maybe unsaved) value,
-// so either control here can save without clobbering the other's edits.
-function currentShotGoal() { return parseInt(document.getElementById('goal-shots').value, 10) || Lions.getGoals().shots; }
-function currentRunGoal()  { return parseInt(document.getElementById('goal-runs').value, 10)  || Lions.getGoals().runs; }
+// Reads the number fields, whatever their current (maybe unsaved) value,
+// so any control here can save without clobbering the others' edits.
+function currentShotGoal()  { return parseInt(document.getElementById('goal-shots').value, 10) || Lions.getGoals().shots; }
+function currentBoostGoal() { return parseInt(document.getElementById('goal-boost').value, 10) || Lions.getGoals().boost; }
+function currentRunGoal()   { return parseInt(document.getElementById('goal-runs').value, 10)  || Lions.getGoals().runs; }
 
 document.getElementById('save-goals').addEventListener('click', function () {
   var shots = parseInt(document.getElementById('goal-shots').value, 10);
+  var boost = parseInt(document.getElementById('goal-boost').value, 10);
   var runs = parseInt(document.getElementById('goal-runs').value, 10);
-  if (!(shots > 0) || !(runs > 0)) { Lions.toast('Enter numbers above 0'); return; }
+  if (!(shots > 0) || !(boost > 0) || !(runs > 0)) { Lions.toast('Enter numbers above 0'); return; }
+  if (boost <= shots) { Lions.toast('Boost tier should be higher than the base goal'); return; }
 
   var st = document.getElementById('goals-status');
   st.textContent = 'SAVING…'; st.style.color = 'var(--grey)';
-  Lions.saveGoals(shots, runs, shutdownOn, PW)
+  Lions.saveGoals(shots, runs, boost, shutdownOn, PW)
     .then(function () {
       st.textContent = '✅ SAVED — PLAYERS SEE THIS NEXT TIME THEY OPEN THE APP';
       st.style.color = 'var(--green)';
@@ -327,7 +336,7 @@ document.getElementById('shutdown-switch').addEventListener('click', function ()
 
   var st = document.getElementById('shutdown-status');
   st.textContent = 'SAVING…'; st.style.color = 'var(--grey)';
-  Lions.saveGoals(currentShotGoal(), currentRunGoal(), next, PW)
+  Lions.saveGoals(currentShotGoal(), currentRunGoal(), currentBoostGoal(), next, PW)
     .then(function () {
       shutdownOn = next;
       st.textContent = shutdownOn

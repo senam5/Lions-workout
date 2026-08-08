@@ -42,8 +42,10 @@
   // ── GOALS ────────────────────────────────────────────────
   // Defaults only. The coach sets the real numbers on the leaderboard,
   // they save to the sheet, and every device picks them up.
-  var DEFAULT_SHOT_GOAL = 300;   // makes per week
-  var DEFAULT_RUN_GOAL  = 1;     // runs per week
+  var DEFAULT_SHOT_GOAL  = 300;   // makes per week
+  var DEFAULT_RUN_GOAL   = 1;     // runs per week
+  var DEFAULT_BOOST_GOAL = 400;   // makes in a week that earns the bonus below
+  var BOOST_BONUS = 250;          // added to season score for each week the boost tier is hit
 
   // ── STORAGE KEYS ─────────────────────────────────────────
   var K_PLAYER   = 'lions_player';
@@ -193,6 +195,7 @@
     return {
       shots: parseInt(g.shots, 10) > 0 ? parseInt(g.shots, 10) : DEFAULT_SHOT_GOAL,
       runs:  parseInt(g.runs, 10)  > 0 ? parseInt(g.runs, 10)  : DEFAULT_RUN_GOAL,
+      boost: parseInt(g.boost, 10) > 0 ? parseInt(g.boost, 10) : DEFAULT_BOOST_GOAL,
       shutdown: truthy(g.shutdown)
     };
   }
@@ -200,24 +203,26 @@
     if (!g) return;
     jsonSet(K_GOALS, { shots: parseInt(g.shots, 10) || DEFAULT_SHOT_GOAL,
                        runs:  parseInt(g.runs, 10)  || DEFAULT_RUN_GOAL,
+                       boost: parseInt(g.boost, 10) || DEFAULT_BOOST_GOAL,
                        shutdown: truthy(g.shutdown) });
   }
   /** Whether the coach has switched on shutdown mode — no new saves. */
   function isShutdown() { return getGoals().shutdown; }
 
   /** Coach-only: publish new targets + shutdown state. `pw` checked server-side. */
-  function saveGoals(shots, runs, shutdown, pw) {
-    cacheGoals({ shots: shots, runs: runs, shutdown: shutdown });
+  function saveGoals(shots, runs, boost, shutdown, pw) {
+    cacheGoals({ shots: shots, runs: runs, boost: boost, shutdown: shutdown });
     return post({ type: 'settings', pw: pw || '',
                   shotGoal: parseInt(shots, 10) || DEFAULT_SHOT_GOAL,
                   runGoal: parseInt(runs, 10) || DEFAULT_RUN_GOAL,
+                  shotBoost: parseInt(boost, 10) || DEFAULT_BOOST_GOAL,
                   shutdown: shutdown ? 1 : 0, date: stamp() });
   }
   function refreshGoals(cb) {
     fetch(ENDPOINT + '?action=settings')
       .then(function (r) { return r.json(); })
       .then(function (s) {
-        if (s) cacheGoals({ shots: s.shotGoal, runs: s.runGoal, shutdown: s.shutdown });
+        if (s) cacheGoals({ shots: s.shotGoal, runs: s.runGoal, boost: s.shotBoost, shutdown: s.shutdown });
         if (cb) cb(getGoals());
       })
       .catch(function () { if (cb) cb(getGoals()); });
@@ -299,6 +304,67 @@
   }
   function getShotLog() { return jsonGet(K_SHOTLOG, []); }
 
+  var STAMP_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // stamp() builds strings like "Sat, Aug 8, 2026, 14:49" — not ISO 8601,
+  // so parsing them back with `new Date(string)` is implementation-defined
+  // across browsers. Pull the pieces out by hand instead and build the
+  // date from numeric components, which every engine handles the same way.
+  function parseStamp(s) {
+    var m = /,\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})/.exec(String(s || ''));
+    if (!m) return null;
+    var mi = STAMP_MONTHS.indexOf(m[1]);
+    if (mi === -1) return null;
+    return new Date(+m[3], mi, +m[2], +m[4], +m[5]);
+  }
+
+  /**
+   * Pull this player's shot history back from the sheet and merge in any
+   * sessions this device doesn't already have. Without this, everything
+   * the reward system tracks (goals, streaks, personal bests, season
+   * score, milestones) lives only in one phone's local storage — a new
+   * phone, a cleared browser, or a borrowed device would silently reset
+   * a player's progress to zero even though the sheet still has it all.
+   */
+  function syncShotHistory(player, cb) {
+    var name = String(player || '').trim();
+    if (!name) { if (cb) cb(); return; }
+    fetch(ENDPOINT + '?action=myshots&player=' + encodeURIComponent(name))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!Array.isArray(rows) || !rows.length) { if (cb) cb(); return; }
+        var log = jsonGet(K_SHOTLOG, []);
+        var have = {};
+        log.forEach(function (s) {
+          if (norm(s.player) === norm(name)) have[String(s.date)] = true;
+        });
+        var added = false;
+        rows.forEach(function (r) {
+          var d = String(r.date || '');
+          if (!d || have[d]) return;
+          var dt = parseStamp(d);
+          if (!dt) return;
+          var tm = Number(r.threesMade) || 0, ta = Number(r.threesAtt) || 0;
+          var mm = Number(r.midMade) || 0,   ma = Number(r.midAtt) || 0;
+          var fm = Number(r.ftMade) || 0,    fa = Number(r.ftAtt) || 0;
+          log.push({
+            week: weekKey(dt), player: name, date: d,
+            makes: tm + mm + fm, attempts: ta + ma + fa,
+            threes: { pct: ta ? Math.round(tm / ta * 100) : 0 },
+            mid:    { pct: ma ? Math.round(mm / ma * 100) : 0 },
+            ft:     { pct: fa ? Math.round(fm / fa * 100) : 0 }
+          });
+          have[d] = true;
+          added = true;
+        });
+        if (added) {
+          if (log.length > 400) log = log.slice(-400);
+          jsonSet(K_SHOTLOG, log);
+        }
+        if (cb) cb();
+      })
+      .catch(function () { if (cb) cb(); });
+  }
+
   function addRunSession(entry) {
     var log = jsonGet(K_RUNLOG, []);
     log.push(entry);
@@ -356,13 +422,42 @@
       .reduce(function (a, s) { return a + (s.makes || 0); }, 0);
   }
 
+  /** Total makes per week, from this device's log, for one player. */
+  function weeklyMakesMap(player) {
+    var by = {};
+    getShotLog()
+      .filter(function (s) { return !player || norm(s.player) === norm(player); })
+      .forEach(function (s) { by[s.week] = (by[s.week] || 0) + (s.makes || 0); });
+    return by;
+  }
+
+  /** How many distinct weeks this player has hit the boost tier. */
+  function boostWeeksHit(player) {
+    var goal = getGoals().boost, by = weeklyMakesMap(player), n = 0;
+    Object.keys(by).forEach(function (wk) { if (by[wk] >= goal) n++; });
+    return n;
+  }
+
+  /**
+   * The number the milestone ladder runs on: raw makes plus a bonus for
+   * every week the boost tier was hit. Grounds the ladder in the actual
+   * season rather than an arbitrary lifetime total, and rewards going
+   * past the base goal rather than just meeting it week after week.
+   */
+  function seasonScore(player) {
+    return careerMakes(player) + boostWeeksHit(player) * BOOST_BONUS;
+  }
+
   // ── MILESTONES ───────────────────────────────────────────
+  // Sized to a real season (~20 weeks): hitting the weekly goal every
+  // week totals roughly 6,000, so the ladder tops out there rather than
+  // at a lifetime total nobody would actually reach.
   var MILESTONES = [
-    { at: 500,   name: 'First 500',    icon: '🌱' },
-    { at: 1000,  name: '1K Club',      icon: '🏀' },
-    { at: 2500,  name: 'Gym Rat',      icon: '🔥' },
-    { at: 5000,  name: '5K Shooter',   icon: '⭐' },
-    { at: 10000, name: 'Ten Thousand', icon: '👑' }
+    { at: 500,  name: 'First 500',        icon: '🌱' },
+    { at: 1500, name: 'Rising',           icon: '🏀' },
+    { at: 3000, name: 'Midseason Grinder',icon: '🔥' },
+    { at: 4800, name: 'Season Crusher',   icon: '⭐' },
+    { at: 6500, name: 'Elite Shooter',    icon: '👑' }
   ];
   function milestoneFor(total) {
     var hit = null;
@@ -597,12 +692,16 @@
 
     addShotSession: addShotSession,
     getShotLog: getShotLog,
+    syncShotHistory: syncShotHistory,
     addRunSession: addRunSession,
     getRunLog: getRunLog,
     weekMakes: weekMakes,
     shotStreak: shotStreak,
     personalBests: personalBests,
     careerMakes: careerMakes,
+    boostWeeksHit: boostWeeksHit,
+    seasonScore: seasonScore,
+    BOOST_BONUS: BOOST_BONUS,
     milestoneFor: milestoneFor,
     nextMilestone: nextMilestone,
 
