@@ -828,11 +828,6 @@ function submitRun() {
   var ts = Lions.stamp();
   var rt = RUN_TYPES[state.type];
 
-  Lions.addRunSession({
-    week: Lions.weekKey(), player: name, date: ts,
-    runType: rt ? rt.name : '', distanceKm: dist, durationMin: mins
-  });
-
   document.getElementById('done-stats').innerHTML =
     '<div class="stat"><div class="stat-val">' + dist.toFixed(2) + '</div><div class="stat-label">km</div></div>' +
     '<div class="stat"><div class="stat-val">' + Math.round(mins) + '</div><div class="stat-label">minutes</div></div>' +
@@ -842,6 +837,20 @@ function submitRun() {
 
   var el = document.getElementById('log-status');
   el.textContent = '';
+
+  if (Lions.isShutdown()) {
+    Lions.saveResult(false, 'Not live yet',
+      "Coach hasn't opened the app for real sessions. This run wasn't saved — come back once it's live!", null);
+    el.textContent = "🚧 Not saved — app isn't live yet";
+    el.style.color = 'var(--gold)';
+    return;
+  }
+
+  Lions.addRunSession({
+    week: Lions.weekKey(), player: name, date: ts,
+    runType: rt ? rt.name : '', distanceKm: dist, durationMin: mins
+  });
+
   Lions.postWithOverlay({
     type: 'run', date: ts, player: name,
     runType: rt ? rt.name : '', plannedMin: state.time,

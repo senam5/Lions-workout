@@ -149,6 +149,19 @@
     </div>
 
     <div class="card">
+      <div class="card-title">🚧 Shutdown mode</div>
+      <div class="toggle-row">
+        <span style="font-size:22px">🚧</span>
+        <div class="toggle-info">
+          <div class="toggle-name">Block new sessions</div>
+          <div class="toggle-desc">Players can still open the app and build a session, but nothing they log gets saved. Use during rest weeks or before launch.</div>
+        </div>
+        <button class="switch" id="shutdown-switch" aria-label="Toggle shutdown mode"></button>
+      </div>
+      <div class="mono center" id="shutdown-status" style="font-size:10px;letter-spacing:1px;margin-top:10px;min-height:14px"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">This week's progress</div>
       <div id="challenge-board"><div class="empty">Loading…</div></div>
     </div>
@@ -275,10 +288,19 @@ function loadAll() {
 }
 
 // ── WEEKLY CHALLENGE ──────────────────────────────────────
+var shutdownOn = false;
+
 function renderGoalInputs(g) {
   document.getElementById('goal-shots').value = g.shots;
   document.getElementById('goal-runs').value = g.runs;
+  shutdownOn = !!g.shutdown;
+  document.getElementById('shutdown-switch').classList.toggle('on', shutdownOn);
 }
+
+// Reads the two number fields, whatever their current (maybe unsaved) value,
+// so either control here can save without clobbering the other's edits.
+function currentShotGoal() { return parseInt(document.getElementById('goal-shots').value, 10) || Lions.getGoals().shots; }
+function currentRunGoal()  { return parseInt(document.getElementById('goal-runs').value, 10)  || Lions.getGoals().runs; }
 
 document.getElementById('save-goals').addEventListener('click', function () {
   var shots = parseInt(document.getElementById('goal-shots').value, 10);
@@ -287,13 +309,34 @@ document.getElementById('save-goals').addEventListener('click', function () {
 
   var st = document.getElementById('goals-status');
   st.textContent = 'SAVING…'; st.style.color = 'var(--grey)';
-  Lions.saveGoals(shots, runs, PW)
+  Lions.saveGoals(shots, runs, shutdownOn, PW)
     .then(function () {
       st.textContent = '✅ SAVED — PLAYERS SEE THIS NEXT TIME THEY OPEN THE APP';
       st.style.color = 'var(--green)';
       loadChallenge();
     })
     .catch(function () {
+      st.textContent = '⚠️ COULD NOT SAVE — CHECK CONNECTION';
+      st.style.color = 'var(--gold)';
+    });
+});
+
+document.getElementById('shutdown-switch').addEventListener('click', function () {
+  var next = !shutdownOn;
+  this.classList.toggle('on', next);   // respond instantly, confirm below
+
+  var st = document.getElementById('shutdown-status');
+  st.textContent = 'SAVING…'; st.style.color = 'var(--grey)';
+  Lions.saveGoals(currentShotGoal(), currentRunGoal(), next, PW)
+    .then(function () {
+      shutdownOn = next;
+      st.textContent = shutdownOn
+        ? '✅ SHUTDOWN ON — NOTHING PLAYERS LOG WILL SAVE'
+        : '✅ SHUTDOWN OFF — SAVES ARE LIVE AGAIN';
+      st.style.color = shutdownOn ? 'var(--gold)' : 'var(--green)';
+    })
+    .catch(function () {
+      document.getElementById('shutdown-switch').classList.toggle('on', shutdownOn); // revert
       st.textContent = '⚠️ COULD NOT SAVE — CHECK CONNECTION';
       st.style.color = 'var(--gold)';
     });
@@ -374,9 +417,29 @@ function renderRosterList() {
     roster.length + ' players · ' + Math.max(0, roster.length - Lions.BASE_ROSTER.length) + ' added since the season started';
   document.getElementById('roster-list').innerHTML = roster.map(function (n) {
     var isNew = base.indexOf(Lions.norm(n)) === -1;
-    return '<div class="admin-row"><div class="admin-name">' + esc(n) + '</div>' +
-      (isNew ? '<span class="badge badge-green">new</span>' : '') + '</div>';
+    return '<div class="admin-row">' +
+      '<div class="admin-name">' + esc(n) + '</div>' +
+      (isNew ? '<span class="badge badge-green" style="margin-right:8px">new</span>' : '') +
+      '<button class="btn-ghost" data-remove="' + esc(n) + '" style="color:var(--lion);text-decoration:none">✕ remove</button>' +
+      '</div>';
   }).join('');
+  document.querySelectorAll('#roster-list [data-remove]').forEach(function (btn) {
+    btn.addEventListener('click', function () { removeRosterPlayer(this.dataset.remove); });
+  });
+}
+
+// Takes a player off the roster everywhere. Nothing they've already
+// logged is deleted — only the name stops appearing going forward.
+function removeRosterPlayer(name) {
+  if (!confirm('Remove ' + name + ' from the roster?\n\nTheir past sessions stay in the sheet — this only removes them from the app\'s name lists.')) return;
+  Lions.removePlayerName(name, PW)
+    .then(function () {
+      renderRosterList();
+      renderAttendance();
+      loadChallenge();
+      Lions.toast(name + ' removed');
+    })
+    .catch(function () { Lions.toast('Could not reach the sheet — try again'); });
 }
 document.getElementById('refresh-btn').addEventListener('click', loadAll);
 

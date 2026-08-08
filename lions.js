@@ -51,6 +51,7 @@
   var K_SHOTLOG  = 'lions_shot_log';
   var K_RUNLOG   = 'lions_run_log';
   var K_EXTRA    = 'lions_roster_extra';   // players added since the base list
+  var K_REMOVED  = 'lions_roster_removed'; // players the coach took off the list
   var K_GOALS    = 'lions_goals';          // cached weekly targets from the sheet
 
   var ADD_VALUE  = '__add__';              // sentinel for the "add me" option
@@ -76,13 +77,17 @@
 
   // ── ROSTER: base list + players who added themselves ─────
   function extraRoster() { return jsonGet(K_EXTRA, []); }
+  function getRemoved() { return jsonGet(K_REMOVED, []); }
 
-  /** The full roster this device knows about, deduplicated. */
+  /** The full roster this device knows about, with removed names filtered out. */
   function getRoster() {
+    var removed = {};
+    getRemoved().forEach(function (n) { removed[norm(n)] = 1; });
+
     var seen = {}, out = [];
     BASE_ROSTER.concat(extraRoster()).forEach(function (n) {
       var k = norm(n);
-      if (!k || seen[k]) return;
+      if (!k || seen[k] || removed[k]) return;
       seen[k] = 1;
       out.push(n);
     });
@@ -130,45 +135,89 @@
     return changed;
   }
 
-  /** Pull the shared roster from the sheet. cb(changed) when done. */
-  function refreshRoster(cb) {
-    fetch(ENDPOINT + '?action=players')
-      .then(function (r) { return r.json(); })
-      .then(function (rows) {
-        var names = (rows || []).map(function (r) {
-          return typeof r === 'string' ? r : (r.player || r.name || r.Name || '');
-        });
-        var changed = mergeRoster(names);
-        if (cb) cb(changed);
-      })
-      .catch(function () { if (cb) cb(false); });
+  /** Fold in names the coach has removed, so they drop off this device too. */
+  function mergeRemoved(names) {
+    if (!names || !names.length) return false;
+    var known = {}, changed = false;
+    getRemoved().forEach(function (n) { known[norm(n)] = 1; });
+    var cur = getRemoved();
+    names.forEach(function (n) {
+      n = String(n || '').trim();
+      if (!n || known[norm(n)]) return;
+      cur.push(n);
+      known[norm(n)] = 1;
+      changed = true;
+    });
+    if (changed) jsonSet(K_REMOVED, cur);
+    return changed;
   }
 
-  // ── WEEKLY TARGETS (coach-controlled) ────────────────────
+  /**
+   * Coach-only: take a player off the roster. `pw` is checked server-side;
+   * this only marks them removed locally and asks the sheet to do the same
+   * — it never deletes anything they've already logged.
+   */
+  function removePlayerName(name, pw) {
+    var v = String(name || '').trim();
+    if (!v) return Promise.resolve(false);
+    var cur = getRemoved();
+    if (!cur.some(function (n) { return norm(n) === norm(v); })) {
+      cur.push(v);
+      jsonSet(K_REMOVED, cur);
+    }
+    return post({ type: 'removePlayer', name: v, pw: pw || '', date: stamp() });
+  }
+
+  /** Pull the shared roster (and removals) from the sheet. cb(changed) when done. */
+  function refreshRoster(cb) {
+    var names = function (rows) {
+      return (rows || []).map(function (r) {
+        return typeof r === 'string' ? r : (r.player || r.name || r.Name || '');
+      });
+    };
+    Promise.all([
+      fetch(ENDPOINT + '?action=players').then(function (r) { return r.json(); }).catch(function () { return []; }),
+      fetch(ENDPOINT + '?action=removed').then(function (r) { return r.json(); }).catch(function () { return []; })
+    ]).then(function (res) {
+      var removedChanged = mergeRemoved(names(res[1]));
+      var rosterChanged = mergeRoster(names(res[0]));
+      if (cb) cb(rosterChanged || removedChanged);
+    });
+  }
+
+  // ── WEEKLY TARGETS + SHUTDOWN MODE (coach-controlled) ─────
+  function truthy(v) { return v === true || v === 1 || v === '1' || v === 'true'; }
+
   function getGoals() {
     var g = jsonGet(K_GOALS, null) || {};
     return {
       shots: parseInt(g.shots, 10) > 0 ? parseInt(g.shots, 10) : DEFAULT_SHOT_GOAL,
-      runs:  parseInt(g.runs, 10)  > 0 ? parseInt(g.runs, 10)  : DEFAULT_RUN_GOAL
+      runs:  parseInt(g.runs, 10)  > 0 ? parseInt(g.runs, 10)  : DEFAULT_RUN_GOAL,
+      shutdown: truthy(g.shutdown)
     };
   }
   function cacheGoals(g) {
     if (!g) return;
     jsonSet(K_GOALS, { shots: parseInt(g.shots, 10) || DEFAULT_SHOT_GOAL,
-                       runs:  parseInt(g.runs, 10)  || DEFAULT_RUN_GOAL });
+                       runs:  parseInt(g.runs, 10)  || DEFAULT_RUN_GOAL,
+                       shutdown: truthy(g.shutdown) });
   }
-  /** Coach-only: publish new targets. `pw` is checked server-side. */
-  function saveGoals(shots, runs, pw) {
-    cacheGoals({ shots: shots, runs: runs });
+  /** Whether the coach has switched on shutdown mode — no new saves. */
+  function isShutdown() { return getGoals().shutdown; }
+
+  /** Coach-only: publish new targets + shutdown state. `pw` checked server-side. */
+  function saveGoals(shots, runs, shutdown, pw) {
+    cacheGoals({ shots: shots, runs: runs, shutdown: shutdown });
     return post({ type: 'settings', pw: pw || '',
                   shotGoal: parseInt(shots, 10) || DEFAULT_SHOT_GOAL,
-                  runGoal: parseInt(runs, 10) || DEFAULT_RUN_GOAL, date: stamp() });
+                  runGoal: parseInt(runs, 10) || DEFAULT_RUN_GOAL,
+                  shutdown: shutdown ? 1 : 0, date: stamp() });
   }
   function refreshGoals(cb) {
     fetch(ENDPOINT + '?action=settings')
       .then(function (r) { return r.json(); })
       .then(function (s) {
-        if (s && (s.shotGoal || s.runGoal)) cacheGoals({ shots: s.shotGoal, runs: s.runGoal });
+        if (s) cacheGoals({ shots: s.shotGoal, runs: s.runGoal, shutdown: s.shutdown });
         if (cb) cb(getGoals());
       })
       .catch(function () { if (cb) cb(getGoals()); });
@@ -513,7 +562,9 @@
     MILESTONES: MILESTONES,
 
     getRoster: getRoster,
+    getRemoved: getRemoved,
     addPlayerName: addPlayerName,
+    removePlayerName: removePlayerName,
     refreshRoster: refreshRoster,
     mergeRoster: mergeRoster,
     handleRosterSelect: handleRosterSelect,
@@ -521,6 +572,7 @@
     getGoals: getGoals,
     saveGoals: saveGoals,
     refreshGoals: refreshGoals,
+    isShutdown: isShutdown,
 
     saving: saving,
     saveResult: saveResult,

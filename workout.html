@@ -488,10 +488,12 @@ function renderAdjDay() {
 }
 
 // ─── SESSION ──────────────────────────────────────────────
+// Renders the session but doesn't commit it yet — a player who backs out
+// or closes the app mid-session should still be offered the same session
+// next time, not have it silently marked done. The real commit happens
+// in goToFinish(), when they actually press Done.
 function launchSession() {
-  Object.assign(data.players[currentIdx], pending);
-  save();
-  renderSessionScreen(data.players[currentIdx]);
+  renderSessionScreen(Object.assign({}, data.players[currentIdx], pending));
   goTo('screen-session');
 }
 
@@ -547,6 +549,14 @@ function goToFinish() {
   document.getElementById('submit-name').textContent = p.name.toUpperCase();
   document.getElementById('submit-detail').textContent = locStr(p);
   goTo('screen-finish');
+
+  if (Lions.isShutdown()) {
+    Lions.saveResult(false, 'Not live yet',
+      "Coach hasn't opened the app for real sessions. This session wasn't saved — come back once it's live!", null);
+    document.getElementById('finish-status').textContent = "🚧 Not saved — app isn't live yet";
+    document.getElementById('finish-status').style.color = 'var(--gold)';
+    return;
+  }
 
   Lions.postWithOverlay({
     type: 'weights',
@@ -701,6 +711,9 @@ Lions.refreshRoster(function (changed) {
   if (syncRosterIntoPlayers() && !document.getElementById('screen-players').classList.contains('active')) return;
   renderPlayers();
 });
+
+// So isShutdown() reflects the coach's current setting before a save is attempted.
+Lions.refreshGoals();
 </script>
 </body>
 </html>

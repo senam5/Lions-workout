@@ -48,8 +48,6 @@
   .split-text { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 2px; }
 
   footer { padding: 20px 24px; text-align: center; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; text-transform: uppercase; border-top: 1px solid var(--line); position: relative; }
-  footer a { color: var(--grey); text-decoration: none; border-bottom: 1px dotted var(--line); }
-  footer a:hover { color: var(--lion); }
   .accent-bar { height: 3px; background: linear-gradient(90deg, var(--lion), transparent); width: 100%; }
 </style>
 </head>
@@ -63,6 +61,11 @@
   </div>
   <h1>LET'S<br><span>WORK.</span></h1>
   <p class="subtitle">Pick your session. Put in the reps. No excuses.</p>
+
+  <div class="note-box hidden" id="shutdown-banner">
+    <strong>🚧 Not live yet</strong>
+    Coach is finishing setup — feel free to look around, but nothing you log will be saved yet.
+  </div>
 
   <div class="who-bar" id="who-bar"></div>
   <div class="goals" id="goals"></div>
@@ -105,7 +108,7 @@
     </a>
   </div>
 </main>
-<footer>Lions Program · St. Lawrence · 2026 · <a href="media.html">Media Team</a></footer>
+<footer>Lions Program · St. Lawrence · 2026</footer>
 
 <div class="toast" id="toast"></div>
 
@@ -174,11 +177,16 @@
 
   renderWhoBar(false);
 
+  function applyShutdownBanner() {
+    document.getElementById('shutdown-banner').classList.toggle('hidden', !Lions.isShutdown());
+  }
+  applyShutdownBanner();   // paint instantly from the cached value
+
   // Pick up new team-mates and any target the coach changed.
   Lions.refreshRoster(function (changed) {
     if (changed && !Lions.getPlayer()) renderWhoBar(false);
   });
-  Lions.refreshGoals(function () { renderGoals(); });
+  Lions.refreshGoals(function () { renderGoals(); applyShutdownBanner(); });
 </script>
 </body>
 </html>
