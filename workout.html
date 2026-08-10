@@ -54,6 +54,21 @@
   .timer-big { font-family: 'Bebas Neue', sans-serif; font-size: 82px; letter-spacing: 3px; line-height: 1; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
   .timer-status { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; }
   .timer-done { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; color: var(--green); background: var(--green-dim); padding: 12px 24px; border-radius: var(--radius); margin-bottom: 16px; }
+
+  /* AIR BIKE CHALLENGE (Phase 4) */
+  .ab-field { margin-bottom: 14px; }
+  .ab-photo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .ab-photo-btn { flex: 1; }
+  .ab-thumb { width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--line); flex-shrink: 0; display: none; }
+  .ab-thumb.show { display: block; }
+  .ab-lb-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .ab-lb-row:last-child { border-bottom: none; }
+  .ab-lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 24px; width: 28px; text-align: center; flex-shrink: 0; }
+  .ab-rank-1 { color: var(--gold); } .ab-rank-2 { color: #c0c0c0; } .ab-rank-3 { color: #cd7f32; } .ab-rank-other { color: var(--grey2); }
+  .ab-lb-info { flex: 1; min-width: 0; }
+  .ab-lb-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ab-lb-sub { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 0.5px; margin-top: 3px; }
+  .ab-lb-val { font-family: 'Bebas Neue', sans-serif; font-size: 24px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -81,6 +96,7 @@
   <div class="wrap">
     <div class="btn-row" style="flex-direction:column;gap:10px">
       <button class="btn-primary" id="go-players">▶ START MY SESSION</button>
+      <button class="btn-secondary" id="go-airbike" style="width:100%">🚲 PHASE 4 — AIR BIKE CHALLENGE</button>
       <button class="btn-secondary" id="go-roster" style="width:100%">⚙ ASH — VIEW ROSTER</button>
     </div>
   </div>
@@ -163,6 +179,51 @@
     <div class="section-title" style="margin-top:10px">ROSTER</div>
     <p class="section-sub">Live progression — pulled from Google Sheets</p>
     <div id="ash-roster"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+</div>
+
+<!-- PHASE 4 — AIR BIKE CHALLENGE -->
+<div id="screen-airbike" class="screen">
+  <div class="wrap">
+    <span class="badge badge-lion">Phase 4</span>
+    <div class="section-title" style="margin-top:10px">🚲 AIR BIKE CHALLENGE</div>
+    <p class="section-sub">30 seconds, all-out, max distance. Only for players Coach Ash has cleared verbally — finish your 3 phases first and ask him.</p>
+
+    <div class="card">
+      <div class="card-title">Log your attempt</div>
+      <div class="ab-field">
+        <label class="label" for="ab-name" style="display:block;margin-bottom:8px">Name</label>
+        <select class="input" id="ab-name"></select>
+      </div>
+      <div class="ab-field">
+        <label class="label" for="ab-duration" style="display:block;margin-bottom:8px">Duration (seconds — whatever Ash called out)</label>
+        <input class="input input-mono" id="ab-duration" type="number" min="1" step="1" inputmode="numeric" placeholder="30">
+      </div>
+      <div class="ab-field">
+        <label class="label" for="ab-distance" style="display:block;margin-bottom:8px">Distance covered</label>
+        <input class="input input-mono" id="ab-distance" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+      </div>
+      <div class="ab-field">
+        <label class="label" style="display:block;margin-bottom:8px">Proof photo (of the bike display)</label>
+        <div class="ab-photo-row">
+          <button type="button" class="btn-secondary ab-photo-btn" id="ab-photo-btn">📷 TAKE PICTURE</button>
+          <img class="ab-thumb" id="ab-thumb" alt="">
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="ab-photo-input" style="display:none">
+      </div>
+      <button class="btn-primary" id="ab-submit" style="width:100%">SUBMIT RESULT ✓</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏆 Leaderboard</div>
+      <p class="section-sub" style="margin-bottom:12px">One-time prize for whoever's on top at season start. Ranked by best distance.</p>
+      <div class="chip-row" id="ab-lb-tabs">
+        <span class="chip active" data-range="week">This week</span>
+        <span class="chip" data-range="month">This month</span>
+        <span class="chip" data-range="alltime">All-time</span>
+      </div>
+      <div id="ab-lb"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
   </div>
 </div>
 
@@ -367,6 +428,7 @@ function goTo(id) {
   document.getElementById(id).classList.add('active');
   if (id === 'screen-players') renderPlayers();
   if (id === 'screen-ash') loadRoster();
+  if (id === 'screen-airbike') { renderAirbikeForm(); loadAirbikeLB(); }
   window.scrollTo(0, 0);
 }
 
@@ -799,6 +861,139 @@ function stopPip() {
   if (document.pictureInPictureElement) document.exitPictureInPicture().catch(function () {});
 }
 
+// ─── PHASE 4 — AIR BIKE CHALLENGE ─────────────────────────
+var abPhotoDataUrl = '';
+var abLbRange = 'week';
+var abRows = null;
+
+function renderAirbikeForm() {
+  var sel = document.getElementById('ab-name');
+  sel.innerHTML = Lions.rosterOptions(Lions.getPlayer(), { add: false });
+  abPhotoDataUrl = '';
+  document.getElementById('ab-thumb').classList.remove('show');
+  document.getElementById('ab-duration').value = '';
+  document.getElementById('ab-distance').value = '';
+  document.getElementById('ab-photo-input').value = '';
+}
+
+document.getElementById('ab-photo-btn').addEventListener('click', function () {
+  document.getElementById('ab-photo-input').click();
+});
+
+// Shrink the photo before it goes anywhere near the network — a raw
+// phone-camera photo is several MB, which is overkill for a proof shot
+// and slow to POST on gym wifi. A ~1000px-wide JPEG is plenty legible.
+document.getElementById('ab-photo-input').addEventListener('change', function () {
+  var file = this.files && this.files[0];
+  if (!file) return;
+  var img = new Image();
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    img.onload = function () {
+      var maxW = 1000;
+      var scale = Math.min(1, maxW / img.width);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      abPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      var thumb = document.getElementById('ab-thumb');
+      thumb.src = abPhotoDataUrl;
+      thumb.classList.add('show');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('ab-submit').addEventListener('click', function () {
+  var name = document.getElementById('ab-name').value;
+  var duration = parseInt(document.getElementById('ab-duration').value, 10);
+  var distance = parseFloat(document.getElementById('ab-distance').value);
+
+  if (!name) { Lions.toast('Pick your name'); return; }
+  if (!(duration > 0)) { Lions.toast('Enter the duration Ash called out'); return; }
+  if (!(distance >= 0)) { Lions.toast('Enter your distance'); return; }
+
+  if (Lions.isShutdown()) {
+    Lions.saveResult(false, 'Not live yet',
+      "Coach hasn't opened the app for real sessions. This result wasn't saved.", null);
+    return;
+  }
+
+  Lions.postWithOverlay({
+    type: 'airbike',
+    date: Lions.stamp(),
+    name: name,
+    player: name,
+    duration: duration,
+    distance: distance,
+    photo: abPhotoDataUrl
+  }, {
+    title: 'Saving your result…',
+    okTitle: 'Result logged',
+    okMsg: 'Coach can see it. You can close the app now.',
+    failMsg: 'No connection. Screenshot this screen and show Coach.'
+  }).then(function (okState) {
+    if (okState) { renderAirbikeForm(); loadAirbikeLB(); }
+  });
+});
+
+document.querySelectorAll('#ab-lb-tabs .chip').forEach(function (c) {
+  c.addEventListener('click', function () {
+    abLbRange = this.dataset.range;
+    document.querySelectorAll('#ab-lb-tabs .chip').forEach(function (x) { x.classList.toggle('active', x === c); });
+    renderAirbikeLB();
+  });
+});
+
+function loadAirbikeLB() {
+  var el = document.getElementById('ab-lb');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+  fetch(Lions.ENDPOINT + '?action=airbike')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) { abRows = Array.isArray(rows) ? rows : []; renderAirbikeLB(); })
+    .catch(function () { el.innerHTML = '<div class="empty">Could not load the leaderboard.<br>Check the Apps Script is deployed.</div>'; });
+}
+
+function renderAirbikeLB() {
+  var el = document.getElementById('ab-lb');
+  if (!abRows) return;
+  if (!abRows.length) { el.innerHTML = '<div class="empty">No attempts logged yet — be the first.</div>'; return; }
+
+  var now = new Date();
+  var wk = Lions.weekKey(now), mo = Lions.monthKey(now);
+  var inRange = function (r) {
+    if (abLbRange === 'alltime') return true;
+    var dt = Lions.parseStamp(r.date);
+    if (!dt) return false;
+    return abLbRange === 'week' ? Lions.weekKey(dt) === wk : Lions.monthKey(dt) === mo;
+  };
+
+  var best = {};
+  abRows.filter(inRange).forEach(function (r) {
+    var name = String(r.player || r.name || '').trim();
+    var dist = parseFloat(r.distance);
+    if (!name || !(dist >= 0)) return;
+    if (!best[name] || dist > best[name].distance) best[name] = { name: name, distance: dist, duration: r.duration };
+  });
+
+  var ranked = Object.keys(best).map(function (k) { return best[k]; }).sort(function (a, b) { return b.distance - a.distance; });
+  if (!ranked.length) { el.innerHTML = '<div class="empty">No attempts in this range yet.</div>'; return; }
+
+  var rc = ['ab-rank-1', 'ab-rank-2', 'ab-rank-3'], rs = ['🥇', '🥈', '🥉'];
+  el.innerHTML = ranked.map(function (p, i) {
+    return '<div class="ab-lb-row">' +
+      '<div class="ab-lb-rank ' + (rc[i] || 'ab-rank-other') + '">' + (rs[i] || (i + 1)) + '</div>' +
+      '<div class="avatar' + (i === 0 ? ' top' : '') + '">' + esc(Lions.initials(p.name)) + '</div>' +
+      '<div class="ab-lb-info"><div class="ab-lb-name">' + esc(p.name) + '</div>' +
+      '<div class="ab-lb-sub">' + (p.duration ? p.duration + 's effort' : '') + '</div></div>' +
+      '<div class="ab-lb-val">' + p.distance + '</div>' +
+      '</div>';
+  }).join('');
+}
+
 // ─── IDENTITY CHIP ────────────────────────────────────────
 function renderWho() {
   Lions.renderWho('who-box', function () { showFullList = true; goTo('screen-players'); });
@@ -808,6 +1003,7 @@ function renderWho() {
 document.getElementById('topbar-back').addEventListener('click', function () { location.href = 'index.html'; });
 document.getElementById('go-players').addEventListener('click', function () { goTo('screen-players'); });
 document.getElementById('go-roster').addEventListener('click', function () { goTo('screen-ash'); });
+document.getElementById('go-airbike').addEventListener('click', function () { goTo('screen-airbike'); });
 document.getElementById('launch-btn').addEventListener('click', launchSession);
 document.getElementById('adjust-btn').addEventListener('click', openAdjust);
 document.getElementById('adjust-back-btn').addEventListener('click', function () { showConfirm(data.players[currentIdx].name, pending); });

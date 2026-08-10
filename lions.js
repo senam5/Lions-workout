@@ -638,6 +638,12 @@
     return String(n || '').split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
   }
 
+  // ── MONTH KEY ────────────────────────────────────────────
+  function monthKey(d) {
+    var dt = d ? new Date(d) : new Date();
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  }
+
   // ── LAST SESSION ─────────────────────────────────────────
   // What this player did last, straight from the sheet, so they can
   // pick up where they left off instead of guessing.
@@ -688,7 +694,9 @@
 
     weekKey: weekKey,
     weekLabel: weekLabel,
+    monthKey: monthKey,
     stamp: stamp,
+    parseStamp: parseStamp,
 
     addShotSession: addShotSession,
     getShotLog: getShotLog,
