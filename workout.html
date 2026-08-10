@@ -72,6 +72,21 @@
   .ab-video-wrap { position: relative; width: 100%; border-radius: var(--radius); overflow: hidden; background: #000; margin-bottom: 14px; }
   .ab-video { width: 100%; display: block; max-height: 60vh; object-fit: cover; }
   .ab-video-timer { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: var(--white); font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; padding: 4px 14px; border-radius: 99px; font-variant-numeric: tabular-nums; }
+  .ab-video-timer.countdown { top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); font-size: 64px; padding: 10px 26px; background: rgba(0,0,0,0.45); }
+
+  /* Gamey "send to Ash" — the whole point is to make sharing feel like the payoff move, not an afterthought. */
+  .ab-share-btn {
+    width: 100%; margin-bottom: 8px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--lion), var(--gold));
+    color: var(--white); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px;
+    padding: 16px; border-radius: var(--radius); box-shadow: 0 0 0 rgba(204,34,41,0.5);
+    animation: ab-share-pulse 1.8s ease-in-out infinite;
+  }
+  .ab-share-btn:active { transform: scale(0.97); }
+  @keyframes ab-share-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(204,34,41,0.45); }
+    50% { box-shadow: 0 0 0 10px rgba(204,34,41,0); }
+  }
 </style>
 </head>
 <body>
@@ -209,13 +224,14 @@
         <button class="btn-primary" id="ab-start-attempt" style="width:100%">▶ START ATTEMPT (CAMERA + TIMER)</button>
       </div>
 
-      <!-- STAGE 2: recording -->
+      <!-- STAGE 2: get on the bike, countdown, then recording -->
       <div id="ab-stage-recording" class="hidden">
         <div class="ab-video-wrap">
           <video id="ab-video" class="ab-video" autoplay playsinline muted></video>
-          <div class="ab-video-timer" id="ab-timer-big">30</div>
+          <div class="ab-video-timer hidden" id="ab-timer-big">30</div>
         </div>
-        <div class="bar-track" style="margin-bottom:16px"><div class="bar-fill" id="ab-timer-bar" style="width:0%"></div></div>
+        <div class="bar-track hidden" id="ab-timer-bar-wrap" style="margin-bottom:16px"><div class="bar-fill" id="ab-timer-bar" style="width:0%"></div></div>
+        <button class="btn-primary" id="ab-ready-btn" style="width:100%;margin-bottom:10px">🚴 I'M READY — GO!</button>
         <button class="btn-ghost" id="ab-cancel-attempt" style="width:100%">✕ Cancel attempt</button>
       </div>
 
@@ -229,11 +245,12 @@
           <button type="button" class="btn-secondary ab-photo-btn" id="ab-capture-btn">📸 CAPTURE READING</button>
           <img class="ab-thumb" id="ab-thumb" alt="">
         </div>
-        <button type="button" class="btn-secondary hidden" id="ab-share-clip" style="width:100%;margin-bottom:8px">📤 SEND VIDEO TO ASH</button>
+        <button type="button" class="ab-share-btn hidden" id="ab-share-clip">🔥 SHIP IT TO ASH 🔥</button>
+        <button type="button" class="btn-secondary hidden" id="ab-save-photos" style="width:100%;margin-bottom:8px">💾 SAVE TO PHOTOS</button>
         <a class="btn-ghost hidden" id="ab-download-clip" style="display:block;text-align:center;margin-bottom:8px">⬇ Save video clip to this phone instead</a>
         <div class="note-box">
           <strong>⚠️ Video isn't uploaded automatically</strong>
-          Save the clip and send it to Ash yourself — text, AirDrop, WhatsApp, whatever's easiest. Your name, duration, distance and the bike-reading photo below still log to Coach's sheet automatically the moment you hit submit, whether or not you send the video.
+          Tap "Ship it to Ash" to text/AirDrop it straight to him, or "Save to Photos" to drop it in your camera roll — both open your phone's normal share menu, just pick where it goes. Your name, duration, distance and the bike-reading photo below still log to Coach's sheet automatically the moment you hit submit, whether or not you send the video.
         </div>
         <div class="ab-field">
           <label class="label" for="ab-distance" style="display:block;margin-bottom:8px">Distance covered (read it off the bike)</label>
@@ -902,7 +919,7 @@ var abPhotoDataUrl = '';
 var abLbRange = 'week';
 var abRows = null;
 var abStream = null, abRecorder = null, abChunks = [], abVideoUrl = '';
-var abTimerInterval = null, abDurationTarget = 30, abRemaining = 0;
+var abTimerInterval = null, abCountdownInterval = null, abDurationTarget = 30, abRemaining = 0;
 
 function renderAirbikeForm() {
   var sel = document.getElementById('ab-name');
@@ -914,6 +931,8 @@ function renderAirbikeForm() {
 /** Stop any camera/recording in progress and drop back to the setup stage. */
 function abResetAttempt() {
   clearInterval(abTimerInterval);
+  clearInterval(abCountdownInterval);
+  abCountdownInterval = null;
   if (abStream) { abStream.getTracks().forEach(function (t) { t.stop(); }); abStream = null; }
   if (abRecorder && abRecorder.state !== 'inactive') { try { abRecorder.stop(); } catch (e) {} }
   abRecorder = null; abChunks = [];
@@ -925,6 +944,13 @@ function abResetAttempt() {
   dl.classList.add('hidden'); dl.removeAttribute('href');
   var shareBtn = document.getElementById('ab-share-clip');
   shareBtn.classList.add('hidden'); shareBtn.onclick = null;
+  var saveBtn = document.getElementById('ab-save-photos');
+  saveBtn.classList.add('hidden'); saveBtn.onclick = null;
+  document.getElementById('ab-ready-btn').classList.add('hidden');
+  var tb = document.getElementById('ab-timer-big');
+  tb.classList.add('hidden'); tb.classList.remove('countdown');
+  document.getElementById('ab-timer-bar-wrap').classList.add('hidden');
+  document.getElementById('ab-timer-bar').style.width = '0%';
   document.getElementById('ab-stage-setup').classList.remove('hidden');
   document.getElementById('ab-stage-recording').classList.add('hidden');
   document.getElementById('ab-stage-review').classList.add('hidden');
@@ -951,12 +977,42 @@ document.getElementById('ab-start-attempt').addEventListener('click', function (
       video.srcObject = stream;
       document.getElementById('ab-stage-setup').classList.add('hidden');
       document.getElementById('ab-stage-recording').classList.remove('hidden');
-      abStartRecording();
+      // Camera's live now, but nothing records yet — the player gets on
+      // the bike and taps in themselves, then the countdown gives them
+      // the few seconds it takes to actually get moving before it counts.
+      document.getElementById('ab-ready-btn').classList.remove('hidden');
     })
     .catch(function () {
       Lions.toast("Couldn't access the camera — check permissions and try again");
     });
 });
+
+document.getElementById('ab-ready-btn').addEventListener('click', function () {
+  this.classList.add('hidden');
+  abRunCountdown(abStartRecording);
+});
+
+/** 3…2…1 on the live preview, then hands off to cb (the real recording). */
+function abRunCountdown(cb) {
+  var el = document.getElementById('ab-timer-big');
+  el.classList.remove('hidden');
+  el.classList.add('countdown');
+  var n = 3;
+  el.textContent = n;
+  Lions.tickBeep();
+  abCountdownInterval = setInterval(function () {
+    n--;
+    if (n <= 0) {
+      clearInterval(abCountdownInterval);
+      abCountdownInterval = null;
+      el.classList.remove('countdown');
+      cb();
+      return;
+    }
+    el.textContent = n;
+    Lions.tickBeep();
+  }, 1000);
+}
 
 function abStartRecording() {
   abChunks = [];
@@ -972,15 +1028,24 @@ function abStartRecording() {
 
     // The Sheet row (name/duration/distance/photo) is what actually needs
     // to reach Coach — that still saves on submit no matter what happens
-    // here. The clip itself never touches our backend; it goes straight
-    // from the player's phone to Ash via the native share sheet (text/
-    // AirDrop/WhatsApp/etc.), same as the "send it to Ash directly" plan.
+    // here. The clip itself never touches our backend.
+    //
+    // A web page can't write into the Photos app directly — the only
+    // route there is the OS share sheet's own "Save Video" action, the
+    // same sheet used to send it to Ash. So both buttons below trigger
+    // the identical navigator.share() call; which outcome happens (send
+    // to Ash vs. save to the camera roll) is just whichever option the
+    // player picks once the sheet opens. The plain file download (saves
+    // to Files/Downloads, not Photos) is only the fallback for browsers
+    // where the share sheet isn't available at all.
     var shareBtn = document.getElementById('ab-share-clip');
+    var saveBtn = document.getElementById('ab-save-photos');
+    var dl = document.getElementById('ab-download-clip');
     var file = null;
     try { file = new File([blob], fileName, { type: mime }); } catch (e) {}
+
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      shareBtn.classList.remove('hidden');
-      shareBtn.onclick = function () {
+      var doShare = function () {
         var name = document.getElementById('ab-name').value || 'Player';
         navigator.share({
           files: [file],
@@ -988,16 +1053,20 @@ function abStartRecording() {
           text: name + '’s ' + abDurationTarget + 's air bike attempt'
         }).catch(function () { /* cancelled — no error needed */ });
       };
+      shareBtn.classList.remove('hidden');
+      shareBtn.onclick = doShare;
+      saveBtn.classList.remove('hidden');
+      saveBtn.onclick = doShare;
+    } else {
+      abVideoUrl = URL.createObjectURL(blob);
+      dl.href = abVideoUrl;
+      dl.download = fileName;
+      dl.classList.remove('hidden');
     }
-
-    abVideoUrl = URL.createObjectURL(blob);
-    var dl = document.getElementById('ab-download-clip');
-    dl.href = abVideoUrl;
-    dl.download = fileName;
-    dl.classList.remove('hidden');
   };
   abRecorder.start();
 
+  document.getElementById('ab-timer-bar-wrap').classList.remove('hidden');
   abRemaining = abDurationTarget;
   abRenderTimer();
   Lions.beep(660, 0.2);
@@ -1105,9 +1174,23 @@ function renderAirbikeLB() {
 
   var now = new Date();
   var wk = Lions.weekKey(now), mo = Lions.monthKey(now);
+  // The date comes back from the sheet as whatever Sheets decided to
+  // store it as — Lions.stamp()'s text format ("Sat, Aug 8, 2026, 14:49")
+  // if the cell stayed plain text, or an auto-converted Date cell that
+  // Apps Script serializes as ISO ("2026-08-08T18:49:00.000Z") if Sheets
+  // recognized it as a date on write. parseStamp only understands the
+  // first; fall back to native Date parsing (which handles ISO fine) so
+  // week/month grouping works either way — this is also why "all-time"
+  // looked fine on its own: it's the only range that skips date parsing.
+  var abRowDate = function (r) {
+    var dt = Lions.parseStamp(r.date);
+    if (dt) return dt;
+    var native = new Date(r.date);
+    return isNaN(native.getTime()) ? null : native;
+  };
   var inRange = function (r) {
     if (abLbRange === 'alltime') return true;
-    var dt = Lions.parseStamp(r.date);
+    var dt = abRowDate(r);
     if (!dt) return false;
     return abLbRange === 'week' ? Lions.weekKey(dt) === wk : Lions.monthKey(dt) === mo;
   };
