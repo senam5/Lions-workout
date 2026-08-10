@@ -61,6 +61,7 @@
   .ab-photo-btn { flex: 1; }
   .ab-thumb { width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--line); flex-shrink: 0; display: none; }
   .ab-thumb.show { display: block; }
+  .ab-thumb-preview { width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--line); display: block; margin-bottom: 10px; background: #000; }
   .ab-lb-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
   .ab-lb-row:last-child { border-bottom: none; }
   .ab-lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 24px; width: 28px; text-align: center; flex-shrink: 0; }
@@ -83,6 +84,10 @@
     animation: ab-share-pulse 1.8s ease-in-out infinite;
   }
   .ab-share-btn:active { transform: scale(0.97); }
+  .ab-share-btn:disabled, #ab-save-photos:disabled {
+    opacity: 0.35; cursor: not-allowed; animation: none; box-shadow: none;
+    background: var(--surface2); color: var(--grey);
+  }
   @keyframes ab-share-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(204,34,41,0.45); }
     50% { box-shadow: 0 0 0 10px rgba(204,34,41,0); }
@@ -235,29 +240,33 @@
         <button class="btn-ghost" id="ab-cancel-attempt" style="width:100%">✕ Cancel attempt</button>
       </div>
 
-      <!-- STAGE 3: review — capture the bike's reading + enter distance -->
-      <div id="ab-stage-review" class="hidden">
+      <!-- STAGE 3: capture the bike's reading -->
+      <div id="ab-stage-capture" class="hidden">
         <p class="section-sub">Point the camera at the bike's display, then capture it.</p>
         <div class="ab-video-wrap">
           <video id="ab-video2" class="ab-video" autoplay playsinline muted></video>
         </div>
-        <div class="ab-photo-row">
-          <button type="button" class="btn-secondary ab-photo-btn" id="ab-capture-btn">📸 CAPTURE READING</button>
-          <img class="ab-thumb" id="ab-thumb" alt="">
-        </div>
-        <button type="button" class="ab-share-btn hidden" id="ab-share-clip">🔥 SHIP IT TO ASH 🔥</button>
-        <button type="button" class="btn-secondary hidden" id="ab-save-photos" style="width:100%;margin-bottom:8px">💾 SAVE TO PHOTOS</button>
-        <a class="btn-ghost hidden" id="ab-download-clip" style="display:block;text-align:center;margin-bottom:8px">⬇ Save video clip to this phone instead</a>
-        <div class="note-box">
-          <strong>⚠️ Video isn't uploaded automatically</strong>
-          Tap "Ship it to Ash" to text/AirDrop it straight to him, or "Save to Photos" to drop it in your camera roll — both open your phone's normal share menu, just pick where it goes. Your name, duration, distance and the bike-reading photo below still log to Coach's sheet automatically the moment you hit submit, whether or not you send the video.
-        </div>
+        <button type="button" class="btn-primary ab-photo-btn" id="ab-capture-btn" style="width:100%">📸 CAPTURE READING</button>
+        <button class="btn-ghost" id="ab-cancel-attempt2" style="width:100%;margin-top:10px">✕ Cancel attempt</button>
+      </div>
+
+      <!-- STAGE 4: confirm the capture, enter distance, submit -->
+      <div id="ab-stage-finish" class="hidden">
+        <img class="ab-thumb-preview" id="ab-thumb" alt="">
+        <button type="button" class="btn-ghost" id="ab-recapture-btn" style="width:100%;margin-bottom:14px">↺ Retake photo</button>
         <div class="ab-field">
           <label class="label" for="ab-distance" style="display:block;margin-bottom:8px">Distance covered (read it off the bike)</label>
           <input class="input input-mono" id="ab-distance" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
         </div>
+        <button type="button" class="ab-share-btn hidden" id="ab-share-clip" disabled>🔥 SHIP IT TO ASH 🔥</button>
+        <button type="button" class="btn-secondary hidden" id="ab-save-photos" style="width:100%;margin-bottom:8px" disabled>💾 SAVE TO PHOTOS</button>
+        <a class="btn-ghost hidden" id="ab-download-clip" style="display:block;text-align:center;margin-bottom:8px">⬇ Save video clip to this phone instead</a>
+        <div class="note-box">
+          <strong>⚠️ Video isn't uploaded automatically</strong>
+          Enter your distance above to unlock "Ship it to Ash" / "Save to Photos" — both open your phone's normal share menu, just pick where it goes. Your name, duration, distance and the bike-reading photo still log to Coach's sheet automatically the moment you hit submit, whether or not you send the video.
+        </div>
         <button class="btn-primary" id="ab-submit" style="width:100%">SUBMIT RESULT ✓</button>
-        <button class="btn-ghost" id="ab-cancel-attempt2" style="width:100%;margin-top:8px">✕ Cancel attempt</button>
+        <button class="btn-ghost" id="ab-cancel-attempt3" style="width:100%;margin-top:8px">✕ Cancel attempt</button>
       </div>
     </div>
 
@@ -915,6 +924,19 @@ function stopPip() {
 // one or the other, and the player shouldn't have to fight it.
 function abParseDecimal(v) { return parseFloat(String(v || '').replace(',', '.')); }
 
+/**
+ * Sharing the video means nothing to Coach without a distance attached
+ * to it, so both share buttons stay disabled until a valid number is
+ * typed in — same rule enforced again inside doShare() itself below as
+ * a backstop, in case this listener didn't fire for some reason.
+ */
+function abUpdateShareGate() {
+  var ok = abParseDecimal(document.getElementById('ab-distance').value) >= 0;
+  document.getElementById('ab-share-clip').disabled = !ok;
+  document.getElementById('ab-save-photos').disabled = !ok;
+}
+document.getElementById('ab-distance').addEventListener('input', abUpdateShareGate);
+
 var abPhotoDataUrl = '';
 var abLbRange = 'week';
 var abRows = null;
@@ -938,14 +960,14 @@ function abResetAttempt() {
   abRecorder = null; abChunks = [];
   if (abVideoUrl) { URL.revokeObjectURL(abVideoUrl); abVideoUrl = ''; }
   abPhotoDataUrl = '';
-  document.getElementById('ab-thumb').classList.remove('show');
+  document.getElementById('ab-thumb').src = '';
   document.getElementById('ab-distance').value = '';
   var dl = document.getElementById('ab-download-clip');
   dl.classList.add('hidden'); dl.removeAttribute('href');
   var shareBtn = document.getElementById('ab-share-clip');
-  shareBtn.classList.add('hidden'); shareBtn.onclick = null;
+  shareBtn.classList.add('hidden'); shareBtn.onclick = null; shareBtn.disabled = true;
   var saveBtn = document.getElementById('ab-save-photos');
-  saveBtn.classList.add('hidden'); saveBtn.onclick = null;
+  saveBtn.classList.add('hidden'); saveBtn.onclick = null; saveBtn.disabled = true;
   document.getElementById('ab-ready-btn').classList.add('hidden');
   var tb = document.getElementById('ab-timer-big');
   tb.classList.add('hidden'); tb.classList.remove('countdown');
@@ -953,7 +975,8 @@ function abResetAttempt() {
   document.getElementById('ab-timer-bar').style.width = '0%';
   document.getElementById('ab-stage-setup').classList.remove('hidden');
   document.getElementById('ab-stage-recording').classList.add('hidden');
-  document.getElementById('ab-stage-review').classList.add('hidden');
+  document.getElementById('ab-stage-capture').classList.add('hidden');
+  document.getElementById('ab-stage-finish').classList.add('hidden');
 }
 
 function abMimeType() {
@@ -1046,6 +1069,10 @@ function abStartRecording() {
 
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
       var doShare = function () {
+        if (!(abParseDecimal(document.getElementById('ab-distance').value) >= 0)) {
+          Lions.toast('Enter your distance first');
+          return;
+        }
         var name = document.getElementById('ab-name').value || 'Player';
         navigator.share({
           files: [file],
@@ -1057,6 +1084,7 @@ function abStartRecording() {
       shareBtn.onclick = doShare;
       saveBtn.classList.remove('hidden');
       saveBtn.onclick = doShare;
+      abUpdateShareGate();   // buttons just became visible — reflect the current (likely empty) distance field
     } else {
       abVideoUrl = URL.createObjectURL(blob);
       dl.href = abVideoUrl;
@@ -1094,13 +1122,17 @@ function abStopRecording() {
   Lions.doneBeep();
   if (abRecorder && abRecorder.state !== 'inactive') abRecorder.stop();
   document.getElementById('ab-stage-recording').classList.add('hidden');
-  document.getElementById('ab-stage-review').classList.remove('hidden');
-  // Same live stream, just re-attached to the review screen's <video> so
+  document.getElementById('ab-stage-capture').classList.remove('hidden');
+  // Same live stream, just re-attached to the capture screen's <video> so
   // the player can point it at the bike without the camera reopening.
   var video2 = document.getElementById('ab-video2');
   video2.srcObject = abStream;
 }
 
+// Capture is its own required step before the finish screen even
+// exists — there's no way to reach distance entry / submit without a
+// photo landing first, so a player can't miss it or skip straight to
+// submitting an entry with no reading attached.
 document.getElementById('ab-capture-btn').addEventListener('click', function () {
   var video = document.getElementById('ab-video2');
   var canvas = document.createElement('canvas');
@@ -1108,14 +1140,21 @@ document.getElementById('ab-capture-btn').addEventListener('click', function () 
   canvas.height = video.videoHeight || 480;
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
   abPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-  var thumb = document.getElementById('ab-thumb');
-  thumb.src = abPhotoDataUrl;
-  thumb.classList.add('show');
-  Lions.toast('Got it — capture again if it\'s blurry');
+  document.getElementById('ab-thumb').src = abPhotoDataUrl;
+  document.getElementById('ab-stage-capture').classList.add('hidden');
+  document.getElementById('ab-stage-finish').classList.remove('hidden');
+});
+
+// Back to the capture screen — same live stream, no camera reopen, and
+// no need to touch abResetAttempt since nothing else is being undone.
+document.getElementById('ab-recapture-btn').addEventListener('click', function () {
+  document.getElementById('ab-stage-finish').classList.add('hidden');
+  document.getElementById('ab-stage-capture').classList.remove('hidden');
 });
 
 document.getElementById('ab-cancel-attempt').addEventListener('click', abResetAttempt);
 document.getElementById('ab-cancel-attempt2').addEventListener('click', abResetAttempt);
+document.getElementById('ab-cancel-attempt3').addEventListener('click', abResetAttempt);
 
 document.getElementById('ab-submit').addEventListener('click', function () {
   var name = document.getElementById('ab-name').value;
