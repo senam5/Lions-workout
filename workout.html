@@ -69,6 +69,9 @@
   .ab-lb-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ab-lb-sub { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 0.5px; margin-top: 3px; }
   .ab-lb-val { font-family: 'Bebas Neue', sans-serif; font-size: 24px; flex-shrink: 0; }
+  .ab-video-wrap { position: relative; width: 100%; border-radius: var(--radius); overflow: hidden; background: #000; margin-bottom: 14px; }
+  .ab-video { width: 100%; display: block; max-height: 60vh; object-fit: cover; }
+  .ab-video-timer { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: var(--white); font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; padding: 4px 14px; border-radius: 99px; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -191,27 +194,54 @@
 
     <div class="card">
       <div class="card-title">Log your attempt</div>
-      <div class="ab-field">
-        <label class="label" for="ab-name" style="display:block;margin-bottom:8px">Name</label>
-        <select class="input" id="ab-name"></select>
+
+      <!-- STAGE 1: setup -->
+      <div id="ab-stage-setup">
+        <div class="ab-field">
+          <label class="label" for="ab-name" style="display:block;margin-bottom:8px">Name</label>
+          <select class="input" id="ab-name"></select>
+        </div>
+        <div class="ab-field">
+          <label class="label" for="ab-duration" style="display:block;margin-bottom:8px">Duration (seconds — whatever Ash called out)</label>
+          <input class="input input-mono" id="ab-duration" type="number" min="1" step="1" inputmode="numeric" placeholder="30">
+        </div>
+        <p class="section-sub" style="margin-bottom:14px">Starting opens your camera and records while the timer runs, so Ash can see the effort — not just the number.</p>
+        <button class="btn-primary" id="ab-start-attempt" style="width:100%">▶ START ATTEMPT (CAMERA + TIMER)</button>
       </div>
-      <div class="ab-field">
-        <label class="label" for="ab-duration" style="display:block;margin-bottom:8px">Duration (seconds — whatever Ash called out)</label>
-        <input class="input input-mono" id="ab-duration" type="number" min="1" step="1" inputmode="numeric" placeholder="30">
+
+      <!-- STAGE 2: recording -->
+      <div id="ab-stage-recording" class="hidden">
+        <div class="ab-video-wrap">
+          <video id="ab-video" class="ab-video" autoplay playsinline muted></video>
+          <div class="ab-video-timer" id="ab-timer-big">30</div>
+        </div>
+        <div class="bar-track" style="margin-bottom:16px"><div class="bar-fill" id="ab-timer-bar" style="width:0%"></div></div>
+        <button class="btn-ghost" id="ab-cancel-attempt" style="width:100%">✕ Cancel attempt</button>
       </div>
-      <div class="ab-field">
-        <label class="label" for="ab-distance" style="display:block;margin-bottom:8px">Distance covered</label>
-        <input class="input input-mono" id="ab-distance" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
-      </div>
-      <div class="ab-field">
-        <label class="label" style="display:block;margin-bottom:8px">Proof photo (of the bike display)</label>
+
+      <!-- STAGE 3: review — capture the bike's reading + enter distance -->
+      <div id="ab-stage-review" class="hidden">
+        <p class="section-sub">Point the camera at the bike's display, then capture it.</p>
+        <div class="ab-video-wrap">
+          <video id="ab-video2" class="ab-video" autoplay playsinline muted></video>
+        </div>
         <div class="ab-photo-row">
-          <button type="button" class="btn-secondary ab-photo-btn" id="ab-photo-btn">📷 TAKE PICTURE</button>
+          <button type="button" class="btn-secondary ab-photo-btn" id="ab-capture-btn">📸 CAPTURE READING</button>
           <img class="ab-thumb" id="ab-thumb" alt="">
         </div>
-        <input type="file" accept="image/*" capture="environment" id="ab-photo-input" style="display:none">
+        <button type="button" class="btn-secondary hidden" id="ab-share-clip" style="width:100%;margin-bottom:8px">📤 SEND VIDEO TO ASH</button>
+        <a class="btn-ghost hidden" id="ab-download-clip" style="display:block;text-align:center;margin-bottom:8px">⬇ Save video clip to this phone instead</a>
+        <div class="note-box">
+          <strong>⚠️ Video isn't uploaded automatically</strong>
+          Save the clip and send it to Ash yourself — text, AirDrop, WhatsApp, whatever's easiest. Your name, duration, distance and the bike-reading photo below still log to Coach's sheet automatically the moment you hit submit, whether or not you send the video.
+        </div>
+        <div class="ab-field">
+          <label class="label" for="ab-distance" style="display:block;margin-bottom:8px">Distance covered (read it off the bike)</label>
+          <input class="input input-mono" id="ab-distance" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="0.00">
+        </div>
+        <button class="btn-primary" id="ab-submit" style="width:100%">SUBMIT RESULT ✓</button>
+        <button class="btn-ghost" id="ab-cancel-attempt2" style="width:100%;margin-top:8px">✕ Cancel attempt</button>
       </div>
-      <button class="btn-primary" id="ab-submit" style="width:100%">SUBMIT RESULT ✓</button>
     </div>
 
     <div class="card">
@@ -424,6 +454,7 @@ function locStr(p) {
   return g + ' · Week ' + p.week + ' · ' + (p.day === 'upper' ? 'Upper' : 'Lower') + ' body';
 }
 function goTo(id) {
+  if (id !== 'screen-airbike' && typeof abResetAttempt === 'function' && abStream) abResetAttempt();
   document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   if (id === 'screen-players') renderPlayers();
@@ -862,58 +893,167 @@ function stopPip() {
 }
 
 // ─── PHASE 4 — AIR BIKE CHALLENGE ─────────────────────────
+// Reads a distance field the same way whether the phone's keyboard gives
+// a period or a comma for "decimal" — some locales/keyboards only offer
+// one or the other, and the player shouldn't have to fight it.
+function abParseDecimal(v) { return parseFloat(String(v || '').replace(',', '.')); }
+
 var abPhotoDataUrl = '';
 var abLbRange = 'week';
 var abRows = null;
+var abStream = null, abRecorder = null, abChunks = [], abVideoUrl = '';
+var abTimerInterval = null, abDurationTarget = 30, abRemaining = 0;
 
 function renderAirbikeForm() {
   var sel = document.getElementById('ab-name');
   sel.innerHTML = Lions.rosterOptions(Lions.getPlayer(), { add: false });
-  abPhotoDataUrl = '';
-  document.getElementById('ab-thumb').classList.remove('show');
   document.getElementById('ab-duration').value = '';
-  document.getElementById('ab-distance').value = '';
-  document.getElementById('ab-photo-input').value = '';
+  abResetAttempt();
 }
 
-document.getElementById('ab-photo-btn').addEventListener('click', function () {
-  document.getElementById('ab-photo-input').click();
+/** Stop any camera/recording in progress and drop back to the setup stage. */
+function abResetAttempt() {
+  clearInterval(abTimerInterval);
+  if (abStream) { abStream.getTracks().forEach(function (t) { t.stop(); }); abStream = null; }
+  if (abRecorder && abRecorder.state !== 'inactive') { try { abRecorder.stop(); } catch (e) {} }
+  abRecorder = null; abChunks = [];
+  if (abVideoUrl) { URL.revokeObjectURL(abVideoUrl); abVideoUrl = ''; }
+  abPhotoDataUrl = '';
+  document.getElementById('ab-thumb').classList.remove('show');
+  document.getElementById('ab-distance').value = '';
+  var dl = document.getElementById('ab-download-clip');
+  dl.classList.add('hidden'); dl.removeAttribute('href');
+  var shareBtn = document.getElementById('ab-share-clip');
+  shareBtn.classList.add('hidden'); shareBtn.onclick = null;
+  document.getElementById('ab-stage-setup').classList.remove('hidden');
+  document.getElementById('ab-stage-recording').classList.add('hidden');
+  document.getElementById('ab-stage-review').classList.add('hidden');
+}
+
+function abMimeType() {
+  var cands = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+  for (var i = 0; i < cands.length; i++) if (MediaRecorder.isTypeSupported(cands[i])) return cands[i];
+  return '';
+}
+
+document.getElementById('ab-start-attempt').addEventListener('click', function () {
+  var name = document.getElementById('ab-name').value;
+  var duration = parseInt(document.getElementById('ab-duration').value, 10);
+  if (!name) { Lions.toast('Pick your name'); return; }
+  if (!(duration > 0)) { Lions.toast('Enter the duration Ash called out'); return; }
+  abDurationTarget = duration;
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true })
+    .then(function (stream) {
+      abStream = stream;
+      var video = document.getElementById('ab-video');
+      video.srcObject = stream;
+      document.getElementById('ab-stage-setup').classList.add('hidden');
+      document.getElementById('ab-stage-recording').classList.remove('hidden');
+      abStartRecording();
+    })
+    .catch(function () {
+      Lions.toast("Couldn't access the camera — check permissions and try again");
+    });
 });
 
-// Shrink the photo before it goes anywhere near the network — a raw
-// phone-camera photo is several MB, which is overkill for a proof shot
-// and slow to POST on gym wifi. A ~1000px-wide JPEG is plenty legible.
-document.getElementById('ab-photo-input').addEventListener('change', function () {
-  var file = this.files && this.files[0];
-  if (!file) return;
-  var img = new Image();
-  var reader = new FileReader();
-  reader.onload = function (e) {
-    img.onload = function () {
-      var maxW = 1000;
-      var scale = Math.min(1, maxW / img.width);
-      var canvas = document.createElement('canvas');
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      abPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      var thumb = document.getElementById('ab-thumb');
-      thumb.src = abPhotoDataUrl;
-      thumb.classList.add('show');
-    };
-    img.src = e.target.result;
+function abStartRecording() {
+  abChunks = [];
+  var mt = abMimeType();
+  try { abRecorder = mt ? new MediaRecorder(abStream, { mimeType: mt }) : new MediaRecorder(abStream); }
+  catch (e) { abRecorder = new MediaRecorder(abStream); }
+  abRecorder.ondataavailable = function (e) { if (e.data && e.data.size) abChunks.push(e.data); };
+  abRecorder.onstop = function () {
+    var mime = abRecorder.mimeType || 'video/webm';
+    var ext = mime.indexOf('mp4') > -1 ? 'mp4' : 'webm';
+    var blob = new Blob(abChunks, { type: mime });
+    var fileName = 'airbike-' + Date.now() + '.' + ext;
+
+    // The Sheet row (name/duration/distance/photo) is what actually needs
+    // to reach Coach — that still saves on submit no matter what happens
+    // here. The clip itself never touches our backend; it goes straight
+    // from the player's phone to Ash via the native share sheet (text/
+    // AirDrop/WhatsApp/etc.), same as the "send it to Ash directly" plan.
+    var shareBtn = document.getElementById('ab-share-clip');
+    var file = null;
+    try { file = new File([blob], fileName, { type: mime }); } catch (e) {}
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      shareBtn.classList.remove('hidden');
+      shareBtn.onclick = function () {
+        var name = document.getElementById('ab-name').value || 'Player';
+        navigator.share({
+          files: [file],
+          title: 'Air Bike attempt — ' + name,
+          text: name + '’s ' + abDurationTarget + 's air bike attempt'
+        }).catch(function () { /* cancelled — no error needed */ });
+      };
+    }
+
+    abVideoUrl = URL.createObjectURL(blob);
+    var dl = document.getElementById('ab-download-clip');
+    dl.href = abVideoUrl;
+    dl.download = fileName;
+    dl.classList.remove('hidden');
   };
-  reader.readAsDataURL(file);
+  abRecorder.start();
+
+  abRemaining = abDurationTarget;
+  abRenderTimer();
+  Lions.beep(660, 0.2);
+  abTimerInterval = setInterval(function () {
+    abRemaining--;
+    if (abRemaining <= 0) {
+      clearInterval(abTimerInterval);
+      abRemaining = 0;
+      abRenderTimer();
+      abStopRecording();
+      return;
+    }
+    if (abRemaining <= 3) Lions.tickBeep();
+    abRenderTimer();
+  }, 1000);
+}
+
+function abRenderTimer() {
+  document.getElementById('ab-timer-big').textContent = abRemaining;
+  var pct = Math.round((1 - abRemaining / abDurationTarget) * 100);
+  document.getElementById('ab-timer-bar').style.width = pct + '%';
+}
+
+function abStopRecording() {
+  Lions.doneBeep();
+  if (abRecorder && abRecorder.state !== 'inactive') abRecorder.stop();
+  document.getElementById('ab-stage-recording').classList.add('hidden');
+  document.getElementById('ab-stage-review').classList.remove('hidden');
+  // Same live stream, just re-attached to the review screen's <video> so
+  // the player can point it at the bike without the camera reopening.
+  var video2 = document.getElementById('ab-video2');
+  video2.srcObject = abStream;
+}
+
+document.getElementById('ab-capture-btn').addEventListener('click', function () {
+  var video = document.getElementById('ab-video2');
+  var canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  abPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+  var thumb = document.getElementById('ab-thumb');
+  thumb.src = abPhotoDataUrl;
+  thumb.classList.add('show');
+  Lions.toast('Got it — capture again if it\'s blurry');
 });
+
+document.getElementById('ab-cancel-attempt').addEventListener('click', abResetAttempt);
+document.getElementById('ab-cancel-attempt2').addEventListener('click', abResetAttempt);
 
 document.getElementById('ab-submit').addEventListener('click', function () {
   var name = document.getElementById('ab-name').value;
-  var duration = parseInt(document.getElementById('ab-duration').value, 10);
-  var distance = parseFloat(document.getElementById('ab-distance').value);
+  var distance = abParseDecimal(document.getElementById('ab-distance').value);
 
   if (!name) { Lions.toast('Pick your name'); return; }
-  if (!(duration > 0)) { Lions.toast('Enter the duration Ash called out'); return; }
+  if (!abPhotoDataUrl) { Lions.toast('Capture a picture of the bike display first'); return; }
   if (!(distance >= 0)) { Lions.toast('Enter your distance'); return; }
 
   if (Lions.isShutdown()) {
@@ -927,10 +1067,11 @@ document.getElementById('ab-submit').addEventListener('click', function () {
     date: Lions.stamp(),
     name: name,
     player: name,
-    duration: duration,
+    duration: abDurationTarget,
     distance: distance,
     photo: abPhotoDataUrl
   }, {
+    endpoint: Lions.AIRBIKE_ENDPOINT,
     title: 'Saving your result…',
     okTitle: 'Result logged',
     okMsg: 'Coach can see it. You can close the app now.',
@@ -951,10 +1092,10 @@ document.querySelectorAll('#ab-lb-tabs .chip').forEach(function (c) {
 function loadAirbikeLB() {
   var el = document.getElementById('ab-lb');
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-  fetch(Lions.ENDPOINT + '?action=airbike')
+  fetch(Lions.AIRBIKE_ENDPOINT + '?action=airbike')
     .then(function (r) { return r.json(); })
     .then(function (rows) { abRows = Array.isArray(rows) ? rows : []; renderAirbikeLB(); })
-    .catch(function () { el.innerHTML = '<div class="empty">Could not load the leaderboard.<br>Check the Apps Script is deployed.</div>'; });
+    .catch(function () { el.innerHTML = '<div class="empty">Could not load the leaderboard.<br>Check the Air Bike Apps Script is deployed.</div>'; });
 }
 
 function renderAirbikeLB() {

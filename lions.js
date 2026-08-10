@@ -8,10 +8,17 @@
   'use strict';
 
   // ── BACKEND ──────────────────────────────────────────────
-  // ONE Apps Script Web App for the whole app. Every page posts here
+  // ONE Apps Script Web App for most of the app. Every page posts here
   // with a `type` field; the script routes it to the right sheet tab.
   // See APPS-SCRIPT.gs for the code to paste into Google Apps Script.
   var ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWW_jOP8hthumnYI9nLbIMQmRqtHX5bCB07HC5wko2JfCvrFHaU5V4erxk1tXkR0gJ/exec';
+
+  // Air Bike Challenge (Phase 4) runs on its OWN Apps Script deployment,
+  // deliberately separate from ENDPOINT above — different code, own
+  // deploy, so nothing there can ever break the main script or vice
+  // versa. It writes into the same spreadsheet (SHEET_ID), just its own
+  // "airbike" tab. Paste the /exec URL from that deployment here.
+  var AIRBIKE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxixs_yVoXJwvUsw-X49KuEDhNaD2T_dHRuznVdBGZ3xpXyTJbr2ZixlafGdKGDyNAJ/exec';
 
   var SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';
 
@@ -470,10 +477,11 @@
   }
 
   // ── POSTING ──────────────────────────────────────────────
-  // Fire-and-forget to the shared endpoint. `mode:'no-cors'` means we
+  // Fire-and-forget to the shared endpoint (or a different one, e.g.
+  // AIRBIKE_ENDPOINT, if the caller passes it). `mode:'no-cors'` means we
   // never see the response, so treat a resolved promise as "sent".
-  function post(payload) {
-    return fetch(ENDPOINT, {
+  function post(payload, endpoint) {
+    return fetch(endpoint || ENDPOINT, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
@@ -543,7 +551,7 @@
     opts = opts || {};
     saving(opts.title || 'Saving…');
     var started = Date.now();
-    return post(payload)
+    return post(payload, opts.endpoint)
       .then(function () {
         // Hold the spinner briefly so it registers as a real save.
         var wait = Math.max(0, 600 - (Date.now() - started));
@@ -657,6 +665,7 @@
   // ── EXPORT ───────────────────────────────────────────────
   global.Lions = {
     ENDPOINT: ENDPOINT,
+    AIRBIKE_ENDPOINT: AIRBIKE_ENDPOINT,
     SHEET_ID: SHEET_ID,
     BASE_ROSTER: BASE_ROSTER,
     ADD_VALUE: ADD_VALUE,
