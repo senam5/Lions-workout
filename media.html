@@ -262,6 +262,7 @@
         <div class="row" style="margin-top:10px;">
           <button class="btn" id="copyBtnRotate">Copy Script</button>
           <button class="btn" id="downloadBtnRotate">Download .ps1</button>
+          <button class="btn gold" id="downloadBatRotate">Download Launcher (.bat) — double-click this</button>
         </div>
       </div>
     </section>
@@ -286,6 +287,7 @@
         <div class="row" style="margin-top:10px;">
           <button class="btn" id="copyBtnMerge">Copy Script</button>
           <button class="btn" id="downloadBtnMerge">Download .ps1</button>
+          <button class="btn gold" id="downloadBatMerge">Download Launcher (.bat) — double-click this</button>
         </div>
         <p class="hint">This scans the parent folder itself, so it doesn't matter how many rounds there were — 2 or 12, it finds them all. Output lands in a new <code>Merged_Final</code> folder — point Review at that folder next.</p>
       </div>
@@ -367,6 +369,7 @@
           <div class="row" style="margin-top:10px;">
             <button class="btn" id="copyBtnSort">Copy Script</button>
             <button class="btn" id="downloadBtnSort">Download .ps1</button>
+            <button class="btn gold" id="downloadBatSort">Download Launcher (.bat) — double-click this</button>
           </div>
         </div>
       </div>
@@ -1368,6 +1371,19 @@ function downloadText(text, filename) {
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
+/* Downloads a companion .bat launcher. Save it in the SAME folder as the .ps1
+   it's named after, then just double-click the .bat — no PowerShell window,
+   no typing commands, no execution-policy prompt. %~dp0 resolves to wherever
+   the .bat itself lives, so this works regardless of which folder you drop
+   the pair into. */
+function downloadBatLauncher(ps1Filename) {
+  const batName = ps1Filename.replace(/\.ps1$/, ".bat");
+  const bat = `@echo off\r\ncd /d "%~dp0"\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0${ps1Filename}"\r\necho.\r\necho Window will stay open - close it manually when you're done reading.\r\npause >nul\r\n`;
+  const url = URL.createObjectURL(new Blob([bat], { type: "text/plain" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = batName; a.click();
+  URL.revokeObjectURL(url);
+}
 /* Backtick MUST be escaped first — otherwise the backticks this function
    inserts to escape " and $ would themselves get double-escaped by the next
    .replace() call. $ has to be escaped too: inside a PowerShell double-quoted
@@ -1752,6 +1768,7 @@ $("copyBtnRotate").addEventListener("click", () => {
   navigator.clipboard.writeText($("scriptOutputRotate").value).then(() => alert("Copied."));
 });
 $("downloadBtnRotate").addEventListener("click", () => downloadText($("scriptOutputRotate").value, "rotate-clips.ps1"));
+$("downloadBatRotate").addEventListener("click", () => downloadBatLauncher("rotate-clips.ps1"));
 
 /* ---------- TAB 2: REVIEW ----------
    Conveyor belt: one clip on screen at a time. Keep (optionally renamed first)
@@ -2059,6 +2076,7 @@ $("copyBtnSort").addEventListener("click", () => {
   navigator.clipboard.writeText($("scriptOutputSort").value).then(() => alert("Copied."));
 });
 $("downloadBtnSort").addEventListener("click", () => downloadText($("scriptOutputSort").value, "sort-clips.ps1"));
+$("downloadBatSort").addEventListener("click", () => downloadBatLauncher("sort-clips.ps1"));
 
 /* ---------- MERGE ROUNDS (before Sort) ---------- */
 $("generateMergeBtn").addEventListener("click", () => {
@@ -2114,6 +2132,7 @@ $("copyBtnMerge").addEventListener("click", () => {
   navigator.clipboard.writeText($("scriptOutputMerge").value).then(() => alert("Copied."));
 });
 $("downloadBtnMerge").addEventListener("click", () => downloadText($("scriptOutputMerge").value, "merge-rounds.ps1"));
+$("downloadBatMerge").addEventListener("click", () => downloadBatLauncher("merge-rounds.ps1"));
 
 /* ===================================================================
    TAB 4: CLEAN UP — deliberately dumb and standalone.
