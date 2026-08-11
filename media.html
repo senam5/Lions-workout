@@ -194,13 +194,14 @@
       <div class="d">Drop your done folder, it uploads itself</div>
     </div>
   </div>
-  <p class="hint" style="margin-top:-12px; margin-bottom:22px;">Tabs run in the order your footage moves — rotate the card dump, review one clip at a time to rename and cut the junk, sort into subfolders, watermark and send, then clean up when you're done with a clip. Each tab still works on its own, so jump straight to any of them. For a clip that only needs the logo, set speed to <strong style="color:var(--paper);">Normal</strong> in tab 4 and send it out as-is.</p>
+  <p class="hint" style="margin-top:-12px; margin-bottom:22px;">Tabs run in the order your footage moves — rotate the card dump, merge multiple rounds and review one clip at a time to rename and cut the junk, sort into subfolders, watermark and send, then clean up when you're done with a clip. Each tab still works on its own, so jump straight to any of them. For a clip that only needs the logo, set speed to <strong style="color:var(--paper);">Normal</strong> in tab 4 and send it out as-is.</p>
 
   <!-- ============ TAB 1: ROTATE ============ -->
   <div class="tabpanel" id="panel-rotate">
     <section class="panel">
       <h2>Rotate Raw Clips</h2>
       <p class="hint" style="margin-top:0;">This one generates a PowerShell + ffmpeg script rather than doing the work in-browser — re-encoding a full card dump is far faster natively. Add the clips to read their names, then run the script in the folder.</p>
+      <p class="hint" style="margin-top:0; color:var(--gold);">Run it as a saved <code>.ps1</code> file (Download button below, then double-click or <code>.\rotate-clips.ps1</code>) — don't paste the script into a live PowerShell window. Pasting a long script can get cut off by a lost window focus, sleep, or a dropped keystroke. As a real script it runs start-to-finish as one process, and if it does get interrupted for any reason, just run the exact same file again — it writes to one fixed folder and skips any clip already finished, so nothing gets re-done and no extra folders pile up to merge later.</p>
 
       <div class="field" style="margin-top:14px;">
         <label>Folder path (where the raw clips live)</label>
@@ -269,6 +270,28 @@
   <!-- ============ TAB 2: REVIEW ============ -->
   <div class="tabpanel" id="panel-review">
     <section class="panel">
+      <h2>Merge Multiple Rounds First</h2>
+      <p class="hint" style="margin-top:0;">If you rotated/compressed clips in more than one batch (a game shot in rounds, footage handled in separate sessions), merge every <code>Rotated_*</code>/<code>Compressed_*</code> output folder into one before reviewing. Filename collisions are renamed with a <code>_dup</code> suffix — nothing is ever overwritten or lost, and any duplicates will show up during Review below so you can weed them out in the same pass.</p>
+
+      <div class="field" style="margin-top:14px;">
+        <label>Parent folder (the one containing your Rotated_*/Compressed_* folders)</label>
+        <input type="text" id="mergeParentPath" placeholder="C:\Users\senam.gbekou\Desktop\Lions vs Garneau">
+      </div>
+
+      <button class="btn gold" id="generateMergeBtn">Generate Merge Script</button>
+
+      <div id="outputMerge" style="display:none; margin-top:18px;">
+        <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray); margin-bottom:8px; font-weight:600;">Generated script</label>
+        <textarea id="scriptOutputMerge" readonly></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="copyBtnMerge">Copy Script</button>
+          <button class="btn" id="downloadBtnMerge">Download .ps1</button>
+        </div>
+        <p class="hint">This scans the parent folder itself, so it doesn't matter how many rounds there were — 2 or 12, it finds them all. Output lands in a new <code>Merged_Final</code> folder — point Review at that folder next.</p>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>Review One Clip at a Time</h2>
       <p class="hint" style="margin-top:0;">Choose the folder you just rotated. Each clip loads up on its own — rename it, then Keep (moves on to Sort) or Discard (moved into <code>_Discarded</code>, not deleted — you can undo before you leave this folder).</p>
 
@@ -305,28 +328,6 @@
 
   <!-- ============ TAB 3: SORT ============ -->
   <div class="tabpanel" id="panel-sort">
-    <section class="panel">
-      <h2>Merge Multiple Rounds First</h2>
-      <p class="hint" style="margin-top:0;">If you rotated/compressed clips in more than one batch (a game shot in rounds, footage handled in separate sessions), merge every <code>Rotated_*</code>/<code>Compressed_*</code> output folder into one before sorting. Filename collisions are renamed with a <code>_dup</code> suffix — nothing is ever overwritten or lost.</p>
-
-      <div class="field" style="margin-top:14px;">
-        <label>Parent folder (the one containing your Rotated_*/Compressed_* folders)</label>
-        <input type="text" id="mergeParentPath" placeholder="C:\Users\senam.gbekou\Desktop\Lions vs Garneau">
-      </div>
-
-      <button class="btn gold" id="generateMergeBtn">Generate Merge Script</button>
-
-      <div id="outputMerge" style="display:none; margin-top:18px;">
-        <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray); margin-bottom:8px; font-weight:600;">Generated script</label>
-        <textarea id="scriptOutputMerge" readonly></textarea>
-        <div class="row" style="margin-top:10px;">
-          <button class="btn" id="copyBtnMerge">Copy Script</button>
-          <button class="btn" id="downloadBtnMerge">Download .ps1</button>
-        </div>
-        <p class="hint">This scans the parent folder itself, so it doesn't matter how many rounds there were — 2 or 12, it finds them all. Output lands in a new <code>Merged_Final</code> folder, ready to run through Sort below.</p>
-      </div>
-    </section>
-
     <section class="panel">
       <h2>Sort Into Subfolders</h2>
       <p class="hint" style="margin-top:0;">Groups clips into <code>&lt;first word&gt;</code> subfolders, in place or into another folder. Run it after you've renamed and weeded out what you don't want. Delivery to Drive is handled in tab 6 — this step just organises.</p>
@@ -1703,35 +1704,47 @@ $("generateRotateBtn").addEventListener("click", () => {
   const folderLabel = compressOnly ? "Compressed" : "Rotated";
 
   let s = `# Generated by Lions Media Toolkit - ${compressOnly ? "Compress" : "Rotate"}\n`;
+  s += `# Resumable: uses one fixed output folder, skips clips already done.\n`;
+  s += `# If this run gets interrupted (crash, closed window, sleep), just run this same\n`;
+  s += `# script again - it picks up exactly where it left off. No new folders, no merging needed.\n\n`;
   s += `$folder = "${psQuote(folder)}"\n`;
-  s += `if (-not (Test-Path $folder)) { Write-Host "Folder not found: $folder" -ForegroundColor Red; exit 1 }\n`;
-  s += `if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { Write-Host "ffmpeg not found in PATH." -ForegroundColor Red; exit 1 }\n`;
-  s += `$stamp = Get-Date -Format "yyyyMMdd_HHmm"\n`;
-  s += `$rotatedFolder = Join-Path $folder "${folderLabel}_$stamp"\n`;
-  s += `New-Item -ItemType Directory -Path $rotatedFolder | Out-Null\n`;
+  s += `if (-not (Test-Path $folder)) { Write-Host "Folder not found: $folder" -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n`;
+  s += `if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { Write-Host "ffmpeg not found in PATH." -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n`;
+  s += `$rotatedFolder = Join-Path $folder "${folderLabel}"\n`;
+  s += `if (-not (Test-Path $rotatedFolder)) { New-Item -ItemType Directory -Path $rotatedFolder | Out-Null }\n`;
   if (archive) {
     s += `$archiveFolder = Join-Path $folder "_Originals"\n`;
     s += `if (-not (Test-Path $archiveFolder)) { New-Item -ItemType Directory -Path $archiveFolder | Out-Null }\n`;
   }
-  s += `$okCount = 0; $failCount = 0\n\n`;
+  s += `$okCount = 0; $failCount = 0; $skipCount = 0\n\n`;
   rotateClips.forEach(clip => {
     const n = psQuote(clip.name);
     s += `$in = Join-Path $folder "${n}"\n$out = Join-Path $rotatedFolder "${n}"\n`;
+    s += `if ((Test-Path $out) -and (Get-Item $out).Length -gt 0) {\n`;
+    s += `  $skipCount++\n  Write-Host "SKIP (already done): ${n}" -ForegroundColor Cyan\n`;
+    if (archive) {
+      s += `  if (Test-Path $in) { Move-Item -Path $in -Destination (Join-Path $archiveFolder "${n}") -Force -ErrorAction SilentlyContinue }\n`;
+    }
+    s += `} elseif (-not (Test-Path $in)) {\n`;
+    s += `  Write-Host "SKIP (source missing, likely already archived from a prior run): ${n}" -ForegroundColor DarkGray\n`;
+    s += `} else {\n`;
     if (compressOnly) {
-      s += `ffmpeg -y -i "$in" ${codec} -c:a copy "$out" -hide_banner -loglevel error\n`;
+      s += `  ffmpeg -y -i "$in" ${codec} -c:a copy "$out" -hide_banner -loglevel error\n`;
     } else {
       s += mode === "fast"
-        ? `ffmpeg -y -i "$in" -c copy -metadata:s:v:0 rotate=${tag} -movflags use_metadata_tags "$out" -hide_banner -loglevel error\n`
-        : `ffmpeg -y -i "$in" -vf "${transpose}" ${codec} -c:a copy "$out" -hide_banner -loglevel error\n`;
+        ? `  ffmpeg -y -i "$in" -c copy -metadata:s:v:0 rotate=${tag} -movflags use_metadata_tags "$out" -hide_banner -loglevel error\n`
+        : `  ffmpeg -y -i "$in" -vf "${transpose}" ${codec} -c:a copy "$out" -hide_banner -loglevel error\n`;
     }
-    s += `if ($LASTEXITCODE -eq 0 -and (Test-Path $out) -and (Get-Item $out).Length -gt 0) {\n  $okCount++\n  Write-Host "OK: ${n}" -ForegroundColor Green\n`;
+    s += `  if ($LASTEXITCODE -eq 0 -and (Test-Path $out) -and (Get-Item $out).Length -gt 0) {\n    $okCount++\n    Write-Host "OK: ${n}" -ForegroundColor Green\n`;
     if (archive) {
-      s += `  Move-Item -Path $in -Destination (Join-Path $archiveFolder "${n}") -Force -ErrorAction SilentlyContinue\n`;
-      s += `  if (-not $?) { Write-Host "  (rotated OK, but couldn't archive the original: ${n})" -ForegroundColor Yellow }\n`;
+      s += `    Move-Item -Path $in -Destination (Join-Path $archiveFolder "${n}") -Force -ErrorAction SilentlyContinue\n`;
+      s += `    if (-not $?) { Write-Host "  (rotated OK, but couldn't archive the original: ${n})" -ForegroundColor Yellow }\n`;
     }
-    s += `} else {\n  $failCount++\n  Write-Host "FAILED: ${n} (original untouched)" -ForegroundColor Red\n}\n\n`;
+    s += `  } else {\n    $failCount++\n    Write-Host "FAILED: ${n} (original untouched)" -ForegroundColor Red\n    if (Test-Path $out) { Remove-Item $out -Force -ErrorAction SilentlyContinue }\n  }\n`;
+    s += `}\n\n`;
   });
-  s += `Write-Host "Done. $okCount ${compressOnly ? "compressed" : "rotated"}, $failCount failed. Output: $rotatedFolder"\n`;
+  s += `Write-Host "Done. $okCount ${compressOnly ? "compressed" : "rotated"}, $skipCount already done, $failCount failed. Output: $rotatedFolder"\n`;
+  s += `Read-Host "Press Enter to close"\n`;
   $("scriptOutputRotate").value = s;
   $("outputRotate").style.display = "block";
 });
@@ -2016,7 +2029,7 @@ $("generateSortBtn").addEventListener("click", () => {
   if (!sortFallbackClips.length) { alert("Add at least one clip first."); return; }
   let s = "# Generated by Lions Media Toolkit - Sort\n";
   s += `$sourceFolder = "${psQuote(src)}"\n$destFolder = "${psQuote(dest)}"\n`;
-  s += `if (-not (Test-Path $sourceFolder)) { Write-Host "Source folder not found: $sourceFolder" -ForegroundColor Red; exit 1 }\n`;
+  s += `if (-not (Test-Path $sourceFolder)) { Write-Host "Source folder not found: $sourceFolder" -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n`;
   s += `if (-not (Test-Path $destFolder)) { New-Item -ItemType Directory -Path $destFolder | Out-Null }\n$okCount = 0; $failCount = 0\n\n`;
   sortFallbackClips.forEach(clip => {
     const n = psQuote(clip.name), g = psQuote(clip.group || "Misc");
@@ -2038,6 +2051,7 @@ $("generateSortBtn").addEventListener("click", () => {
     s += `}\n\n`;
   });
   s += `Write-Host "Done. $okCount sorted, $failCount failed. Output: $destFolder"\n`;
+  s += `Read-Host "Press Enter to close"\n`;
   $("scriptOutputSort").value = s;
   $("outputSort").style.display = "block";
 });
@@ -2056,11 +2070,11 @@ $("generateMergeBtn").addEventListener("click", () => {
   s += "# Combines every Rotated_*/Compressed_* output folder into one.\n";
   s += "# Never overwrites - filename collisions get renamed with _dup1, _dup2, etc.\n\n";
   s += `$parentFolder = "${p}"\n`;
-  s += `if (-not (Test-Path $parentFolder)) { Write-Host "Folder not found: $parentFolder" -ForegroundColor Red; exit 1 }\n\n`;
+  s += `if (-not (Test-Path $parentFolder)) { Write-Host "Folder not found: $parentFolder" -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n\n`;
   s += `$destFolder = Join-Path $parentFolder "Merged_Final"\n`;
   s += `if (-not (Test-Path $destFolder)) { New-Item -ItemType Directory -Path $destFolder | Out-Null }\n\n`;
-  s += `$sourceFolders = Get-ChildItem -Path $parentFolder -Directory | Where-Object { $_.Name -match "^(Rotated|Compressed)_" -and $_.FullName -ne $destFolder } | Select-Object -ExpandProperty FullName\n\n`;
-  s += `if ($sourceFolders.Count -eq 0) { Write-Host "No Rotated_* or Compressed_* folders found in $parentFolder" -ForegroundColor Red; exit 1 }\n\n`;
+  s += `$sourceFolders = Get-ChildItem -Path $parentFolder -Directory | Where-Object { $_.Name -match "^(Rotated|Compressed)(_.*)?$" -and $_.FullName -ne $destFolder } | Select-Object -ExpandProperty FullName\n\n`;
+  s += `if ($sourceFolders.Count -eq 0) { Write-Host "No Rotated_* or Compressed_* folders found in $parentFolder" -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n\n`;
   s += `Write-Host "Found $($sourceFolders.Count) round(s) to merge:" -ForegroundColor Cyan\n`;
   s += `$sourceFolders | ForEach-Object { Write-Host "  - $_" }\n`;
   s += `Write-Host ""\n\n`;
@@ -2091,6 +2105,7 @@ $("generateMergeBtn").addEventListener("click", () => {
   s += `  $log | Out-File -FilePath $logPath -Encoding utf8\n`;
   s += `  Write-Host "Full collision log saved to: $logPath"\n`;
   s += `}\n`;
+  s += `Read-Host "Press Enter to close"\n`;
 
   $("scriptOutputMerge").value = s;
   $("outputMerge").style.display = "block";
