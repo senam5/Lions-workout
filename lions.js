@@ -20,6 +20,13 @@
   // "airbike" tab. Paste the /exec URL from that deployment here.
   var AIRBIKE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxixs_yVoXJwvUsw-X49KuEDhNaD2T_dHRuznVdBGZ3xpXyTJbr2ZixlafGdKGDyNAJ/exec';
 
+  // Sponsors & Ideas (Command Center + sponsor inquiry form) run on their
+  // OWN standalone Apps Script deployment too, same reasoning as
+  // AIRBIKE_ENDPOINT above — isolated from the main script, same
+  // spreadsheet. See APPS-SCRIPT-SPONSORS.gs. Paste the /exec URL from
+  // that deployment here once it's set up.
+  var SPONSORS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw8lyjWPV2PZYNGLySl9G8WFhVvn0fMnjEKuT_6kQ0dUL7Pq7wBDuVNdM1GoJB8JuwO/exec';
+
   var SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';
 
   // ── ROSTER ───────────────────────────────────────────────
@@ -666,6 +673,7 @@
   global.Lions = {
     ENDPOINT: ENDPOINT,
     AIRBIKE_ENDPOINT: AIRBIKE_ENDPOINT,
+    SPONSORS_ENDPOINT: SPONSORS_ENDPOINT,
     SHEET_ID: SHEET_ID,
     BASE_ROSTER: BASE_ROSTER,
     ADD_VALUE: ADD_VALUE,

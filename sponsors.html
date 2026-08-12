@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions · Sponsor the Program</title>
+<meta name="description" content="Advertise on the Lions basketball program — warmup patches, video placement, and community reach. 100% of sponsorship money goes to coaches and players.">
+<link rel="stylesheet" href="lions.css">
+<style>
+  body { display: flex; flex-direction: column; min-height: 100vh; background: var(--navy); }
+  .hero-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(204,34,41,0.08) 0%, transparent 70%); pointer-events: none; }
+
+  /* ── HERO ── */
+  .hero { padding: 40px 20px 32px; max-width: 640px; margin: 0 auto; width: 100%; position: relative; }
+  .top-badge { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .shield { width: 34px; height: 34px; background: var(--lion); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); flex-shrink: 0; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(38px, 9vw, 58px); line-height: 0.95; letter-spacing: 1px; margin-bottom: 14px; }
+  .hero h1 span { color: var(--lion); }
+  .hero-sub { font-size: 14px; color: var(--white); line-height: 1.7; max-width: 480px; margin-bottom: 10px; }
+  .hero-note { font-size: 12px; color: var(--grey); line-height: 1.6; max-width: 480px; margin-bottom: 24px; }
+  .hero-note strong { color: var(--gold); }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+
+  .reel-box {
+    background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius);
+    aspect-ratio: 16/9; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; margin-bottom: 8px;
+  }
+  .reel-box .icon { font-size: 34px; margin-bottom: 10px; opacity: 0.6; }
+  .reel-box .label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; text-transform: uppercase; }
+
+  #reel-embed { display: flex; justify-content: center; margin-bottom: 8px; }
+  #reel-embed iframe, #reel-embed .instagram-media { margin: 0 auto !important; max-width: 100% !important; }
+
+  /* ── SECTION SHELL ── */
+  .section { max-width: 640px; margin: 0 auto; width: 100%; padding: 28px 20px; }
+  .section-eyebrow { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--lion); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .section h2 { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; line-height: 1; margin-bottom: 10px; }
+  .section-desc { font-size: 13px; color: var(--grey); line-height: 1.7; margin-bottom: 22px; max-width: 480px; }
+
+  /* ── TIERS ── */
+  .tier-grid { display: flex; flex-direction: column; gap: 12px; }
+  .tier-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; display: flex; gap: 16px; align-items: flex-start; }
+  .tier-icon { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; }
+  .tier-body { flex: 1; min-width: 0; }
+  .tier-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .tier-name { font-size: 15px; font-weight: 700; }
+  .tier-price { font-family: 'Space Mono', monospace; font-size: 13px; }
+  .tier-desc { font-size: 12px; color: var(--grey); line-height: 1.6; }
+
+  /* Placeholder styling — never let this read as a real number */
+  .placeholder {
+    display: inline-block; font-family: 'Space Mono', monospace; font-size: 11px;
+    color: var(--gold); background: rgba(240,165,0,0.12); border: 1px dashed var(--gold);
+    border-radius: 6px; padding: 2px 8px; letter-spacing: 0.5px; white-space: nowrap;
+  }
+
+  /* ── STATS ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 14px; text-align: center; }
+  .stat-pending { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--gold); letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-label { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* ── FORM ── */
+  .form-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 20px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; margin-bottom: 6px; }
+  textarea.input { min-height: 96px; resize: vertical; font-family: 'Inter', sans-serif; font-size: 14px; }
+  .form-note { font-size: 11px; color: var(--grey2); line-height: 1.6; margin-top: 12px; }
+  .form-status { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; margin-top: 12px; min-height: 14px; text-align: center; }
+
+  footer { padding: 24px 20px; text-align: center; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; text-transform: uppercase; border-top: 1px solid var(--line); position: relative; }
+  footer a { color: var(--grey); text-decoration: none; border-bottom: 1px dotted var(--line); }
+  footer a:hover { color: var(--lion); }
+  .accent-bar { height: 3px; background: linear-gradient(90deg, var(--lion), transparent); width: 100%; }
+
+  @media (max-width: 420px) { .stat-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="accent-bar"></div>
+<div class="hero-bg"></div>
+
+<!-- HERO -->
+<main class="hero">
+  <div class="top-badge">
+    <div class="shield"></div>
+    <div class="eyebrow">St. Lawrence · Lions Basketball</div>
+  </div>
+  <h1>ADVERTISE ON<br><span>THE LIONS.</span></h1>
+  <p class="hero-sub">
+    The Lions are a competitive RSEQ basketball program at St. Lawrence — practices, games, weight room, and
+    a growing video presence built around the team. We're opening a limited number of sponsor spots for
+    local businesses who want their name in front of our players, families, and community all season.
+  </p>
+  <p class="hero-note"><strong>This is advertising, not a donation.</strong> You're buying visibility — a patch, a mention, a placement — the same way you would with any other ad buy. 100% of sponsorship revenue goes straight back into the program: coaching and player development. No other use.</p>
+
+  <div class="reel-box" id="reel-box">
+    <div class="icon">🎬</div>
+    <div class="label">Highlight reel — embed goes here</div>
+  </div>
+  <div id="reel-embed" class="hidden"></div>
+
+  <div class="hero-cta">
+    <a href="#contact" class="btn-primary" style="flex:0 0 auto;padding:14px 26px">BECOME A SPONSOR →</a>
+    <a href="#tiers" class="btn-secondary">SEE PLACEMENTS</a>
+  </div>
+</main>
+
+<!-- WHY IT WORKS -->
+<section class="section">
+  <div class="section-eyebrow">Why the Lions</div>
+  <h2>Real visibility, not a banner nobody sees.</h2>
+  <p class="section-desc">
+    RSEQ restricts commercial branding on the game jersey itself — so sponsor placement lives on the warmups
+    and warmup pants instead. That's program-owned gear our players are required to wear, at every practice
+    and every game, with no RSEQ conflict. On top of that, your brand shows up in the video content the
+    program already produces — reels, highlights, game recaps — and in front of the players, coaches, and
+    families who follow the team.
+  </p>
+</section>
+
+<!-- TIERS -->
+<section class="section" id="tiers">
+  <div class="section-eyebrow">Sponsor Inventory</div>
+  <h2>Placements &amp; Pricing</h2>
+  <p class="section-desc">Pricing below is placeholder — final numbers aren't set yet. Every price shown is a stand-in, not a quote.</p>
+
+  <div class="tier-grid">
+    <div class="tier-card">
+      <div class="tier-icon">🦺</div>
+      <div class="tier-body">
+        <div class="tier-top">
+          <div class="tier-name">Warmup / Pants Patch</div>
+          <span class="placeholder">$XXX / season</span>
+        </div>
+        <div class="tier-desc">Your logo on the warmup shirt and/or warmup pants — program-owned gear worn by every player at every practice and game.</div>
+      </div>
+    </div>
+
+    <div class="tier-card">
+      <div class="tier-icon">🎥</div>
+      <div class="tier-body">
+        <div class="tier-top">
+          <div class="tier-name">Logo in Video Content</div>
+          <span class="placeholder">$XXX / season</span>
+        </div>
+        <div class="tier-desc">Brand placement in the reels and highlight videos the media team already produces — intro/outro card, on-screen bug, or a dedicated mention.</div>
+      </div>
+    </div>
+
+    <div class="tier-card">
+      <div class="tier-icon">🤝</div>
+      <div class="tier-body">
+        <div class="tier-top">
+          <div class="tier-name">Player Appearance</div>
+          <span class="placeholder">[TBD]</span>
+        </div>
+        <div class="tier-desc">Players appear at your restaurant or location for a scheduled meet-and-greet, signing, or promo event.</div>
+      </div>
+    </div>
+
+    <div class="tier-card">
+      <div class="tier-icon">📣</div>
+      <div class="tier-body">
+        <div class="tier-top">
+          <div class="tier-name">PR / Social Shoutout</div>
+          <span class="placeholder">$XXX</span>
+        </div>
+        <div class="tier-desc">A dedicated social post or story thanking your business, plus a mention in program communications to players and families.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="section">
+  <div class="section-eyebrow">The Numbers</div>
+  <h2>Reach &amp; Record</h2>
+  <p class="section-desc">Real, verified numbers go here before this page ever reaches a sponsor. Nothing below is a claim yet.</p>
+
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-pending">[PENDING]</div><div class="stat-label">Social reach</div></div>
+    <div class="stat-card"><div class="stat-pending">[PENDING]</div><div class="stat-label">Roster size</div></div>
+    <div class="stat-card"><div class="stat-pending">[PENDING]</div><div class="stat-label">Season record</div></div>
+    <div class="stat-card"><div class="stat-pending">[PENDING]</div><div class="stat-label">Games / season</div></div>
+    <div class="stat-card"><div class="stat-pending">[PENDING]</div><div class="stat-label">Video views</div></div>
+    <div class="stat-card"><div class="stat-pending">[PENDING]</div><div class="stat-label">Families reached</div></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="section" id="contact">
+  <div class="section-eyebrow">Get In Touch</div>
+  <h2>Become a Sponsor</h2>
+  <p class="section-desc">Tell us a bit about your business and what you're interested in. We'll follow up to talk placements and pricing.</p>
+
+  <div class="form-card">
+    <form id="sponsor-form">
+      <div class="field">
+        <label class="label" for="s-business">Business name</label>
+        <input class="input" id="s-business" type="text" required maxlength="80" placeholder="e.g. Ascenseurs Maxi">
+      </div>
+      <div class="field">
+        <label class="label" for="s-contact">Contact name</label>
+        <input class="input" id="s-contact" type="text" required maxlength="80" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label class="label" for="s-email">Email</label>
+        <input class="input" id="s-email" type="email" required maxlength="120" placeholder="you@business.com">
+      </div>
+      <div class="field">
+        <label class="label" for="s-phone">Phone (optional)</label>
+        <input class="input" id="s-phone" type="tel" maxlength="30" placeholder="(514) 555-0100">
+      </div>
+      <div class="field">
+        <label class="label" for="s-interest">What are you interested in?</label>
+        <textarea class="input" id="s-interest" maxlength="500" placeholder="e.g. warmup patch, video placement, player appearance..."></textarea>
+      </div>
+      <button class="btn-primary" type="submit" style="width:100%" id="s-submit">SEND INQUIRY →</button>
+      <div class="form-status" id="s-status"></div>
+      <p class="form-note">This goes straight to the coaching staff — no middleman, no obligation. We'll reach out to talk next steps.</p>
+    </form>
+  </div>
+</section>
+
+<footer>Lions Program · St. Lawrence · 2026 · <a href="index.html">Home</a></footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="lions.js"></script>
+<script>
+'use strict';
+
+// ── HIGHLIGHT REEL ────────────────────────────────────────
+// Drop the Instagram post/reel URL in here once it's posted — the page
+// switches from the placeholder to the real embed automatically.
+// e.g. 'https://www.instagram.com/reel/C1a2B3cDeFg/'
+var IG_POST_URL = '';
+
+if (IG_POST_URL) {
+  document.getElementById('reel-box').classList.add('hidden');
+  var wrap = document.getElementById('reel-embed');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = '<blockquote class="instagram-media" data-instgrm-permalink="' + IG_POST_URL + '" data-instgrm-version="14" style="max-width:400px;width:100%"></blockquote>';
+  var s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.instagram.com/embed.js';
+  document.body.appendChild(s);
+}
+
+document.getElementById('sponsor-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('s-submit');
+  var status = document.getElementById('s-status');
+
+  var payload = {
+    type: 'sponsorInquiry',
+    business: document.getElementById('s-business').value.trim(),
+    contact: document.getElementById('s-contact').value.trim(),
+    email: document.getElementById('s-email').value.trim(),
+    phone: document.getElementById('s-phone').value.trim(),
+    interest: document.getElementById('s-interest').value.trim(),
+    date: Lions.stamp()
+  };
+  if (!payload.business || !payload.contact || !payload.email) return;
+
+  btn.disabled = true;
+  status.style.color = 'var(--grey)';
+  status.textContent = 'SENDING…';
+
+  Lions.post(payload, Lions.SPONSORS_ENDPOINT)
+    .then(function () {
+      status.style.color = 'var(--green)';
+      status.textContent = 'SENT — WE\'LL BE IN TOUCH';
+      document.getElementById('sponsor-form').reset();
+      btn.disabled = false;
+    })
+    .catch(function () {
+      status.style.color = 'var(--lion)';
+      status.textContent = 'COULD NOT SEND — TRY AGAIN OR EMAIL DIRECTLY';
+      btn.disabled = false;
+    });
+});
+</script>
+</body>
+</html>
