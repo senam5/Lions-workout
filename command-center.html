@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions · Command Center</title>
+<link rel="stylesheet" href="lions.css">
+<style>
+  /* ── LOCK (same pattern as leaderboard.html) ── */
+  #lock {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 32px 24px;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(204,34,41,0.08) 0%, transparent 70%);
+  }
+  .lock-icon { font-size: 48px; margin-bottom: 16px; }
+  .lock-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 1px; margin-bottom: 4px; }
+  .lock-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 2px; margin-bottom: 32px; }
+  .lock-input {
+    width: 100%; max-width: 320px; background: var(--surface); border: 2px solid var(--line);
+    border-radius: 10px; padding: 16px 18px; color: var(--white);
+    font-family: 'Space Mono', monospace; font-size: 18px; letter-spacing: 4px;
+    text-align: center; outline: none; margin-bottom: 12px; transition: border-color 0.15s;
+  }
+  .lock-input:focus { border-color: var(--lion); }
+  .lock-input.error { border-color: var(--lion); animation: shake 0.3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .lock-error { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--lion); letter-spacing: 1px; margin-top: 10px; min-height: 16px; }
+
+  #dashboard { display: none; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 57px; z-index: 19; }
+  .tab {
+    flex: 1; padding: 12px 6px; text-align: center;
+    font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    color: var(--grey); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s; text-transform: uppercase; background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .tab.active { color: var(--white); border-bottom-color: var(--lion); }
+
+  /* Ideas */
+  .idea-card { border-left: 3px solid var(--line); }
+  .idea-card.status-raw            { border-left-color: var(--grey2); }
+  .idea-card.status-worth-exploring{ border-left-color: var(--gold); }
+  .idea-card.status-in-progress    { border-left-color: var(--blue); }
+  .idea-card.status-validated      { border-left-color: var(--green); }
+  .idea-card.status-dead           { border-left-color: var(--lion); }
+  .idea-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .idea-name { font-size: 14px; font-weight: 600; }
+  .idea-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .idea-notes { font-size: 12px; color: var(--grey); line-height: 1.6; }
+  .idea-date { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey2); white-space: nowrap; }
+
+  .cat-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  /* Sponsors */
+  .sponsor-card { }
+  .sponsor-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .sponsor-name { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.5px; }
+  .sponsor-contact { font-size: 12px; color: var(--white); margin-bottom: 2px; }
+  .sponsor-line { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); margin-bottom: 2px; }
+  .sponsor-line a { color: var(--grey); }
+  .sponsor-why { font-size: 12px; color: var(--grey); line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock">
+  <div class="lock-icon">🔒</div>
+  <div class="lock-title">COMMAND CENTER</div>
+  <div class="lock-sub">Coach access only</div>
+  <input class="lock-input" id="pw-input" type="password" placeholder="••••••••" maxlength="20">
+  <button class="btn-primary" id="pw-btn" style="max-width:320px">ENTER →</button>
+  <div class="lock-error" id="pw-error"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a class="back-link" href="index.html">← HOME</a>
+      <div>
+        <div class="topbar-eyebrow">St. Lawrence · Lions</div>
+        <div class="topbar-title">COMMAND CENTER</div>
+      </div>
+    </div>
+    <a class="back-link" href="leaderboard.html">LEADERBOARD →</a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="ideas">💡 Ideas</button>
+    <button class="tab" data-tab="sponsors">🤝 Sponsor Pipeline</button>
+  </div>
+
+  <!-- IDEAS -->
+  <div class="wrap-wide pane" id="pane-ideas">
+    <p class="section-sub">Live from the Sheet's Ideas tab. Edit the Sheet directly to add or update ideas.</p>
+    <div class="cat-filters" id="cat-filters"></div>
+    <div id="ideas-list"></div>
+  </div>
+
+  <!-- SPONSORS -->
+  <div class="wrap-wide pane hidden" id="pane-sponsors">
+    <p class="section-sub">Live from the Sheet's Sponsor Pipeline tab. Goal: reinvest in coaches and players — nothing else.</p>
+    <div class="stat-row" style="margin-bottom:18px" id="sponsor-stats"></div>
+    <div id="sponsors-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="lions.js"></script>
+<script>
+'use strict';
+var esc = Lions.escapeHtml;
+
+// ── DATA ──────────────────────────────────────────────────
+// Fetched live from the Sheet (Ideas / Sponsor Pipeline tabs) via the
+// same Apps Script ENDPOINT every other page uses — see
+// APPS-SCRIPT-SPONSORS-IDEAS.gs for the doGet routes that serve these.
+var IDEAS = [];
+var SPONSORS = [];
+
+function loadData() {
+  document.getElementById('ideas-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading ideas...</div>';
+  document.getElementById('sponsors-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading sponsor pipeline...</div>';
+
+  fetch(Lions.SPONSORS_ENDPOINT + '?action=ideas')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      IDEAS = (rows || []).map(function (r) {
+        return { idea: r['Idea'] || '', category: r['Category'] || 'Other', status: r['Status'] || 'Raw',
+                 notes: r['Notes'] || '', date: r['Date Captured'] || '' };
+      });
+      renderCatFilters();
+      renderIdeas();
+    })
+    .catch(function () {
+      document.getElementById('ideas-list').innerHTML = '<div class="empty">Could not load ideas. Check the Apps Script is deployed with the ideas/sponsors routes added.</div>';
+    });
+
+  fetch(Lions.SPONSORS_ENDPOINT + '?action=sponsors')
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      SPONSORS = (rows || []).map(function (r) {
+        return { business: r['Business'] || '', contact: r['Contact Name'] || '', email: r['Email'] || '',
+                 phone: r['Phone'] || '', source: r['Source'] || '', status: r['Status'] || 'Prospect',
+                 why: r['Why they fit'] || '' };
+      });
+      renderSponsorStats();
+      renderSponsors();
+    })
+    .catch(function () {
+      document.getElementById('sponsors-list').innerHTML = '<div class="empty">Could not load sponsor pipeline. Check the Apps Script is deployed with the ideas/sponsors routes added.</div>';
+    });
+}
+
+// ── TABS ──────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(function (tab) {
+  tab.addEventListener('click', function () {
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.pane').forEach(function (p) { p.classList.add('hidden'); });
+    tab.classList.add('active');
+    document.getElementById('pane-' + tab.dataset.tab).classList.remove('hidden');
+  });
+});
+
+// ── IDEAS ─────────────────────────────────────────────────
+function statusClass(status) { return 'status-' + status.toLowerCase().replace(/\s+/g, '-'); }
+function statusBadgeClass(status) {
+  if (status === 'Validated') return 'badge-green';
+  if (status === 'In Progress') return 'badge-lion';
+  if (status === 'Worth Exploring') return 'badge-gold';
+  return 'badge';
+}
+
+var activeCat = 'All';
+
+function renderCatFilters() {
+  var cats = ['All'].concat(IDEAS.reduce(function (acc, i) {
+    if (acc.indexOf(i.category) === -1) acc.push(i.category);
+    return acc;
+  }, []));
+  var el = document.getElementById('cat-filters');
+  el.innerHTML = cats.map(function (c) {
+    return '<button class="chip' + (c === activeCat ? ' active' : '') + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
+  }).join('');
+  el.querySelectorAll('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      activeCat = chip.dataset.cat;
+      renderCatFilters();
+      renderIdeas();
+    });
+  });
+}
+
+function renderIdeas() {
+  var list = activeCat === 'All' ? IDEAS : IDEAS.filter(function (i) { return i.category === activeCat; });
+  var el = document.getElementById('ideas-list');
+  if (!list.length) { el.innerHTML = '<div class="empty">No ideas in this category.</div>'; return; }
+  el.innerHTML = list.map(function (i) {
+    return '<div class="card idea-card ' + statusClass(i.status) + '">' +
+      '<div class="idea-top">' +
+        '<div class="idea-name">' + esc(i.idea) + '</div>' +
+        '<div class="idea-date">' + esc(i.date) + '</div>' +
+      '</div>' +
+      '<div class="idea-meta">' +
+        '<span class="badge">' + esc(i.category) + '</span>' +
+        '<span class="badge ' + statusBadgeClass(i.status) + '">' + esc(i.status) + '</span>' +
+      '</div>' +
+      '<div class="idea-notes">' + esc(i.notes) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── SPONSORS ──────────────────────────────────────────────
+function renderSponsorStats() {
+  var byStatus = SPONSORS.reduce(function (acc, s) { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
+  var el = document.getElementById('sponsor-stats');
+  el.innerHTML =
+    '<div class="stat"><div class="stat-val">' + SPONSORS.length + '</div><div class="stat-label">Total</div></div>' +
+    '<div class="stat"><div class="stat-val gold">' + (byStatus['Prospect'] || 0) + '</div><div class="stat-label">Prospect</div></div>' +
+    '<div class="stat"><div class="stat-val green">' + (byStatus['Signed'] || 0) + '</div><div class="stat-label">Signed</div></div>';
+}
+
+function sponsorBadgeClass(status) {
+  if (status === 'Signed' || status === 'Paid') return 'badge-green';
+  if (status === 'Dead') return 'badge';
+  return 'badge-gold';
+}
+
+function renderSponsors() {
+  var el = document.getElementById('sponsors-list');
+  if (!SPONSORS.length) { el.innerHTML = '<div class="empty">No sponsors in the pipeline yet.</div>'; return; }
+  el.innerHTML = SPONSORS.map(function (s) {
+    return '<div class="card sponsor-card">' +
+      '<div class="sponsor-top">' +
+        '<div class="sponsor-name">' + esc(s.business) + '</div>' +
+        '<span class="badge ' + sponsorBadgeClass(s.status) + '">' + esc(s.status) + '</span>' +
+      '</div>' +
+      '<div class="sponsor-contact">' + esc(s.contact) + '</div>' +
+      (s.email ? '<div class="sponsor-line">✉ <a href="mailto:' + esc(s.email) + '">' + esc(s.email) + '</a></div>' : '') +
+      (s.phone ? '<div class="sponsor-line">☎ ' + esc(s.phone) + '</div>' : '') +
+      '<div class="sponsor-line">Source: ' + esc(s.source) + '</div>' +
+      '<div class="sponsor-why">' + esc(s.why) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── LOCK (same backend password check as leaderboard.html) ──
+var PW = '';
+
+function checkPassword() {
+  var input = document.getElementById('pw-input');
+  var err = document.getElementById('pw-error');
+  var btn = document.getElementById('pw-btn');
+  var typed = input.value;
+  if (!typed) return;
+
+  btn.disabled = true;
+  err.style.color = 'var(--grey)';
+  err.textContent = 'CHECKING…';
+
+  fetch(Lions.ENDPOINT + '?action=unlock&pw=' + encodeURIComponent(typed))
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      btn.disabled = false;
+      if (res && res.ok) {
+        PW = typed;
+        try { sessionStorage.setItem('lions_pw', typed); } catch (e) {}
+        unlock();
+        return;
+      }
+      err.style.color = 'var(--lion)';
+      if (res && res.configured === false) {
+        err.textContent = 'NO PASSWORD SET — RUN setCoachPassword() IN APPS SCRIPT';
+      } else {
+        err.textContent = 'Wrong password. Try again.';
+        input.classList.add('error');
+        setTimeout(function () { input.classList.remove('error'); }, 400);
+      }
+      input.value = '';
+    })
+    .catch(function () {
+      btn.disabled = false;
+      err.style.color = 'var(--gold)';
+      err.textContent = 'NO CONNECTION — CHECK THE APPS SCRIPT IS DEPLOYED';
+    });
+}
+
+function unlock() {
+  document.getElementById('lock').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  loadData();
+}
+
+(function () {
+  var saved = '';
+  try { saved = sessionStorage.getItem('lions_pw') || ''; } catch (e) {}
+  if (!saved) return;
+  fetch(Lions.ENDPOINT + '?action=unlock&pw=' + encodeURIComponent(saved))
+    .then(function (r) { return r.json(); })
+    .then(function (res) { if (res && res.ok) { PW = saved; unlock(); } })
+    .catch(function () {});
+})();
+
+document.getElementById('pw-btn').addEventListener('click', checkPassword);
+document.getElementById('pw-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') checkPassword();
+});
+</script>
+</body>
+</html>
