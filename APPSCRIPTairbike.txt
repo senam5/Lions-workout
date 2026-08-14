@@ -1,0 +1,204 @@
+/**
+ * LIONS — Phase 4: Air Bike Challenge (STANDALONE script)
+ *
+ * Fully independent from the main Lions Apps Script — different code,
+ * different deployment, its own /exec URL. Editing or redeploying this
+ * cannot touch the shooting/running/weights script, or vice versa.
+ *
+ * It still writes into the SAME spreadsheet as everything else (SHEET_ID
+ * below), just its own "airbike" tab — so Ash keeps finding all the
+ * team's data in one file, not scattered across separate sheets.
+ *
+ * SETUP
+ * 1. Go to script.google.com → New project. (A DIFFERENT project from
+ *    the main Lions script — do not paste this into that one.)
+ * 2. Delete the boilerplate, paste this file in, Save.
+ * 3. Deploy → New deployment → type "Web app"
+ *      Execute as:      Me
+ *      Who has access:  Anyone
+ * 4. Copy the /exec URL it gives you.
+ * 5. Put that URL in lions.js → var AIRBIKE_ENDPOINT = '...'
+ *
+ * Creates its own tab automatically on first save:
+ *      airbike   Date | Player | Duration | Distance | Photo
+ * Also creates a Drive folder "Lions Air Bike Photos" for proof photos —
+ * a Sheet cell can't hold an image (and definitely can't hold the ~50,000+
+ * character base64 text one produces), so only a view-link to the photo
+ * goes in the sheet; the file itself lives in Drive.
+ */
+
+var SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';   // same spreadsheet as the main Lions script
+
+function sheet() {
+  var ss = null;
+  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) {}
+  if (!ss) ss = SpreadsheetApp.openById(SHEET_ID);
+  return ss;
+}
+
+var LIMITS = {
+  nameMax: 40,
+  durationMax: 300,   // seconds — generous ceiling for a timed effort
+  distanceMax: 50,    // sanity ceiling, catches typos/garbage
+  perPlayerDay: 25
+};
+
+/** Names only: letters (accented included), spaces, hyphens, apostrophes. */
+function cleanName(v) {
+  var s = String(v == null ? '' : v).trim().replace(/\s+/g, ' ');
+  if (s.length < 2 || s.length > LIMITS.nameMax) return '';
+  if (!/^[\p{L}][\p{L}\s'’.\-]*$/u.test(s)) return '';
+  return s;
+}
+function num(v) { var n = Number(v); return isFinite(n) ? n : NaN; }
+
+function rejectReason(data) {
+  var name = cleanName(data.player || data.name);
+  if (!name) return 'bad name';
+  var dur = num(data.duration), dist = num(data.distance);
+  if (isNaN(dur) || isNaN(dist)) return 'non-numeric';
+  if (dur <= 0 || dur > LIMITS.durationMax) return 'bad duration';
+  if (dist < 0 || dist > LIMITS.distanceMax) return 'distance too large';
+  return '';
+}
+
+/** Cheap rate limit: how many rows this player already wrote today. */
+function overDailyLimit(ss, name) {
+  var sh = ss.getSheetByName('airbike');
+  if (!sh) return false;
+  var last = sh.getLastRow();
+  if (last < 2) return false;
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var from = Math.max(2, last - 300);
+  var rows = sh.getRange(from, 1, last - from + 1, 2).getValues();
+  var count = 0;
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i][1]).trim().toLowerCase() !== name.toLowerCase()) continue;
+    var d = new Date(rows[i][0]);
+    var key = isNaN(d.getTime())
+      ? String(rows[i][0]).slice(0, 10)
+      : Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    if (key.indexOf(today) !== -1 || today.indexOf(key) !== -1) count++;
+  }
+  return count >= LIMITS.perPlayerDay;
+}
+
+/**
+ * Reads the main script's shutdown switch if a "settings" tab happens to
+ * exist in this spreadsheet — read-only, this never writes to it. A
+ * missing tab (e.g. you point this at a fresh spreadsheet with no main
+ * script at all) just means "not shut down", never an error.
+ */
+function shutdownOn(ss) {
+  var st = ss.getSheetByName('settings');
+  if (!st) return false;
+  var values = st.getDataRange().getValues();
+  var on = false;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === 'shutdown') on = (String(values[i][1]) === '1' || String(values[i][1]) === 'true');
+  }
+  return on;
+}
+
+/**
+ * Never throws — a photo problem should not block the actual result
+ * (name/duration/distance) from saving.
+ */
+function saveAirbikePhoto(dataUrl, playerName) {
+  if (!dataUrl || String(dataUrl).indexOf('base64,') === -1) return '';
+  try {
+    var mime = (String(dataUrl).match(/^data:([^;]+);/) || [])[1] || 'image/jpeg';
+    var b64 = String(dataUrl).split('base64,')[1];
+    var bytes = Utilities.base64Decode(b64);
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+    var blob = Utilities.newBlob(bytes, mime, (playerName || 'player') + ' — ' + stamp + '.jpg');
+    var file = airbikeFolder().createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return file.getUrl();
+  } catch (err) {
+    return '';
+  }
+}
+function airbikeFolder() {
+  var name = 'Lions Air Bike Photos';
+  var it = DriveApp.getFoldersByName(name);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
+}
+
+function tab(ss) {
+  var sh = ss.getSheetByName('airbike');
+  if (!sh) {
+    sh = ss.insertSheet('airbike');
+    sh.appendRow(['Date', 'Player', 'Duration', 'Distance', 'Photo']);
+  }
+  return sh;
+}
+
+function doPost(e) {
+  var data = {};
+  try { data = JSON.parse(e.postData.contents); } catch (err) { return ok('bad json'); }
+  var ss = sheet();
+
+  var bad = rejectReason(data);
+  if (bad) return ok('rejected: ' + bad);
+
+  var name = cleanName(data.player || data.name);
+  if (overDailyLimit(ss, name)) return ok('rejected: daily limit');
+  if (shutdownOn(ss)) return ok('rejected: shutdown mode');
+
+  var photoUrl = saveAirbikePhoto(data.photo, name);
+  tab(ss).appendRow([data.date, name, data.duration, data.distance, photoUrl]);
+  return ok('airbike saved');
+}
+
+function doGet(e) {
+  var action = (e && e.parameter && e.parameter.action) || '';
+  var ss = sheet();
+  // Public by design, no password — the whole point is a leaderboard
+  // the entire team can see, not something locked behind a coach login.
+  if (action === 'airbike' || action === '') return json(rowsOf(ss));
+  return json({ ok: true, actions: ['airbike'] });
+}
+
+function rowsOf(ss) {
+  var sh = ss.getSheetByName('airbike');
+  if (!sh) return [];
+  var values = sh.getDataRange().getValues();
+  if (values.length < 2) return [];
+  var head = values[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  function col(row, name) { var i = head.indexOf(name); return i === -1 ? '' : row[i]; }
+  return values.slice(1).map(function (row) {
+    return {
+      date: col(row, 'date'),
+      player: col(row, 'player'),
+      duration: col(row, 'duration'),
+      distance: col(row, 'distance'),
+      photo: col(row, 'photo')
+    };
+  }).filter(function (r) { return r.player; });
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+function ok(msg) { return ContentService.createTextOutput(msg || 'ok'); }
+
+/**
+ * CHECK IT WORKS — run this before deploying.
+ * In the editor: pick "testSetup" from the function dropdown, press Run,
+ * then open View → Logs. Nothing is written or changed.
+ */
+function testSetup() {
+  var ss = sheet();
+  var out = ['Connected to: ' + ss.getName()];
+  var sh = ss.getSheetByName('airbike');
+  out.push(sh
+    ? ('airbike tab: ' + Math.max(0, sh.getLastRow() - 1) + ' row(s)')
+    : 'airbike tab: not there yet — gets created automatically on first save');
+  var report = out.join('\n');
+  console.log(report);
+  return report;
+}
+
+/** Same trick as the main script: raising it as an error guarantees the log shows it. */
+function AAA_SHOW_REPORT() { throw new Error(testSetup()); }
