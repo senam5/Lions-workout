@@ -211,7 +211,13 @@ var esc = Lions.escapeHtml;
 // page reveals it, and the data endpoints refuse to answer without it.
 var PW = '';   // held in memory for this tab only, never written to disk
 
-function authQS() { return PW ? '&pw=' + encodeURIComponent(PW) : ''; }
+// Cache-buster appended to every read so the browser (and any proxy in
+// between) can't serve a stale cached response for these GET requests —
+// Apps Script /exec URLs don't send explicit no-cache headers, so a
+// plain fetch() can otherwise return same-day data that's minutes/hours
+// stale, which is what "leaderboard not reflecting same-day activity"
+// looks like from the coach's side.
+function authQS() { return (PW ? '&pw=' + encodeURIComponent(PW) : '') + '&_=' + Date.now(); }
 
 function checkPassword() {
   var input = document.getElementById('pw-input');

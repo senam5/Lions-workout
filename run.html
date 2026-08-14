@@ -474,6 +474,10 @@ function initGate() {
   btn.addEventListener('click', function () {
     if (!sel.value || sel.value === Lions.ADD_VALUE) return;
     Lions.setPlayer(sel.value);
+    // Pull this player's real run history back from the sheet, same as
+    // player-workout.html does for shots — otherwise a fresh device
+    // only ever shows runs logged on that exact device.
+    Lions.syncRunHistory(sel.value);
     renderWho();
     goStep('time');
   });
@@ -949,6 +953,9 @@ initGate();
 renderTimePresets();
 renderTypes();
 renderWho();
+// Returning player on a fresh/cleared device — pull their run history
+// back from the sheet, same as the shots page does on load.
+if (Lions.getPlayer()) Lions.syncRunHistory(Lions.getPlayer());
 goStep(Lions.getPlayer() ? 'time' : 'name');
 </script>
 </body>

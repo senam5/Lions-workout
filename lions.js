@@ -324,7 +324,15 @@
   // across browsers. Pull the pieces out by hand instead and build the
   // date from numeric components, which every engine handles the same way.
   function parseStamp(s) {
-    var m = /,\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})/.exec(String(s || ''));
+    // Accepts both "...Aug 14, 2026, 00:34" (what stamp() produces) and
+    // "...Aug 14, 2026 at 00:34" (what the cell looks like after Google
+    // Sheets silently recognizes the appended string as a date and
+    // re-renders it in its own locale format on read-back). Without the
+    // "at" alternative, every row Sheets has reformatted this way fails
+    // to parse and gets silently dropped during syncShotHistory — this
+    // is the root cause of "saved shots not showing in the app" on a
+    // fresh device/browser.
+    var m = /,\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})(?:,|\s+at)\s*(\d{1,2}):(\d{2})/.exec(String(s || ''));
     if (!m) return null;
     var mi = STAMP_MONTHS.indexOf(m[1]);
     if (mi === -1) return null;
@@ -387,6 +395,49 @@
     return log;
   }
   function getRunLog() { return jsonGet(K_RUNLOG, []); }
+
+  /**
+   * Pull this player's run history back from the sheet, same reasoning
+   * as syncShotHistory above. Requires a "myruns" action on the Apps
+   * Script (see APPS-SCRIPT.gs) — the deployed script only exposes
+   * "myshots" today, which is why runs never come back to a fresh
+   * device even though they save correctly.
+   */
+  function syncRunHistory(player, cb) {
+    var name = String(player || '').trim();
+    if (!name) { if (cb) cb(); return; }
+    fetch(ENDPOINT + '?action=myruns&player=' + encodeURIComponent(name))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!Array.isArray(rows) || !rows.length) { if (cb) cb(); return; }
+        var log = jsonGet(K_RUNLOG, []);
+        var have = {};
+        log.forEach(function (s) {
+          if (norm(s.player) === norm(name)) have[String(s.date)] = true;
+        });
+        var added = false;
+        rows.forEach(function (r) {
+          var d = String(r.date || '');
+          if (!d || have[d]) return;
+          var dt = parseStamp(d);
+          if (!dt) return;
+          log.push({
+            week: weekKey(dt), player: name, date: d,
+            runType: r.runType || '',
+            distanceKm: Number(r.distanceKm) || 0,
+            durationMin: Number(r.durationMin) || 0
+          });
+          have[d] = true;
+          added = true;
+        });
+        if (added) {
+          if (log.length > 400) log = log.slice(-400);
+          jsonSet(K_RUNLOG, log);
+        }
+        if (cb) cb();
+      })
+      .catch(function () { if (cb) cb(); });
+  }
 
   // Makes logged in the current week (this device, this player).
   function weekMakes(player) {
@@ -718,6 +769,7 @@
     addShotSession: addShotSession,
     getShotLog: getShotLog,
     syncShotHistory: syncShotHistory,
+    syncRunHistory: syncRunHistory,
     addRunSession: addRunSession,
     getRunLog: getRunLog,
     weekMakes: weekMakes,
