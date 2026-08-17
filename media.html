@@ -297,6 +297,15 @@
       <h2>Review One Clip at a Time</h2>
       <p class="hint" style="margin-top:0;">Choose the folder you just rotated. Each clip loads up on its own — rename it, then Keep (moves on to Sort) or Discard (moved into <code>_Discarded</code>, not deleted — you can undo before you leave this folder).</p>
 
+      <div class="field" style="margin-top:14px;">
+        <label>Mode</label>
+        <div class="speed-options" id="reviewModeToggle">
+          <button type="button" class="speed-btn active" data-mode="quick">Quick — auto-sort when done</button>
+          <button type="button" class="speed-btn" data-mode="full">Full Review — I'll drive each step</button>
+        </div>
+        <p class="hint" id="reviewModeHint" style="margin-top:8px;">Quick Mode sorts your kept clips into subfolders the instant you finish reviewing — no extra click. Full Review just leaves them in this folder when you're done, so you can jump into Sort (or anywhere else) on your own time.</p>
+      </div>
+
       <div class="row" style="margin:16px 0 10px;">
         <button class="btn gold" id="reviewPickBtn">Choose Clips Folder</button>
         <span class="path-label" id="reviewFolderLabel"></span>
@@ -1850,6 +1859,16 @@ let reviewVideoUrl = null;
 let reviewHistory = [];      // every reviewed clip, most recent last: {id, name, handle, decision}
 let reviewHistoryNextId = 1;
 let reviewAutoSortDone = false; // guards against re-firing the auto-sort chain more than once per completion
+let reviewMode = "quick"; // "quick" auto-chains into Sort when the queue empties; "full" leaves it manual
+document.querySelectorAll("#reviewModeToggle .speed-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    reviewMode = btn.dataset.mode;
+    document.querySelectorAll("#reviewModeToggle .speed-btn").forEach(b => b.classList.toggle("active", b === btn));
+    $("reviewModeHint").textContent = reviewMode === "quick"
+      ? "Quick Mode sorts your kept clips into subfolders the instant you finish reviewing — no extra click."
+      : "Full Review Mode leaves your kept clips right here when you're done — jump into Sort (or anywhere else) whenever you're ready, nothing runs on its own.";
+  });
+});
 
 function reviewSetVideo(file) {
   if (reviewVideoUrl) URL.revokeObjectURL(reviewVideoUrl);
@@ -1971,7 +1990,7 @@ function showCurrentReviewClip() {
     $("reviewKeepBtn").disabled = true;
     $("reviewDiscardBtn").disabled = true;
     $("reviewEmptyState").style.display = reviewTotal ? "block" : "none";
-    if (reviewTotal && !reviewAutoSortDone) autoChainReviewToSort();
+    if (reviewTotal && !reviewAutoSortDone && reviewMode === "quick") autoChainReviewToSort();
     return;
   }
   $("reviewEmptyState").style.display = "none";
