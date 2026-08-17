@@ -322,6 +322,12 @@
         </div>
 
         <div class="empty-state" id="reviewEmptyState" style="display:none; margin-top:20px;">No video clips left in this folder — everything's been reviewed. Head to Sort next.</div>
+
+        <div id="reviewHistoryBox" style="display:none; margin-top:18px;">
+          <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray); margin-bottom:8px; font-weight:600;">Recently Reviewed</label>
+          <p class="hint" style="margin-top:0; margin-bottom:8px;">Made a mistake? Click a clip below to pull it back into the queue and decide again.</p>
+          <div id="reviewHistoryList" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;"></div>
+        </div>
       </div>
 
       <div class="log" id="reviewLog" style="display:none;"></div>
@@ -1786,6 +1792,8 @@ let reviewTotal = 0;
 let reviewKeptCount = 0, reviewDiscardedCount = 0;
 let reviewDiscardStack = []; // clips currently sitting in _Discarded, most recent last
 let reviewVideoUrl = null;
+let reviewHistory = [];      // every reviewed clip, most recent last: {id, name, handle, decision}
+let reviewHistoryNextId = 1;
 
 function reviewSetVideo(file) {
   if (reviewVideoUrl) URL.revokeObjectURL(reviewVideoUrl);
@@ -1821,11 +1829,73 @@ async function loadReviewFolder(dir) {
   reviewTotal = reviewQueue.length;
   reviewKeptCount = 0; reviewDiscardedCount = 0;
   reviewDiscardStack = [];
+  reviewHistory = [];
   $("reviewUndoBtn").disabled = true;
   $("reviewBody").style.display = "block";
   $("reviewLog").style.display = "block";
   $("reviewLog").innerHTML = "";
   showCurrentReviewClip();
+  renderReviewHistory();
+}
+
+/* Clickable list of every reviewed clip (Kept or Discarded) so far, most
+   recent first — lets you jump back into one without re-scanning the folder
+   in Explorer. "Go Back" pulls it out of wherever it currently sits (kept
+   clips are already in reviewDir; discarded ones get moved back from
+   _Discarded, same as Undo) and re-queues it for another decision. */
+function renderReviewHistory() {
+  const box = $("reviewHistoryBox");
+  const list = $("reviewHistoryList");
+  list.innerHTML = "";
+  if (!reviewHistory.length) { box.style.display = "none"; return; }
+  box.style.display = "block";
+  reviewHistory.slice().reverse().forEach((entry) => {
+    const row = document.createElement("div");
+    row.className = "file-row";
+    const name = document.createElement("span");
+    name.className = "fname";
+    name.textContent = entry.name;
+    const badge = document.createElement("span");
+    badge.className = "badge " + (entry.decision === "kept" ? "done" : "skipped");
+    badge.textContent = entry.decision === "kept" ? "Kept" : "Discarded";
+    const backBtn = document.createElement("button");
+    backBtn.className = "btn small";
+    backBtn.textContent = "Go Back";
+    backBtn.addEventListener("click", () => goBackToHistoryEntry(entry.id));
+    row.appendChild(name);
+    row.appendChild(badge);
+    row.appendChild(backBtn);
+    list.appendChild(row);
+  });
+}
+
+async function goBackToHistoryEntry(id) {
+  const idx = reviewHistory.findIndex(h => h.id === id);
+  if (idx === -1) return;
+  const entry = reviewHistory[idx];
+  try {
+    if (entry.decision === "kept") {
+      reviewQueue.unshift({ name: entry.name, handle: entry.handle });
+      reviewKeptCount--;
+    } else {
+      const discardDir = await reviewDir.getDirectoryHandle("_Discarded", { create: true });
+      const result = await reviewMoveTo(entry, discardDir, reviewDir, entry.name);
+      reviewQueue.unshift({ name: result.name, handle: result.handle });
+      reviewDiscardedCount--;
+      // This clip may not be the top of reviewDiscardStack (you can go back
+      // to any past clip, not just the most recent) — find and remove its
+      // specific entry rather than assuming it's last-in.
+      reviewDiscardStack = reviewDiscardStack.filter(d => d.handle !== entry.handle);
+      $("reviewUndoBtn").disabled = !reviewDiscardStack.length;
+    }
+    reviewHistory.splice(idx, 1);
+    appendLogLine($("reviewLog"), "ok", "Back in queue: " + entry.name);
+  } catch (e) {
+    appendLogLine($("reviewLog"), "fail", "FAILED to bring back " + entry.name + " — " + e.message);
+  }
+  $("reviewLog").scrollTop = $("reviewLog").scrollHeight;
+  showCurrentReviewClip();
+  renderReviewHistory();
 }
 
 function showCurrentReviewClip() {
@@ -1878,12 +1948,14 @@ $("reviewKeepBtn").addEventListener("click", async () => {
     }
     appendLogLine($("reviewLog"), "ok", "Kept: " + finalName);
     reviewKeptCount++;
+    reviewHistory.push({ id: reviewHistoryNextId++, name: finalName, handle: entry.handle, decision: "kept" });
     reviewQueue.shift();
   } catch (e) {
     appendLogLine($("reviewLog"), "fail", "FAILED to rename " + entry.name + " — " + e.message);
   }
   $("reviewLog").scrollTop = $("reviewLog").scrollHeight;
   showCurrentReviewClip();
+  renderReviewHistory();
 });
 
 $("reviewDiscardBtn").addEventListener("click", async () => {
@@ -1897,6 +1969,7 @@ $("reviewDiscardBtn").addEventListener("click", async () => {
     reviewDiscardStack.push({ name: result.name, handle: result.handle });
     appendLogLine($("reviewLog"), "fail", "Discarded: " + entry.name);
     reviewDiscardedCount++;
+    reviewHistory.push({ id: reviewHistoryNextId++, name: result.name, handle: result.handle, decision: "discarded" });
     reviewQueue.shift();
     $("reviewUndoBtn").disabled = false;
   } catch (e) {
@@ -1904,6 +1977,7 @@ $("reviewDiscardBtn").addEventListener("click", async () => {
   }
   $("reviewLog").scrollTop = $("reviewLog").scrollHeight;
   showCurrentReviewClip();
+  renderReviewHistory();
 });
 
 $("reviewUndoBtn").addEventListener("click", async () => {
@@ -1915,6 +1989,9 @@ $("reviewUndoBtn").addEventListener("click", async () => {
     const result = await reviewMoveTo(last, discardDir, reviewDir, last.name);
     reviewQueue.unshift({ name: result.name, handle: result.handle });
     reviewDiscardedCount--;
+    // Restored via the Undo button, not "Go Back" — it's active again, so
+    // drop its history entry too rather than leaving a stale "Discarded" row.
+    reviewHistory = reviewHistory.filter(h => h.handle !== last.handle);
     appendLogLine($("reviewLog"), "ok", "Restored: " + result.name);
   } catch (e) {
     appendLogLine($("reviewLog"), "fail", "FAILED to restore " + last.name + " — " + e.message);
@@ -1923,6 +2000,7 @@ $("reviewUndoBtn").addEventListener("click", async () => {
   $("reviewLog").scrollTop = $("reviewLog").scrollHeight;
   $("reviewUndoBtn").disabled = !reviewDiscardStack.length;
   showCurrentReviewClip();
+  renderReviewHistory();
 });
 
 /* ---------- TAB 3: SORT ---------- */
