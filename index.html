@@ -48,8 +48,6 @@
   .split-text { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); text-transform: uppercase; letter-spacing: 2px; }
 
   footer { padding: 20px 24px; text-align: center; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; text-transform: uppercase; border-top: 1px solid var(--line); position: relative; }
-  footer a { color: var(--grey); text-decoration: none; border-bottom: 1px dotted var(--line); }
-  footer a:hover { color: var(--lion); }
   .accent-bar { height: 3px; background: linear-gradient(90deg, var(--lion), transparent); width: 100%; }
 </style>
 </head>
@@ -110,13 +108,22 @@
     </a>
   </div>
 </main>
-<footer>Lions Program · St. Lawrence · 2026 · <a href="media.html">Media Team</a> · <a href="sponsors.html">Sponsors</a></footer>
+<footer>Lions Program · St. Lawrence · 2026</footer>
 
 <div class="toast" id="toast"></div>
 
 <script src="lions.js"></script>
 <script>
   // ── IDENTITY ──────────────────────────────────────────────
+  // Pulls this player's shot + run history back from the sheet and
+  // merges anything this device is missing, so the tiles below reflect
+  // real progress even on a phone that's never seen this player before.
+  function syncPlayerHistory(name) {
+    if (!name) return;
+    Lions.syncShotHistory(name, renderGoals);
+    Lions.syncRunHistory(name, renderGoals);
+  }
+
   function renderWhoBar(forceEdit) {
     var bar  = document.getElementById('who-bar');
     var name = Lions.getPlayer();
@@ -129,6 +136,7 @@
         '</div>' +
         '<button class="btn-ghost" id="who-switch">not you?</button>';
       document.getElementById('who-switch').addEventListener('click', function () { renderWhoBar(true); });
+      syncPlayerHistory(name);
     } else {
       bar.innerHTML =
         '<span class="label">Name</span>' +
@@ -139,6 +147,7 @@
         Lions.setPlayer(picked);
         renderWhoBar(false);
         renderGoals();
+        syncPlayerHistory(picked);
         Lions.toast('Welcome, ' + picked.split(' ')[0]);
       });
     }
