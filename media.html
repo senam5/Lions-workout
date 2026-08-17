@@ -2451,21 +2451,31 @@ const cleanupSummary = $("cleanupSummary");
 const cleanupLog = $("cleanupLog");
 
 let cleanupDir = null;
-let cleanupEntries = []; // { name, handle, checked }
+let cleanupEntries = []; // { name, handle, relDir, checked } — relDir is "" for top-level, or a group subfolder name
 
 if (typeof window.showDirectoryPicker !== "function") {
   cleanupPickBtn.disabled = true;
   cleanupUnsupportedNote.style.display = "block";
 }
 
+async function scanCleanupFolder(dir, relDir) {
+  for await (const [name, handle] of dir.entries()) {
+    if (handle.kind === "file" && VIDEO_EXT.test(name)) {
+      cleanupEntries.push({ name, handle, relDir, checked: false });
+    } else if (handle.kind === "directory" && !relDir && name !== "_Processed" && name !== "_Discarded" && name !== "_Originals") {
+      // One level of subfolders, same as the Drive tab — matches how Sort
+      // and Process both organize finished clips into group subfolders.
+      await scanCleanupFolder(handle, name);
+    }
+  }
+}
+
 async function loadCleanupFolder(dir) {
   cleanupDir = dir;
   cleanupFolderLabel.textContent = "Folder: " + dir.name;
   cleanupEntries = [];
-  for await (const [name, handle] of dir.entries()) {
-    if (handle.kind === "file" && VIDEO_EXT.test(name)) cleanupEntries.push({ name, handle, checked: false });
-  }
-  cleanupEntries.sort((a, b) => a.name.localeCompare(b.name));
+  await scanCleanupFolder(dir, "");
+  cleanupEntries.sort((a, b) => (a.relDir + "/" + a.name).localeCompare(b.relDir + "/" + b.name));
   cleanupRefreshBtn.style.display = "inline-block";
   cleanupSelectRow.style.display = cleanupEntries.length ? "flex" : "none";
   renderCleanupList();
@@ -2488,7 +2498,7 @@ function renderCleanupList() {
     cb.addEventListener("change", () => { entry.checked = cb.checked; updateCleanupButton(); });
     const n = document.createElement("span");
     n.className = "fname";
-    n.textContent = entry.name;
+    n.textContent = entry.relDir ? entry.relDir + "/" + entry.name : entry.name;
     n.style.cursor = "pointer";
     n.addEventListener("click", () => { cb.checked = !cb.checked; entry.checked = cb.checked; updateCleanupButton(); });
     row.append(cb, n);
@@ -2516,16 +2526,19 @@ cleanupSelectAllBtn.addEventListener("click", () => { cleanupEntries.forEach(e =
 cleanupSelectNoneBtn.addEventListener("click", () => { cleanupEntries.forEach(e => e.checked = false); renderCleanupList(); });
 
 async function cleanupApplyOne(entry, action, dir) {
+  // Group-subfoldered clips (relDir set) get cleaned up inside their own
+  // subfolder, not the top-level folder — keeps the grouping intact.
+  const containingDir = entry.relDir ? await dir.getDirectoryHandle(entry.relDir) : dir;
   if (action === "delete") {
-    await dir.removeEntry(entry.name);
+    await containingDir.removeEntry(entry.name);
     return "deleted";
   }
   if (action === "mark") {
     const newName = "DONE_" + entry.name;
-    if (typeof entry.handle.move === "function") { await entry.handle.move(dir, newName); return "renamed → " + newName; }
+    if (typeof entry.handle.move === "function") { await entry.handle.move(containingDir, newName); return "renamed → " + newName; }
     throw new Error("Renaming needs Chrome/Edge (move unsupported here)");
   }
-  const sub = await dir.getDirectoryHandle("_Processed", { create: true });
+  const sub = await containingDir.getDirectoryHandle("_Processed", { create: true });
   const finalName = await uniqueNameIn(sub, entry.name);
   if (typeof entry.handle.move === "function") {
     await entry.handle.move(sub, finalName);
@@ -2535,9 +2548,9 @@ async function cleanupApplyOne(entry, action, dir) {
     const w = await th.createWritable();
     await w.write(file);
     await w.close();
-    await dir.removeEntry(entry.name);
+    await containingDir.removeEntry(entry.name);
   }
-  return "moved → _Processed/" + finalName;
+  return "moved → " + (entry.relDir ? entry.relDir + "/" : "") + "_Processed/" + finalName;
 }
 
 cleanupRunBtn.addEventListener("click", async () => {
@@ -2779,6 +2792,7 @@ driveUploadBtn.addEventListener("click", async () => {
   driveLog.style.display = "block";
   driveLog.innerHTML = "";
   let ok = 0, fail = 0;
+  const succeeded = []; // only clips that actually made it to Drive get offered for cleanup
   for (let i = 0; i < doneEntries.length; i++) {
     const entry = doneEntries[i];
     const label = entry.relDir ? entry.relDir + "/" + entry.name : entry.name;
@@ -2786,6 +2800,7 @@ driveUploadBtn.addEventListener("click", async () => {
     try {
       await uploadOneToDrive(entry);
       appendLogLine(driveLog, "ok", "OK: " + label);
+      succeeded.push(entry);
       ok++;
     } catch (e) {
       appendLogLine(driveLog, "fail", "FAILED: " + label + " — " + e.message);
@@ -2796,7 +2811,28 @@ driveUploadBtn.addEventListener("click", async () => {
   driveStatus.textContent = "Done. " + ok + " uploaded, " + fail + " failed.";
   driveUploadBtn.disabled = false;
   drivePickBtn.disabled = false;
+  if (succeeded.length) autoChainDriveToCleanup(succeeded);
 });
+
+/* Level 5 of the auto-ingest pipeline: Drive → local cleanup. Only clips
+   that actually finished uploading are offered here — anything that failed
+   stays untouched in doneDir so nothing gets cleared out before it's really
+   safe to. Pre-checks them but deliberately leaves the action dropdown on
+   its existing default ("move to _Processed", reversible) rather than
+   "Delete permanently" — that action stays a manual opt-in, gated behind
+   the confirm() dialog below like it always has been, since silently
+   defaulting a background chain into permanent deletion is exactly the
+   kind of thing that should require a human looking at it first. */
+function autoChainDriveToCleanup(succeeded) {
+  cleanupDir = doneDir;
+  cleanupFolderLabel.textContent = "Folder: " + doneDir.name;
+  cleanupEntries = succeeded.map(e => ({ name: e.name, handle: e.handle, relDir: e.relDir, checked: true }));
+  cleanupRefreshBtn.style.display = "inline-block";
+  cleanupSelectRow.style.display = cleanupEntries.length ? "flex" : "none";
+  renderCleanupList();
+  switchToTab("cleanup");
+  cleanupSummary.textContent = `${cleanupEntries.length} clip${cleanupEntries.length === 1 ? "" : "s"} just uploaded to Drive, checked and ready — pick an action above (Delete is available if you want the local copies gone) and click "Apply to Checked Clips".`;
+}
 
 renderQueue();
 loadDefaultWatermark();
