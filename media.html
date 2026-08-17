@@ -1711,7 +1711,23 @@ processBtn.addEventListener("click", async () => {
   processBtn.disabled = false;
   chooseOutputBtn.disabled = false;
   updateProcessButton();
+  if (ok > 0) await autoChainProcessToDrive();
 });
+
+/* Level 4 of the auto-ingest pipeline: Watermark & Send → Drive. Reuses the
+   output folder handle already granted here — no picker needed — so the
+   Drive tab's clip list is ready the moment you land on it. Deliberately
+   stops short of auto-uploading: sending files to an outside cloud service
+   is a real, harder-to-undo action, so that last step still needs your own
+   click on "Upload All to Drive" (and "Connect Google Drive" first, if this
+   is a fresh browser session with no token yet). */
+async function autoChainProcessToDrive() {
+  await loadDoneFolder(outputDirHandle);
+  switchToTab("drive");
+  driveStatus.textContent = driveAccessToken
+    ? `${doneEntries.length} processed clip${doneEntries.length === 1 ? "" : "s"} ready — click "Upload All to Drive".`
+    : `${doneEntries.length} processed clip${doneEntries.length === 1 ? "" : "s"} ready — click "Connect Google Drive", then "Upload All to Drive".`;
+}
 
 /* ---------- TAB 1: ROTATE ---------- */
 let rotateClips = [];
