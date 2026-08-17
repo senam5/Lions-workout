@@ -360,6 +360,41 @@
         <div class="log" id="sortLog" style="display:none;"></div>
       </div>
 
+      <div id="compressStepBox" style="display:none; margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
+        <h2 style="margin-bottom:6px;">3. Compress What Was Just Sorted</h2>
+        <p class="hint" style="margin-top:0;">Auto-filled with every clip that just got sorted, grouped the same way. Compression itself still runs as a script outside the browser (faster and more reliable than doing it in-page) — a browser page also can't see your computer's real folder paths for security reasons, so that one field below needs typing in once.</p>
+
+        <div class="field" style="margin-top:14px;">
+          <label>Folder path (the one you just sorted — same as Rotate's path if you used that first)</label>
+          <input type="text" id="sortCompressParentPath" placeholder="C:\Users\senam.gbekou\Desktop\Lions vs Garneau">
+        </div>
+
+        <div class="row" style="gap:18px; align-items:flex-end; margin-bottom:14px;">
+          <div class="field" style="margin:0;">
+            <label>Compression</label>
+            <select id="sortCompressQuality">
+              <option value="23">Balanced — good quality, solid size cut (CRF 23)</option>
+              <option value="26" selected>Smaller files — more compression (CRF 26)</option>
+              <option value="30">Max compression — visible quality loss (CRF 30)</option>
+            </select>
+          </div>
+          <div class="toggle-row" style="margin:0;">
+            <input type="checkbox" id="sortCompressUseGpu">
+            <label for="sortCompressUseGpu">NVIDIA GPU (h264_nvenc)</label>
+          </div>
+        </div>
+
+        <div class="scroll-list" id="fileListSortCompress" style="max-height:200px;"></div>
+
+        <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray); margin-bottom:8px; font-weight:600;">Generated script</label>
+        <textarea id="scriptOutputSortCompress" readonly></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="copyBtnSortCompress" disabled>Copy Script</button>
+          <button class="btn" id="downloadBtnSortCompress" disabled>Download .ps1</button>
+          <button class="btn gold" id="downloadBatSortCompress" disabled>Download Launcher (.bat) — double-click this</button>
+        </div>
+      </div>
+
       <div id="sortFallback" style="display:none;">
         <p class="hint">This browser can't move files directly, so here's a script instead. Add the clips to read their names, fill in both paths, and run the generated script.</p>
         <div class="field"><label>Source folder</label><input type="text" id="sortSourcePath" placeholder="C:\...\Renamed"></div>
@@ -2096,6 +2131,7 @@ async function runSort() {
   logEl.innerHTML = "";
   $("sortSendBtn").disabled = true;
   let ok = 0, fail = 0;
+  const succeeded = []; // {name, group} for whatever actually made it, in its final name
   for (const entry of sortEntries) {
     try {
       const groupDir = await dest.getDirectoryHandle(entry.group, { create: true });
@@ -2111,6 +2147,7 @@ async function runSort() {
         await sortSourceDir.removeEntry(entry.name);
       }
       appendLogLine(logEl, "ok", "OK: " + entry.name + " → " + entry.group + "/" + finalName);
+      succeeded.push({ name: finalName, group: entry.group });
       ok++;
     } catch (e) {
       appendLogLine(logEl, "fail", "FAILED: " + entry.name + " — " + e.message);
@@ -2120,8 +2157,95 @@ async function runSort() {
   }
   appendLogLine(logEl, "", "Done. " + ok + " sorted, " + fail + " failed.");
   await refreshSortPreview();
+  if (succeeded.length) showCompressStepForSorted(succeeded);
   return { ok, fail };
 }
+
+/* Level 2 of the auto-ingest pipeline: the moment a sort finishes, pre-fill
+   the compress script with exactly what just got sorted, grouped the same
+   way. Compression stays script-based (ffmpeg outside the browser) rather
+   than moving in-browser or through a live helper process — chosen for
+   reliability over true per-clip streaming. The one thing that can't be
+   automated: a browser page has no way to read the real OS path behind a
+   folder handle (a security boundary, not a gap in this tool), so the
+   parent-folder field always needs a human to type it in once. */
+let lastSortedForCompress = [];
+function renderSortCompressFileList() {
+  const el = $("fileListSortCompress");
+  el.innerHTML = "";
+  if (!lastSortedForCompress.length) { el.innerHTML = '<div class="empty-state">Nothing sorted yet</div>'; return; }
+  lastSortedForCompress.forEach(e => {
+    const row = document.createElement("div");
+    row.className = "file-row";
+    const n = document.createElement("span"); n.className = "fname"; n.textContent = e.group + " / " + e.name;
+    row.append(n);
+    el.appendChild(row);
+  });
+}
+function generateSortCompressScript() {
+  const folder = $("sortCompressParentPath").value.trim();
+  const crf = $("sortCompressQuality").value;
+  const useGpu = $("sortCompressUseGpu").checked;
+  const ready = folder && lastSortedForCompress.length;
+  $("copyBtnSortCompress").disabled = !ready;
+  $("downloadBtnSortCompress").disabled = !ready;
+  $("downloadBatSortCompress").disabled = !ready;
+  if (!folder) {
+    $("scriptOutputSortCompress").value = lastSortedForCompress.length
+      ? "Type the folder path above to generate the script."
+      : "";
+    return;
+  }
+  if (!lastSortedForCompress.length) { $("scriptOutputSortCompress").value = ""; return; }
+  const codec = useGpu ? `-c:v h264_nvenc -preset p4 -cq ${crf}` : `-c:v libx264 -preset veryfast -crf ${crf}`;
+
+  let s = `# Generated by Lions Media Toolkit - Compress Sorted Clips\n`;
+  s += `# Resumable: skips clips already compressed. Walks each group subfolder\n`;
+  s += `# your Sort step just created and mirrors it under "Compressed".\n`;
+  s += `# If this run gets interrupted, just run this same script again.\n\n`;
+  s += `$folder = "${psQuote(folder)}"\n`;
+  s += `if (-not (Test-Path $folder)) { Write-Host "Folder not found: $folder" -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n`;
+  s += `if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { Write-Host "ffmpeg not found in PATH." -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }\n`;
+  s += `$compressedFolder = Join-Path $folder "Compressed"\n`;
+  s += `if (-not (Test-Path $compressedFolder)) { New-Item -ItemType Directory -Path $compressedFolder | Out-Null }\n`;
+  s += `$okCount = 0; $failCount = 0; $skipCount = 0\n\n`;
+  lastSortedForCompress.forEach(clip => {
+    const group = psQuote(clip.group);
+    const n = psQuote(clip.name);
+    s += `$inDir = Join-Path $folder "${group}"\n$in = Join-Path $inDir "${n}"\n`;
+    s += `$outDir = Join-Path $compressedFolder "${group}"\nif (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }\n`;
+    s += `$out = Join-Path $outDir "${n}"\n`;
+    s += `if ((Test-Path $out) -and (Get-Item $out).Length -gt 0) {\n`;
+    s += `  $skipCount++\n  Write-Host "SKIP (already done): ${group}/${n}" -ForegroundColor Cyan\n`;
+    s += `} elseif (-not (Test-Path $in)) {\n`;
+    s += `  Write-Host "SKIP (source missing): ${group}/${n}" -ForegroundColor DarkGray\n`;
+    s += `} else {\n`;
+    s += `  ffmpeg -y -i "$in" ${codec} -c:a copy "$out" -hide_banner -loglevel error\n`;
+    s += `  if ($LASTEXITCODE -eq 0 -and (Test-Path $out) -and (Get-Item $out).Length -gt 0) {\n    $okCount++\n    Write-Host "OK: ${group}/${n}" -ForegroundColor Green\n`;
+    s += `  } else {\n    $failCount++\n    Write-Host "FAILED: ${group}/${n}" -ForegroundColor Red\n    if (Test-Path $out) { Remove-Item $out -Force -ErrorAction SilentlyContinue }\n  }\n`;
+    s += `}\n\n`;
+  });
+  s += `Write-Host "Done. $okCount compressed, $skipCount already done, $failCount failed. Output: $compressedFolder"\n`;
+  s += `Read-Host "Press Enter to close"\n`;
+  $("scriptOutputSortCompress").value = s;
+}
+function showCompressStepForSorted(succeeded) {
+  lastSortedForCompress = succeeded;
+  $("compressStepBox").style.display = "block";
+  if (!$("sortCompressParentPath").value.trim() && $("rotFolderPath").value.trim()) {
+    $("sortCompressParentPath").value = $("rotFolderPath").value.trim();
+  }
+  renderSortCompressFileList();
+  generateSortCompressScript();
+}
+$("sortCompressParentPath").addEventListener("input", generateSortCompressScript);
+$("sortCompressQuality").addEventListener("change", generateSortCompressScript);
+$("sortCompressUseGpu").addEventListener("change", generateSortCompressScript);
+$("copyBtnSortCompress").addEventListener("click", () => {
+  navigator.clipboard.writeText($("scriptOutputSortCompress").value).then(() => alert("Copied."));
+});
+$("downloadBtnSortCompress").addEventListener("click", () => downloadText($("scriptOutputSortCompress").value, "compress-sorted-clips.ps1"));
+$("downloadBatSortCompress").addEventListener("click", () => downloadBatLauncher("compress-sorted-clips.ps1"));
 $("sortSendBtn").addEventListener("click", runSort);
 
 /* ---------- TAB 3 fallback (non-Chromium) ---------- */
