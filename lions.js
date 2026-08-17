@@ -11,7 +11,7 @@
   // ONE Apps Script Web App for the whole app. Every page posts here
   // with a `type` field; the script routes it to the right sheet tab.
   // See APPS-SCRIPT.gs for the code to paste into Google Apps Script.
-  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbw8lyjWPV2PZYNGLySl9G8WFhVvn0fMnjEKuT_6kQ0dUL7Pq7wBDuVNdM1GoJB8JuwO/exec';
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWW_jOP8hthumnYI9nLbIMQmRqtHX5bCB07HC5wko2JfCvrFHaU5V4erxk1tXkR0gJ/exec';
 
   var SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';
 
