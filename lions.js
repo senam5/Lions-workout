@@ -8,24 +8,10 @@
   'use strict';
 
   // ── BACKEND ──────────────────────────────────────────────
-  // ONE Apps Script Web App for most of the app. Every page posts here
+  // ONE Apps Script Web App for the whole app. Every page posts here
   // with a `type` field; the script routes it to the right sheet tab.
   // See APPS-SCRIPT.gs for the code to paste into Google Apps Script.
-  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWW_jOP8hthumnYI9nLbIMQmRqtHX5bCB07HC5wko2JfCvrFHaU5V4erxk1tXkR0gJ/exec';
-
-  // Air Bike Challenge (Phase 4) runs on its OWN Apps Script deployment,
-  // deliberately separate from ENDPOINT above — different code, own
-  // deploy, so nothing there can ever break the main script or vice
-  // versa. It writes into the same spreadsheet (SHEET_ID), just its own
-  // "airbike" tab. Paste the /exec URL from that deployment here.
-  var AIRBIKE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxixs_yVoXJwvUsw-X49KuEDhNaD2T_dHRuznVdBGZ3xpXyTJbr2ZixlafGdKGDyNAJ/exec';
-
-  // Sponsors & Ideas (Command Center + sponsor inquiry form) run on their
-  // OWN standalone Apps Script deployment too, same reasoning as
-  // AIRBIKE_ENDPOINT above — isolated from the main script, same
-  // spreadsheet. See APPS-SCRIPT-SPONSORS.gs. Paste the /exec URL from
-  // that deployment here once it's set up.
-  var SPONSORS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw8lyjWPV2PZYNGLySl9G8WFhVvn0fMnjEKuT_6kQ0dUL7Pq7wBDuVNdM1GoJB8JuwO/exec';
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbw8lyjWPV2PZYNGLySl9G8WFhVvn0fMnjEKuT_6kQ0dUL7Pq7wBDuVNdM1GoJB8JuwO/exec';
 
   var SHEET_ID = '1cMS_SsCb_itVpzQyi5wRgNsuZSwVaT4imIe3QwF7HPc';
 
@@ -324,15 +310,7 @@
   // across browsers. Pull the pieces out by hand instead and build the
   // date from numeric components, which every engine handles the same way.
   function parseStamp(s) {
-    // Accepts both "...Aug 14, 2026, 00:34" (what stamp() produces) and
-    // "...Aug 14, 2026 at 00:34" (what the cell looks like after Google
-    // Sheets silently recognizes the appended string as a date and
-    // re-renders it in its own locale format on read-back). Without the
-    // "at" alternative, every row Sheets has reformatted this way fails
-    // to parse and gets silently dropped during syncShotHistory — this
-    // is the root cause of "saved shots not showing in the app" on a
-    // fresh device/browser.
-    var m = /,\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})(?:,|\s+at)\s*(\d{1,2}):(\d{2})/.exec(String(s || ''));
+    var m = /,\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})/.exec(String(s || ''));
     if (!m) return null;
     var mi = STAMP_MONTHS.indexOf(m[1]);
     if (mi === -1) return null;
@@ -396,13 +374,7 @@
   }
   function getRunLog() { return jsonGet(K_RUNLOG, []); }
 
-  /**
-   * Pull this player's run history back from the sheet, same reasoning
-   * as syncShotHistory above. Requires a "myruns" action on the Apps
-   * Script (see APPS-SCRIPT.gs) — the deployed script only exposes
-   * "myshots" today, which is why runs never come back to a fresh
-   * device even though they save correctly.
-   */
+  /** Same idea as syncShotHistory, for runs — see that function for why. */
   function syncRunHistory(player, cb) {
     var name = String(player || '').trim();
     if (!name) { if (cb) cb(); return; }
@@ -535,11 +507,10 @@
   }
 
   // ── POSTING ──────────────────────────────────────────────
-  // Fire-and-forget to the shared endpoint (or a different one, e.g.
-  // AIRBIKE_ENDPOINT, if the caller passes it). `mode:'no-cors'` means we
+  // Fire-and-forget to the shared endpoint. `mode:'no-cors'` means we
   // never see the response, so treat a resolved promise as "sent".
-  function post(payload, endpoint) {
-    return fetch(endpoint || ENDPOINT, {
+  function post(payload) {
+    return fetch(ENDPOINT, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
@@ -609,7 +580,7 @@
     opts = opts || {};
     saving(opts.title || 'Saving…');
     var started = Date.now();
-    return post(payload, opts.endpoint)
+    return post(payload)
       .then(function () {
         // Hold the spinner briefly so it registers as a real save.
         var wait = Math.max(0, 600 - (Date.now() - started));
@@ -704,12 +675,6 @@
     return String(n || '').split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
   }
 
-  // ── MONTH KEY ────────────────────────────────────────────
-  function monthKey(d) {
-    var dt = d ? new Date(d) : new Date();
-    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
-  }
-
   // ── LAST SESSION ─────────────────────────────────────────
   // What this player did last, straight from the sheet, so they can
   // pick up where they left off instead of guessing.
@@ -723,8 +688,6 @@
   // ── EXPORT ───────────────────────────────────────────────
   global.Lions = {
     ENDPOINT: ENDPOINT,
-    AIRBIKE_ENDPOINT: AIRBIKE_ENDPOINT,
-    SPONSORS_ENDPOINT: SPONSORS_ENDPOINT,
     SHEET_ID: SHEET_ID,
     BASE_ROSTER: BASE_ROSTER,
     ADD_VALUE: ADD_VALUE,
@@ -762,16 +725,14 @@
 
     weekKey: weekKey,
     weekLabel: weekLabel,
-    monthKey: monthKey,
     stamp: stamp,
-    parseStamp: parseStamp,
 
     addShotSession: addShotSession,
     getShotLog: getShotLog,
     syncShotHistory: syncShotHistory,
-    syncRunHistory: syncRunHistory,
     addRunSession: addRunSession,
     getRunLog: getRunLog,
+    syncRunHistory: syncRunHistory,
     weekMakes: weekMakes,
     shotStreak: shotStreak,
     personalBests: personalBests,

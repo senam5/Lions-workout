@@ -17,13 +17,6 @@
  *      weights      Date | Player | Group | Phase | Week | Day
  *
  * Re-deploy (Deploy → Manage deployments → edit → Version: New) after any change.
- *
- * CHANGES IN THIS VERSION (2026-08-14, via Claude):
- *   - Added a "myruns" GET action, mirroring "myshots". Without it,
- *     run.html has no way to pull a player's run history back from the
- *     sheet, so runs only ever showed up on the exact device they were
- *     logged on — this is the "runs not showing" bug from the Ideas
- *     board. lions.js and run.html already call it after this change.
  */
 
 /**
@@ -298,24 +291,21 @@ function doGet(e) {
     return json(mine);
   }
 
-  // One player's own run history — no password needed, mirrors
-  // "myshots" above. Added because lions.js/run.html had no way to
-  // pull a player's runs back from the sheet: runs saved correctly but
-  // only ever displayed on the exact device they were logged from.
+  // Same idea as myshots, for runs — one player's own run history.
   if (action === 'myruns') {
     var meNameR = cleanName(e.parameter.player);
     if (!meNameR) return json([]);
-    var mineR = rowsOf(ss, 'runs')
+    var mineRuns = rowsOf(ss, 'runs')
       .filter(function (r) { return String(r.player || '').trim().toLowerCase() === meNameR.toLowerCase(); })
       .map(function (r) {
         return {
           date: r.date,
-          runType: r.runType || '',
           distanceKm: Number(r.distanceKm) || 0,
-          durationMin: Number(r.durationMin) || 0
+          durationMin: Number(r.durationMin) || 0,
+          runType: r.runType || ''
         };
       });
-    return json(mineR);
+    return json(mineRuns);
   }
 
   // ── Coach-only: the full data dumps ──
@@ -479,11 +469,11 @@ function rowsOf(ss, name) {
     o.midPct    = col(row, ['Mid%', 'Mid %', 'MidPct', 'Mid Pct']);
     o.ftPct     = col(row, ['FT%', 'FT %', 'FtPct', 'Ft Pct']);
     o.threesMade = col(row, ['3Made', 'ThreesMade', 'Threes Made']);
-    o.threesAtt  = col(row, ['3Att', 'ThreesAtt', 'Threes Att']);
+    o.threesAtt  = col(row, ['3Att', 'ThreesAtt', 'Threes Att', 'Threes Attempted', 'ThreesAttempted']);
     o.midMade    = col(row, ['MidMade', 'Mid Made']);
-    o.midAtt     = col(row, ['MidAtt', 'Mid Att']);
+    o.midAtt     = col(row, ['MidAtt', 'Mid Att', 'Mid Attempted', 'MidAttempted']);
     o.ftMade     = col(row, ['FTMade', 'FT Made']);
-    o.ftAtt      = col(row, ['FTAtt', 'FT Att']);
+    o.ftAtt      = col(row, ['FTAtt', 'FT Att', 'FT Attempted', 'FTAttempted']);
     return o;
   }).filter(function (o) { return o.player; });
 }
