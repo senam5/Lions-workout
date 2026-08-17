@@ -1347,12 +1347,12 @@ speedOverrideSlider.addEventListener("input", () => { speedOverrideLabel.textCon
    =================================================================== */
 const VIDEO_EXT = /\.(mp4|mov|m4v|avi|mkv|3gp|mts|m2ts|webm)$/i;
 
+function switchToTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tabpanel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tab));
+}
 document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const tab = btn.dataset.tab;
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b === btn));
-    document.querySelectorAll(".tabpanel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tab));
-  });
+  btn.addEventListener("click", () => switchToTab(btn.dataset.tab));
 });
 
 function firstWordGroup(filename) {
@@ -1794,6 +1794,7 @@ let reviewDiscardStack = []; // clips currently sitting in _Discarded, most rece
 let reviewVideoUrl = null;
 let reviewHistory = [];      // every reviewed clip, most recent last: {id, name, handle, decision}
 let reviewHistoryNextId = 1;
+let reviewAutoSortDone = false; // guards against re-firing the auto-sort chain more than once per completion
 
 function reviewSetVideo(file) {
   if (reviewVideoUrl) URL.revokeObjectURL(reviewVideoUrl);
@@ -1830,6 +1831,7 @@ async function loadReviewFolder(dir) {
   reviewKeptCount = 0; reviewDiscardedCount = 0;
   reviewDiscardStack = [];
   reviewHistory = [];
+  reviewAutoSortDone = false;
   $("reviewUndoBtn").disabled = true;
   $("reviewBody").style.display = "block";
   $("reviewLog").style.display = "block";
@@ -1874,6 +1876,7 @@ async function goBackToHistoryEntry(id) {
   if (idx === -1) return;
   const entry = reviewHistory[idx];
   try {
+    reviewAutoSortDone = false; // this clip needs a fresh decision, so the auto-sort chain should fire again once it does
     if (entry.decision === "kept") {
       reviewQueue.unshift({ name: entry.name, handle: entry.handle });
       reviewKeptCount--;
@@ -1913,6 +1916,7 @@ function showCurrentReviewClip() {
     $("reviewKeepBtn").disabled = true;
     $("reviewDiscardBtn").disabled = true;
     $("reviewEmptyState").style.display = reviewTotal ? "block" : "none";
+    if (reviewTotal && !reviewAutoSortDone) autoChainReviewToSort();
     return;
   }
   $("reviewEmptyState").style.display = "none";
@@ -1922,6 +1926,31 @@ function showCurrentReviewClip() {
   const entry = reviewQueue[0];
   entry.handle.getFile().then(reviewSetVideo);
   $("reviewNameInput").value = entry.name;
+}
+
+/* Level 1 of the auto-ingest pipeline: the moment Review's queue empties,
+   run Sort on that same folder automatically — no re-picking the folder,
+   no extra click. Only Kept clips are still sitting in reviewDir at this
+   point (Discarded ones already moved to _Discarded), so Sort only ever
+   picks up what you actually kept. */
+async function autoChainReviewToSort() {
+  reviewAutoSortDone = true;
+  sortSourceDir = reviewDir;
+  $("sourcePathLabel").textContent = reviewDir.name;
+  $("sortInPlace").checked = true;
+  $("pickDestBtn").disabled = true;
+  await refreshSortPreview();
+  if (!sortEntries.length) return; // nothing was kept — nothing to sort
+  const { ok, fail } = await runSort();
+  appendLogLine($("reviewLog"), "ok", `Review complete — auto-sorted ${ok} clip${ok === 1 ? "" : "s"} into subfolders` + (fail ? ` (${fail} failed, see Sort tab)` : "") + ".");
+  $("reviewLog").scrollTop = $("reviewLog").scrollHeight;
+  // Sorted clips have moved out from under the handles Review was tracking —
+  // drop them from history so "Go Back" isn't offered on a file that's no
+  // longer where the app expects it. Discarded entries are untouched by Sort
+  // (they never left _Discarded), so those stay reversible as before.
+  reviewHistory = reviewHistory.filter(h => h.decision !== "kept");
+  renderReviewHistory();
+  switchToTab("sort");
 }
 
 $("reviewPickBtn").addEventListener("click", async () => {
@@ -2056,9 +2085,12 @@ $("pickDestBtn").addEventListener("click", async () => {
   } catch (e) { /* cancelled */ }
 });
 
-$("sortSendBtn").addEventListener("click", async () => {
+/* Pulled out of the button handler so the Review tab can trigger the same
+   move logic automatically once you finish reviewing a folder, without
+   duplicating it. Returns {ok, fail} so a caller can log a summary. */
+async function runSort() {
   const dest = sortDestination();
-  if (!sortSourceDir || !dest) return;
+  if (!sortSourceDir || !dest) return { ok: 0, fail: 0 };
   const logEl = $("sortLog");
   logEl.style.display = "block";
   logEl.innerHTML = "";
@@ -2088,7 +2120,9 @@ $("sortSendBtn").addEventListener("click", async () => {
   }
   appendLogLine(logEl, "", "Done. " + ok + " sorted, " + fail + " failed.");
   await refreshSortPreview();
-});
+  return { ok, fail };
+}
+$("sortSendBtn").addEventListener("click", runSort);
 
 /* ---------- TAB 3 fallback (non-Chromium) ---------- */
 let sortFallbackClips = [];
