@@ -393,6 +393,10 @@
           <button class="btn" id="downloadBtnSortCompress" disabled>Download .ps1</button>
           <button class="btn gold" id="downloadBatSortCompress" disabled>Download Launcher (.bat) — double-click this</button>
         </div>
+
+        <p class="hint" style="margin-top:16px; margin-bottom:8px;">Once you've run that script (double-click the .bat, wait for it to finish):</p>
+        <button class="btn gold" id="loadCompressedBtn">4. Load Compressed Clips for Watermarking →</button>
+        <p class="hint" id="loadCompressedStatus" style="margin-top:8px;"></p>
       </div>
 
       <div id="sortFallback" style="display:none;">
@@ -2246,6 +2250,46 @@ $("copyBtnSortCompress").addEventListener("click", () => {
 });
 $("downloadBtnSortCompress").addEventListener("click", () => downloadText($("scriptOutputSortCompress").value, "compress-sorted-clips.ps1"));
 $("downloadBatSortCompress").addEventListener("click", () => downloadBatLauncher("compress-sorted-clips.ps1"));
+
+/* Level 3 of the auto-ingest pipeline: Compress → Watermark. Compression
+   itself runs outside the browser (the script above), so there's a real gap
+   here the browser can't see across — no event fires when that script
+   finishes. What it CAN do: since sortSourceDir already grants read/write
+   access to this whole folder tree, once the "Compressed" subfolder exists
+   on disk (i.e. you've run the script), it can be opened directly through
+   that existing handle — zero extra folder-picker prompts — and every clip
+   inside gets loaded straight into the Watermark & Send queue. */
+$("loadCompressedBtn").addEventListener("click", async () => {
+  const statusEl = $("loadCompressedStatus");
+  if (!sortSourceDir) {
+    statusEl.textContent = "No sorted folder in this session yet — run Sort first.";
+    return;
+  }
+  statusEl.textContent = "Looking for the Compressed folder…";
+  let compressedDir;
+  try {
+    compressedDir = await sortSourceDir.getDirectoryHandle("Compressed");
+  } catch (e) {
+    statusEl.textContent = "Compressed folder not found yet — download and run the script above first, then click this again.";
+    return;
+  }
+  const files = [];
+  for await (const [groupName, groupHandle] of compressedDir.entries()) {
+    if (groupHandle.kind !== "directory") continue;
+    for await (const [name, fileHandle] of groupHandle.entries()) {
+      if (fileHandle.kind === "file" && VIDEO_EXT.test(name)) {
+        files.push(await fileHandle.getFile());
+      }
+    }
+  }
+  if (!files.length) {
+    statusEl.textContent = "Compressed folder exists but has no clips in it yet — the script may still be running.";
+    return;
+  }
+  addFiles(files);
+  statusEl.textContent = `Loaded ${files.length} clip${files.length === 1 ? "" : "s"} into Watermark & Send.`;
+  switchToTab("process");
+});
 $("sortSendBtn").addEventListener("click", runSort);
 
 /* ---------- TAB 3 fallback (non-Chromium) ---------- */
