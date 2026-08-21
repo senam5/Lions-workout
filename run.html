@@ -211,11 +211,11 @@
       <p class="section-sub">Use whatever app or watch you already run with — then drop the numbers here.</p>
       <div class="log-field">
         <label class="label" for="log-dist">Distance (km)</label>
-        <input class="input input-mono" id="log-dist" type="number" step="0.01" min="0" placeholder="5.2" inputmode="decimal">
+        <input class="input input-mono" id="log-dist" type="text" placeholder="5.2" inputmode="decimal">
       </div>
       <div class="log-field">
         <label class="label" for="log-time">Time (minutes)</label>
-        <input class="input input-mono" id="log-time" type="number" step="0.1" min="0" placeholder="28" inputmode="decimal">
+        <input class="input input-mono" id="log-time" type="text" placeholder="28" inputmode="decimal">
       </div>
       <div class="pace-readout">
         <div class="pace-val" id="pace-val">—</div>
@@ -474,10 +474,6 @@ function initGate() {
   btn.addEventListener('click', function () {
     if (!sel.value || sel.value === Lions.ADD_VALUE) return;
     Lions.setPlayer(sel.value);
-    // Pull this player's real run history back from the sheet, same as
-    // player-workout.html does for shots — otherwise a fresh device
-    // only ever shows runs logged on that exact device.
-    Lions.syncRunHistory(sel.value);
     renderWho();
     goStep('time');
   });
@@ -849,9 +845,14 @@ function wireGuidedControls() {
 }
 
 // ═══ STEP 4: LOG ═════════════════════════════════════════
+// Text inputs (not type="number") so a French-keyboard comma decimal
+// doesn't get silently rejected by the browser before this ever runs.
+function parseDecimal(str) {
+  return parseFloat(String(str || '').trim().replace(',', '.'));
+}
 function paceString() {
-  var d = parseFloat(document.getElementById('log-dist').value);
-  var m = parseFloat(document.getElementById('log-time').value);
+  var d = parseDecimal(document.getElementById('log-dist').value);
+  var m = parseDecimal(document.getElementById('log-time').value);
   if (!d || !m || d <= 0 || m <= 0) return '';
   var p = m / d, mm = Math.floor(p), ss = Math.round((p - mm) * 60);
   if (ss === 60) { mm++; ss = 0; }
@@ -862,8 +863,8 @@ function updatePace() {
 }
 
 function submitRun() {
-  var dist = parseFloat(document.getElementById('log-dist').value);
-  var mins = parseFloat(document.getElementById('log-time').value);
+  var dist = parseDecimal(document.getElementById('log-dist').value);
+  var mins = parseDecimal(document.getElementById('log-time').value);
   if (!dist || !mins || dist <= 0 || mins <= 0) { Lions.toast('Enter distance and time'); return; }
 
   var name = Lions.getPlayer() || 'Anonymous';
@@ -953,9 +954,6 @@ initGate();
 renderTimePresets();
 renderTypes();
 renderWho();
-// Returning player on a fresh/cleared device — pull their run history
-// back from the sheet, same as the shots page does on load.
-if (Lions.getPlayer()) Lions.syncRunHistory(Lions.getPlayer());
 goStep(Lions.getPlayer() ? 'time' : 'name');
 </script>
 </body>
