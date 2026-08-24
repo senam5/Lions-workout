@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receivables</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="add.html">Add</a>
+    <a href="history.html">History</a>
+    <a href="invoices.html">Invoices</a>
+    <a href="receivables.html" class="active">Receivables</a>
+  </nav>
+  <h1>Receivables</h1>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">OUTSTANDING</p>
+    <p id="outstanding" style="font-size:28px;margin:0;">–</p>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 10px;">NEW RECEIVABLE</p>
+
+    <label>Who owes you</label>
+    <input id="owed-by" type="text" placeholder="e.g. Cégep Saint-Laurent">
+
+    <label>Their email (optional, for the invoice)</label>
+    <input id="owed-email" type="email" placeholder="billing@example.com">
+
+    <label>Amount ($)</label>
+    <input id="amount" type="number" min="0" step="0.01" placeholder="0.00">
+
+    <label>What's it for?</label>
+    <input id="description" type="text" placeholder="e.g. Gym rental reimbursement">
+
+    <label>Category</label>
+    <select id="category">
+      <option>Tournois</option>
+      <option>Contenu / Média</option>
+      <option>Équipement</option>
+      <option>Autre</option>
+    </select>
+
+    <label>Due date (optional)</label>
+    <input id="due-date" type="date">
+
+    <button id="add-btn">Add receivable</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">PENDING</p>
+    <div id="pending-list"></div>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">PAID</p>
+    <div id="paid-list"></div>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  function fmtMoney(n) { return '$' + Number(n).toFixed(2); }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  document.getElementById('add-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const { data: { session } } = await sb.auth.getSession();
+
+    const owedBy = document.getElementById('owed-by').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    if (!owedBy || amount <= 0) {
+      status.textContent = 'Enter who owes you and a valid amount.';
+      return;
+    }
+
+    const row = {
+      user_id: session.user.id,
+      owed_by: owedBy,
+      owed_by_email: document.getElementById('owed-email').value.trim() || null,
+      amount,
+      description: document.getElementById('description').value.trim(),
+      category: document.getElementById('category').value,
+      due_date: document.getElementById('due-date').value || null
+    };
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('receivables').insert(row);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Added.';
+    if (!error) {
+      document.getElementById('owed-by').value = '';
+      document.getElementById('owed-email').value = '';
+      document.getElementById('amount').value = '';
+      document.getElementById('description').value = '';
+      document.getElementById('due-date').value = '';
+      load();
+    }
+  });
+
+  async function markPaid(id) {
+    await sb.from('receivables').update({ status: 'paid' }).eq('id', id);
+    load();
+  }
+
+  async function markPending(id) {
+    await sb.from('receivables').update({ status: 'pending' }).eq('id', id);
+    load();
+  }
+
+  async function load() {
+    await requireSession();
+
+    const { data: receivables, error } = await sb.from('receivables').select('*').order('due_date', { ascending: true });
+    const pendingList = document.getElementById('pending-list');
+    const paidList = document.getElementById('paid-list');
+
+    if (error) {
+      pendingList.innerHTML = '<p class="muted">Could not load: ' + error.message + '</p>';
+      return;
+    }
+
+    const pending = (receivables || []).filter((r) => r.status === 'pending');
+    const paid = (receivables || []).filter((r) => r.status === 'paid');
+
+    document.getElementById('outstanding').textContent = fmtMoney(pending.reduce((s, r) => s + Number(r.amount), 0));
+
+    pendingList.innerHTML = pending.length ? '' : '<p class="muted">Nothing outstanding.</p>';
+    for (const r of pending) {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:12px 0;border-bottom:1px solid var(--line);';
+      row.innerHTML =
+        '<div style="display:flex;justify-content:space-between;">' +
+          '<strong>' + escapeHtml(r.owed_by) + '</strong><span>' + fmtMoney(r.amount) + '</span>' +
+        '</div>' +
+        '<div class="muted" style="margin:4px 0;">' + escapeHtml(r.description) + ' · ' + escapeHtml(r.category) +
+          (r.due_date ? ' · due ' + r.due_date : '') + '</div>' +
+        '<div class="row" style="margin-top:8px;">' +
+          '<button class="secondary invoice-btn">Generate invoice</button>' +
+          '<button class="paid-btn">Mark paid</button>' +
+        '</div>';
+      row.querySelector('.invoice-btn').addEventListener('click', () => {
+        window.open('invoice.html?id=' + r.id, '_blank');
+      });
+      row.querySelector('.paid-btn').addEventListener('click', () => markPaid(r.id));
+      pendingList.appendChild(row);
+    }
+
+    paidList.innerHTML = paid.length ? '' : '<p class="muted">None yet.</p>';
+    for (const r of paid) {
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      row.style.cursor = 'pointer';
+      row.innerHTML =
+        '<span>' + escapeHtml(r.owed_by) + ' · ' + escapeHtml(r.description) + '</span>' +
+        '<span>' + fmtMoney(r.amount) + ' ✓</span>';
+      row.addEventListener('click', () => markPending(r.id));
+      row.title = 'Tap to move back to pending';
+      paidList.appendChild(row);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

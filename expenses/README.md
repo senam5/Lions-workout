@@ -21,6 +21,12 @@ email/password.
   storage policies for the invoice-attachments bucket
 - `supabase/migrate_notion_invoices.sql` — one-time import of the old
   Notion expense tracker (already run)
+- `receivables.html` — track money owed **to** Lions (requires sign-in):
+  add who owes you, how much, and for what; mark paid/pending.
+- `invoice.html` — opened from a "Generate invoice" button on Receivables;
+  renders a clean printable invoice for one receivable. Use your browser's
+  print dialog → "Save as PDF" to get a file to send.
+- `supabase/receivables_schema.sql` — the `receivables` table + policies
 
 ## One-time setup (in addition to what shoot-run-app already needs)
 
@@ -35,6 +41,7 @@ email/password.
    also **private**. This one intentionally allows anonymous uploads
    (anyone with the `submit.html` link can attach a file), but only your
    signed-in account can read from it.
+6. Run `supabase/receivables_schema.sql` for the Receivables tab.
 
 ## Explicitly not in V1
 
