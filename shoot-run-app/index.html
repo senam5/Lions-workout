@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shoot + Run</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>🏀 Shoot + Run</h1>
+
+  <div class="card" id="signed-out">
+    <p class="muted">Sign in to log a shooting session or a run, and see your history from any device.</p>
+    <button id="apple-btn">Sign in with Apple</button>
+    <p class="muted" style="margin-top:14px;">
+      Apple sign-in needs to be enabled in your Supabase project
+      (Authentication &gt; Providers &gt; Apple) before this button works.
+    </p>
+  </div>
+
+  <div class="card" id="signed-in" style="display:none;">
+    <p>Signed in as <strong id="who"></strong></p>
+    <button onclick="location.href='shoot.html'">Log a shooting session</button>
+    <button onclick="location.href='run.html'">Log a run</button>
+    <button onclick="location.href='history.html'">View history</button>
+    <button class="secondary" id="signout-btn">Sign out</button>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  async function refresh() {
+    const { data: { session } } = await supabase.auth.getSession();
+    document.getElementById('signed-out').style.display = session ? 'none' : '';
+    document.getElementById('signed-in').style.display = session ? '' : 'none';
+    if (session) document.getElementById('who').textContent = session.user.email || session.user.id;
+  }
+
+  document.getElementById('apple-btn').addEventListener('click', async () => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
+    if (error) alert('Sign-in failed: ' + error.message);
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', signOut);
+
+  supabase.auth.onAuthStateChange(refresh);
+  refresh();
+</script>
+</body>
+</html>

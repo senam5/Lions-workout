@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="history.html" class="active">History</a>
+  </nav>
+  <h1>Your history</h1>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">CAREER MAKES</p>
+    <p id="career-makes" style="font-size:28px;margin:0;">–</p>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">SHOOTING SESSIONS</p>
+    <div id="shots-list"></div>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">RUNS</p>
+    <div id="runs-list"></div>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  async function load() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const [{ data: shots }, { data: runs }] = await Promise.all([
+      supabase.from('shots').select('*').order('created_at', { ascending: false }),
+      supabase.from('runs').select('*').order('created_at', { ascending: false })
+    ]);
+
+    const shotsList = document.getElementById('shots-list');
+    const runsList = document.getElementById('runs-list');
+
+    let career = 0;
+    if (shots && shots.length) {
+      shotsList.innerHTML = shots.map((s) => {
+        const makes = s.threes_makes + s.mid_makes + s.ft_makes;
+        const attempts = s.threes_attempts + s.mid_attempts + s.ft_attempts;
+        career += makes;
+        return '<div class="history-item"><span>' + fmtDate(s.created_at) + '</span>' +
+          '<span>' + makes + ' / ' + attempts + ' makes</span></div>';
+      }).join('');
+    } else {
+      shotsList.innerHTML = '<p class="muted">No sessions yet.</p>';
+    }
+    document.getElementById('career-makes').textContent = career;
+
+    runsList.innerHTML = (runs && runs.length)
+      ? runs.map((r) => '<div class="history-item"><span>' + fmtDate(r.created_at) + ' · ' + r.run_type + '</span>' +
+          '<span>' + r.distance_km + ' km · ' + r.duration_min + ' min</span></div>').join('')
+      : '<p class="muted">No runs yet.</p>';
+  }
+
+  load();
+</script>
+</body>
+</html>
