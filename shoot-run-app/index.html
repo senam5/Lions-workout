@@ -12,10 +12,20 @@
 
   <div class="card" id="signed-out">
     <p class="muted">Sign in to log a shooting session or a run, and see your history from any device.</p>
-    <button id="apple-btn">Sign in with Apple</button>
-    <p class="muted" style="margin-top:14px;">
-      Apple sign-in needs to be enabled in your Supabase project
-      (Authentication &gt; Providers &gt; Apple) before this button works.
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+    <button id="signin-btn">Sign in</button>
+    <button class="secondary" id="signup-btn">Create account</button>
+    <p class="muted" id="auth-status" style="margin-top:12px;"></p>
+
+    <p class="muted" style="margin-top:20px;">
+      "Sign in with Apple" will replace this once it's enabled in
+      Supabase (Authentication &gt; Providers &gt; Apple) and you have
+      an Apple Developer account.
     </p>
   </div>
 
@@ -36,9 +46,25 @@
     if (session) document.getElementById('who').textContent = session.user.email || session.user.id;
   }
 
-  document.getElementById('apple-btn').addEventListener('click', async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
-    if (error) alert('Sign-in failed: ' + error.message);
+  function creds() {
+    return {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value
+    };
+  }
+
+  document.getElementById('signin-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Signing in…';
+    const { error } = await supabase.auth.signInWithPassword(creds());
+    status.textContent = error ? error.message : '';
+  });
+
+  document.getElementById('signup-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Creating account…';
+    const { error } = await supabase.auth.signUp(creds());
+    status.textContent = error ? error.message : 'Account created — check your email if confirmation is required, otherwise sign in above.';
   });
 
   document.getElementById('signout-btn').addEventListener('click', signOut);
