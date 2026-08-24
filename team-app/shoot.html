@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log Shots</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html" class="active">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
+  <h1>Log a shooting session</h1>
+  <p class="muted" id="goal-line"></p>
+
+  <div class="card">
+    <label>3-pointers</label>
+    <div class="row">
+      <input id="threes-makes" type="number" min="0" placeholder="makes">
+      <input id="threes-attempts" type="number" min="0" placeholder="attempts">
+    </div>
+
+    <label>Mid-range</label>
+    <div class="row">
+      <input id="mid-makes" type="number" min="0" placeholder="makes">
+      <input id="mid-attempts" type="number" min="0" placeholder="attempts">
+    </div>
+
+    <label>Free throws</label>
+    <div class="row">
+      <input id="ft-makes" type="number" min="0" placeholder="makes">
+      <input id="ft-attempts" type="number" min="0" placeholder="attempts">
+    </div>
+
+    <button id="save-btn">Save session</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  requireSession();
+
+  sb.from('season_settings').select('shot_goal, boost_goal').eq('id', 1).single().then(({ data }) => {
+    if (data) document.getElementById('goal-line').textContent =
+      'Weekly goal: ' + data.shot_goal + ' makes · boost at ' + data.boost_goal;
+  });
+
+  function n(id) { return Math.max(0, parseInt(document.getElementById(id).value, 10) || 0); }
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+
+    const row = {
+      player_id: session.user.id,
+      threes_makes: n('threes-makes'),
+      threes_attempts: n('threes-attempts'),
+      mid_makes: n('mid-makes'),
+      mid_attempts: n('mid-attempts'),
+      ft_makes: n('ft-makes'),
+      ft_attempts: n('ft-attempts')
+    };
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('shots').insert(row);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
+    if (!error) setTimeout(() => { location.href = 'leaderboard.html'; }, 600);
+  });
+</script>
+</body>
+</html>

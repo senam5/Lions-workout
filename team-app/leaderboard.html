@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaderboard</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="leaderboard.html" class="active">Leaderboard</a>
+  </nav>
+  <h1>Leaderboard</h1>
+  <p class="muted" id="week-line"></p>
+
+  <div class="card">
+    <div id="list"></div>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  const MILESTONES = [
+    { at: 500,  name: 'First 500',         icon: '🌱' },
+    { at: 1500, name: 'Rising',            icon: '🏀' },
+    { at: 3000, name: 'Midseason Grinder', icon: '🔥' },
+    { at: 4800, name: 'Season Crusher',    icon: '⭐' },
+    { at: 6500, name: 'Elite Shooter',     icon: '👑' }
+  ];
+  function milestoneFor(total) {
+    let hit = null;
+    for (const m of MILESTONES) if (total >= m.at) hit = m;
+    return hit;
+  }
+
+  function weekKey(d) {
+    const dt = d ? new Date(d) : new Date();
+    const day = (dt.getDay() + 6) % 7; // Mon=0 … Sun=6
+    dt.setHours(0, 0, 0, 0);
+    dt.setDate(dt.getDate() - day);
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  }
+  function weekLabel() {
+    const mon = new Date(weekKey());
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const f = (x) => x.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+    return f(mon) + ' – ' + f(sun);
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  async function load() {
+    await requireSession();
+    document.getElementById('week-line').textContent = 'This week: ' + weekLabel();
+
+    const [{ data: profiles }, { data: shots }, { data: settings }] = await Promise.all([
+      sb.from('profiles').select('*').eq('active', true),
+      sb.from('shots').select('*'),
+      sb.from('season_settings').select('*').eq('id', 1).single()
+    ]);
+
+    const goal = settings ? settings.shot_goal : 300;
+    const boost = settings ? settings.boost_goal : 400;
+    const thisWeek = weekKey();
+
+    const byPlayer = {};
+    for (const p of profiles || []) byPlayer[p.id] = { name: p.full_name, career: 0, week: 0 };
+
+    for (const s of shots || []) {
+      const entry = byPlayer[s.player_id];
+      if (!entry) continue;
+      const makes = s.threes_makes + s.mid_makes + s.ft_makes;
+      entry.career += makes;
+      if (weekKey(s.created_at) === thisWeek) entry.week += makes;
+    }
+
+    const ranked = Object.values(byPlayer).sort((a, b) => b.career - a.career);
+
+    const list = document.getElementById('list');
+    list.innerHTML = ranked.length ? '' : '<p class="muted">No players yet.</p>';
+
+    ranked.forEach((p, i) => {
+      const m = milestoneFor(p.career);
+      const hitGoal = p.week >= goal;
+      const boosted = p.week >= boost;
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      row.innerHTML =
+        '<span>#' + (i + 1) + ' ' + escapeHtml(p.name) + (m ? ' ' + m.icon : '') + '</span>' +
+        '<span>' + p.career + ' career · <span style="color:' + (boosted ? 'var(--lion)' : hitGoal ? 'var(--green)' : 'inherit') + ';">' + p.week + '/' + goal + '</span></span>';
+      list.appendChild(row);
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>

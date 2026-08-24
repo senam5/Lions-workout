@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log a Run</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html">Shoot</a>
+    <a href="run.html" class="active">Run</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
+  <h1>Log a run</h1>
+
+  <div class="card">
+    <label>Type</label>
+    <select id="run-type">
+      <option>Easy run</option>
+      <option>Tempo</option>
+      <option>Intervals</option>
+      <option>Long run</option>
+    </select>
+
+    <label>Planned time (minutes, optional)</label>
+    <input id="planned-min" type="number" min="0" placeholder="e.g. 30">
+
+    <label>Distance (km)</label>
+    <input id="distance" type="number" min="0" step="0.1" placeholder="e.g. 5.0">
+
+    <label>Duration (minutes)</label>
+    <input id="duration" type="number" min="0" placeholder="e.g. 28">
+
+    <button id="save-btn">Save run</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  requireSession();
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+
+    const distanceKm = parseFloat(document.getElementById('distance').value) || 0;
+    const durationMin = parseFloat(document.getElementById('duration').value) || 0;
+    const plannedMin = parseFloat(document.getElementById('planned-min').value) || null;
+    const pacePerKm = distanceKm > 0 ? Math.round((durationMin / distanceKm) * 100) / 100 : null;
+
+    const row = {
+      player_id: session.user.id,
+      run_type: document.getElementById('run-type').value,
+      planned_min: plannedMin,
+      distance_km: distanceKm,
+      duration_min: durationMin,
+      pace_per_km: pacePerKm
+    };
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('runs').insert(row);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
+    if (!error) setTimeout(() => { location.href = 'leaderboard.html'; }, 600);
+  });
+</script>
+</body>
+</html>

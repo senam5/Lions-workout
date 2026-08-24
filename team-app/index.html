@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lions</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <h1>🏀 Lions — Fall Season</h1>
+
+  <div class="card" id="signed-out">
+    <p class="muted">New here? Create an account with your real name. Already have one? Just sign in.</p>
+
+    <label>Full name (players only — used on the roster/leaderboard)</label>
+    <input id="full-name" type="text" placeholder="e.g. Thomas Lemay">
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+    <button id="signin-btn">Sign in</button>
+    <button class="secondary" id="signup-btn">Create account</button>
+    <p class="muted" id="auth-status" style="margin-top:12px;"></p>
+  </div>
+
+  <div class="card" id="signed-in" style="display:none;">
+    <p>Signed in as <strong id="who"></strong> <span class="muted" id="role-badge"></span></p>
+    <button onclick="location.href='shoot.html'">Log a shooting session</button>
+    <button onclick="location.href='run.html'">Log a run</button>
+    <button onclick="location.href='leaderboard.html'">Leaderboard</button>
+    <button id="coach-btn" style="display:none;" onclick="location.href='coach.html'">Coach dashboard</button>
+    <button class="secondary" id="signout-btn">Sign out</button>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after ' + (ms / 1000) + 's — check your connection.')), ms))
+    ]);
+  }
+
+  function creds() {
+    return {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value
+    };
+  }
+
+  async function refresh() {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('signed-out').style.display = session ? 'none' : '';
+    document.getElementById('signed-in').style.display = session ? '' : 'none';
+    if (!session) return;
+
+    document.getElementById('who').textContent = session.user.email;
+
+    const profile = await getMyProfile();
+    if (profile) {
+      document.getElementById('who').textContent = profile.full_name;
+      document.getElementById('role-badge').textContent = profile.role === 'coach' ? '(coach)' : '';
+      document.getElementById('coach-btn').style.display = profile.role === 'coach' ? '' : 'none';
+    }
+  }
+
+  document.getElementById('signin-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Signing in…';
+    try {
+      const { error } = await withTimeout(sb.auth.signInWithPassword(creds()), 10000);
+      status.textContent = error ? error.message : '';
+      if (!error) await refresh();
+    } catch (err) {
+      status.textContent = err.message;
+      console.error(err);
+    }
+  });
+
+  document.getElementById('signup-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    const fullName = document.getElementById('full-name').value.trim();
+    if (!fullName) {
+      status.textContent = 'Enter your full name first.';
+      return;
+    }
+
+    status.textContent = 'Creating account…';
+    try {
+      const { data, error } = await withTimeout(sb.auth.signUp(creds()), 10000);
+      if (error) {
+        status.textContent = error.message;
+        return;
+      }
+
+      // No email confirmation required (per project settings), so we have a
+      // session immediately and can create the matching profile row.
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        const { error: profileError } = await sb.from('profiles').insert({
+          id: session.user.id,
+          full_name: fullName
+        });
+        if (profileError) {
+          status.textContent = 'Account created, but could not save your profile: ' + profileError.message;
+          return;
+        }
+      }
+
+      status.textContent = 'Account created.';
+      await refresh();
+    } catch (err) {
+      status.textContent = err.message;
+      console.error(err);
+    }
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', signOut);
+
+  sb.auth.onAuthStateChange(refresh);
+  refresh();
+</script>
+</body>
+</html>
