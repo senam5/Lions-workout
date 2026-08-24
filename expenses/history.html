@@ -56,18 +56,66 @@
     list.innerHTML = '';
     for (const e of expenses) {
       const row = document.createElement('div');
-      row.className = 'history-item';
-      row.innerHTML =
+      row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--line);';
+
+      const topLine = document.createElement('div');
+      topLine.style.cssText = 'display:flex;justify-content:space-between;font-size:14px;';
+      topLine.innerHTML =
         '<span>' + fmtDate(e.spent_on) + ' · ' + escapeHtml(e.vendor || '(no vendor)') + ' <span class="muted">(' + escapeHtml(e.category) + ')</span></span>' +
-        '<span>' + fmtMoney(e.amount) + (e.receipt_path ? ' 📎' : '') + '</span>';
+        '<span>' + fmtMoney(e.amount) + '</span>';
+      row.appendChild(topLine);
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'margin-top:6px;';
 
       if (e.receipt_path) {
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', async () => {
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'secondary';
+        viewBtn.style.cssText = 'width:auto;padding:6px 10px;font-size:12px;margin-right:8px;';
+        viewBtn.textContent = '📎 View receipt';
+        viewBtn.addEventListener('click', async () => {
           const { data, error: urlError } = await sb.storage.from('receipts').createSignedUrl(e.receipt_path, 60);
           if (!urlError) window.open(data.signedUrl, '_blank');
         });
+        actions.appendChild(viewBtn);
       }
+
+      const attachBtn = document.createElement('button');
+      attachBtn.className = 'secondary';
+      attachBtn.style.cssText = 'width:auto;padding:6px 10px;font-size:12px;';
+      attachBtn.textContent = e.receipt_path ? 'Replace receipt' : '+ Attach receipt';
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*,.pdf';
+      fileInput.style.display = 'none';
+
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const { data: { session } } = await sb.auth.getSession();
+        const path = session.user.id + '/' + Date.now() + '-' + file.name;
+
+        attachBtn.textContent = 'Uploading…';
+        const { error: uploadError } = await sb.storage.from('receipts').upload(path, file);
+        if (uploadError) {
+          alert('Could not upload: ' + uploadError.message);
+          attachBtn.textContent = e.receipt_path ? 'Replace receipt' : '+ Attach receipt';
+          return;
+        }
+
+        const { error: updateError } = await sb.from('expenses').update({ receipt_path: path }).eq('id', e.id);
+        if (updateError) {
+          alert('Uploaded but could not link it: ' + updateError.message);
+          return;
+        }
+        load();
+      });
+
+      attachBtn.addEventListener('click', () => fileInput.click());
+      actions.appendChild(attachBtn);
+      actions.appendChild(fileInput);
+      row.appendChild(actions);
+
       list.appendChild(row);
     }
   }

@@ -21,6 +21,8 @@ create policy "expenses: owner insert" on public.expenses
   for insert with check (auth.uid() = user_id);
 create policy "expenses: owner delete" on public.expenses
   for delete using (auth.uid() = user_id);
+create policy "expenses: owner update" on public.expenses
+  for update using (auth.uid() = user_id);
 
 -- Storage: create a bucket for receipt photos.
 -- Do this in the dashboard instead of SQL: Storage > New bucket > name it
