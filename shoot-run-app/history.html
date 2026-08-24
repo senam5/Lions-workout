@@ -41,8 +41,8 @@
     if (!session) return;
 
     const [{ data: shots }, { data: runs }] = await Promise.all([
-      supabase.from('shots').select('*').order('created_at', { ascending: false }),
-      supabase.from('runs').select('*').order('created_at', { ascending: false })
+      sb.from('shots').select('*').order('created_at', { ascending: false }),
+      sb.from('runs').select('*').order('created_at', { ascending: false })
     ]);
 
     const shotsList = document.getElementById('shots-list');

@@ -40,7 +40,7 @@
 <script src="js/supabaseClient.js"></script>
 <script>
   async function refresh() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     document.getElementById('signed-out').style.display = session ? 'none' : '';
     document.getElementById('signed-in').style.display = session ? '' : 'none';
     if (session) document.getElementById('who').textContent = session.user.email || session.user.id;
@@ -64,7 +64,7 @@
     const status = document.getElementById('auth-status');
     status.textContent = 'Signing in…';
     try {
-      const { error } = await withTimeout(supabase.auth.signInWithPassword(creds()), 10000);
+      const { error } = await withTimeout(sb.auth.signInWithPassword(creds()), 10000);
       status.textContent = error ? error.message : '';
     } catch (err) {
       status.textContent = err.message;
@@ -76,7 +76,7 @@
     const status = document.getElementById('auth-status');
     status.textContent = 'Creating account…';
     try {
-      const { error } = await withTimeout(supabase.auth.signUp(creds()), 10000);
+      const { error } = await withTimeout(sb.auth.signUp(creds()), 10000);
       status.textContent = error ? error.message : 'Account created — check your email if confirmation is required, otherwise sign in above.';
     } catch (err) {
       status.textContent = err.message;
@@ -86,7 +86,7 @@
 
   document.getElementById('signout-btn').addEventListener('click', signOut);
 
-  supabase.auth.onAuthStateChange(refresh);
+  sb.auth.onAuthStateChange(refresh);
   refresh();
 </script>
 </body>

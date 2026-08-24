@@ -46,7 +46,7 @@
 
   document.getElementById('save-btn').addEventListener('click', async () => {
     const status = document.getElementById('status');
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
 
     const row = {
@@ -60,7 +60,7 @@
     };
 
     status.textContent = 'Saving…';
-    const { error } = await supabase.from('shots').insert(row);
+    const { error } = await sb.from('shots').insert(row);
     status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
     if (!error) setTimeout(() => { location.href = 'history.html'; }, 600);
   });
