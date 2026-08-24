@@ -53,18 +53,35 @@
     };
   }
 
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after ' + (ms / 1000) + 's — check your connection or Supabase project status.')), ms))
+    ]);
+  }
+
   document.getElementById('signin-btn').addEventListener('click', async () => {
     const status = document.getElementById('auth-status');
     status.textContent = 'Signing in…';
-    const { error } = await supabase.auth.signInWithPassword(creds());
-    status.textContent = error ? error.message : '';
+    try {
+      const { error } = await withTimeout(supabase.auth.signInWithPassword(creds()), 10000);
+      status.textContent = error ? error.message : '';
+    } catch (err) {
+      status.textContent = err.message;
+      console.error(err);
+    }
   });
 
   document.getElementById('signup-btn').addEventListener('click', async () => {
     const status = document.getElementById('auth-status');
     status.textContent = 'Creating account…';
-    const { error } = await supabase.auth.signUp(creds());
-    status.textContent = error ? error.message : 'Account created — check your email if confirmation is required, otherwise sign in above.';
+    try {
+      const { error } = await withTimeout(supabase.auth.signUp(creds()), 10000);
+      status.textContent = error ? error.message : 'Account created — check your email if confirmation is required, otherwise sign in above.';
+    } catch (err) {
+      status.textContent = err.message;
+      console.error(err);
+    }
   });
 
   document.getElementById('signout-btn').addEventListener('click', signOut);
