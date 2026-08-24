@@ -23,7 +23,7 @@ async function requireSession() {
 async function getMyProfile() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return null;
-  const { data, error } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+  const { data, error } = await sb.from('team_profiles').select('*').eq('id', session.user.id).single();
   if (error) return null;
   return data;
 }

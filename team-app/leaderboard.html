@@ -59,9 +59,9 @@
     document.getElementById('week-line').textContent = 'This week: ' + weekLabel();
 
     const [{ data: profiles }, { data: shots }, { data: settings }] = await Promise.all([
-      sb.from('profiles').select('*').eq('active', true),
-      sb.from('shots').select('*'),
-      sb.from('season_settings').select('*').eq('id', 1).single()
+      sb.from('team_profiles').select('*').eq('active', true),
+      sb.from('team_shots').select('*'),
+      sb.from('team_season_settings').select('*').eq('id', 1).single()
     ]);
 
     const goal = settings ? settings.shot_goal : 300;

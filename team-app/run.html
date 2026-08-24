@@ -61,7 +61,7 @@
     };
 
     status.textContent = 'Saving…';
-    const { error } = await sb.from('runs').insert(row);
+    const { error } = await sb.from('team_runs').insert(row);
     status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
     if (!error) setTimeout(() => { location.href = 'leaderboard.html'; }, 600);
   });

@@ -17,16 +17,19 @@ email/password.
   submission and it's automatically logged into `expenses`; reject to
   discard it. Also shows the exact link to share for `submit.html`.
 - `supabase/schema.sql` — the `expenses` table + storage policies
+  (includes the owner-update policy — this is the canonical, current
+  version of the schema; always run this one for a fresh setup)
 - `supabase/invoices_schema.sql` — the `invoice_submissions` table +
   storage policies for the invoice-attachments bucket
-- `supabase/migrate_notion_invoices.sql` — one-time import of the old
-  Notion expense tracker (already run)
+- `supabase/receivables_schema.sql` — the `receivables` table + policies
+- `supabase/archive/` — one-time migrations already run against the live
+  database, kept only as a record of where the data came from. Don't
+  re-run these against a fresh setup.
 - `receivables.html` — track money owed **to** Lions (requires sign-in):
   add who owes you, how much, and for what; mark paid/pending.
 - `invoice.html` — opened from a "Generate invoice" button on Receivables;
   renders a clean printable invoice for one receivable. Use your browser's
   print dialog → "Save as PDF" to get a file to send.
-- `supabase/receivables_schema.sql` — the `receivables` table + policies
 
 ## One-time setup (in addition to what shoot-run-app already needs)
 

@@ -43,7 +43,7 @@
 <script>
   requireSession();
 
-  sb.from('season_settings').select('shot_goal, boost_goal').eq('id', 1).single().then(({ data }) => {
+  sb.from('team_season_settings').select('shot_goal, boost_goal').eq('id', 1).single().then(({ data }) => {
     if (data) document.getElementById('goal-line').textContent =
       'Weekly goal: ' + data.shot_goal + ' makes · boost at ' + data.boost_goal;
   });
@@ -66,7 +66,7 @@
     };
 
     status.textContent = 'Saving…';
-    const { error } = await sb.from('shots').insert(row);
+    const { error } = await sb.from('team_shots').insert(row);
     status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
     if (!error) setTimeout(() => { location.href = 'leaderboard.html'; }, 600);
   });
