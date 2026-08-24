@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log an Expense</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="add.html" class="active">Add</a>
+    <a href="history.html">History</a>
+  </nav>
+  <h1>Log an expense</h1>
+
+  <div class="card">
+    <label>Vendor</label>
+    <input id="vendor" type="text" placeholder="e.g. Dick's Sporting Goods">
+
+    <label>Amount ($)</label>
+    <input id="amount" type="number" min="0" step="0.01" placeholder="0.00">
+
+    <label>Category</label>
+    <select id="category">
+      <option>Equipment</option>
+      <option>Travel</option>
+      <option>Facility / Gym</option>
+      <option>Food</option>
+      <option>Uniforms</option>
+      <option>Other</option>
+    </select>
+
+    <label>Date</label>
+    <input id="spent-on" type="date">
+
+    <label>Note (optional)</label>
+    <input id="note" type="text" placeholder="e.g. team water bottles">
+
+    <label>Receipt photo (optional)</label>
+    <input id="receipt" type="file" accept="image/*" capture="environment">
+
+    <button id="save-btn">Save expense</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  requireSession();
+  document.getElementById('spent-on').valueAsDate = new Date();
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const file = document.getElementById('receipt').files[0];
+    let receiptPath = null;
+
+    status.textContent = 'Saving…';
+
+    if (file) {
+      receiptPath = session.user.id + '/' + Date.now() + '-' + file.name;
+      const { error: uploadError } = await sb.storage.from('receipts').upload(receiptPath, file);
+      if (uploadError) {
+        status.textContent = 'Could not upload photo: ' + uploadError.message;
+        return;
+      }
+    }
+
+    const row = {
+      user_id: session.user.id,
+      vendor: document.getElementById('vendor').value.trim(),
+      amount,
+      category: document.getElementById('category').value,
+      spent_on: document.getElementById('spent-on').value,
+      note: document.getElementById('note').value.trim(),
+      receipt_path: receiptPath
+    };
+
+    const { error } = await sb.from('expenses').insert(row);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
+    if (!error) setTimeout(() => { location.href = 'history.html'; }, 600);
+  });
+</script>
+</body>
+</html>

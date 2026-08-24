@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expenses</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <h1>💵 Expenses</h1>
+
+  <div class="card" id="signed-out">
+    <p class="muted">Sign in with the same account you use for the shoot+run app.</p>
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+    <button id="signin-btn">Sign in</button>
+    <button class="secondary" id="signup-btn">Create account</button>
+    <p class="muted" id="auth-status" style="margin-top:12px;"></p>
+  </div>
+
+  <div class="card" id="signed-in" style="display:none;">
+    <p>Signed in as <strong id="who"></strong></p>
+    <button onclick="location.href='add.html'">Log an expense</button>
+    <button onclick="location.href='history.html'">View history</button>
+    <button class="secondary" id="signout-btn">Sign out</button>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  async function refresh() {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('signed-out').style.display = session ? 'none' : '';
+    document.getElementById('signed-in').style.display = session ? '' : 'none';
+    if (session) document.getElementById('who').textContent = session.user.email || session.user.id;
+  }
+
+  function creds() {
+    return {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value
+    };
+  }
+
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after ' + (ms / 1000) + 's — check your connection.')), ms))
+    ]);
+  }
+
+  document.getElementById('signin-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Signing in…';
+    try {
+      const { error } = await withTimeout(sb.auth.signInWithPassword(creds()), 10000);
+      status.textContent = error ? error.message : '';
+      if (!error) await refresh();
+    } catch (err) {
+      status.textContent = err.message;
+      console.error(err);
+    }
+  });
+
+  document.getElementById('signup-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Creating account…';
+    try {
+      const { error } = await withTimeout(sb.auth.signUp(creds()), 10000);
+      status.textContent = error ? error.message : 'Account created — sign in above.';
+      if (!error) await refresh();
+    } catch (err) {
+      status.textContent = err.message;
+      console.error(err);
+    }
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', signOut);
+
+  sb.auth.onAuthStateChange(refresh);
+  refresh();
+</script>
+</body>
+</html>

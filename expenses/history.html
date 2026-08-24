@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expense History</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="add.html">Add</a>
+    <a href="history.html" class="active">History</a>
+  </nav>
+  <h1>Expense history</h1>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">TOTAL SPENT</p>
+    <p id="total" style="font-size:28px;margin:0;">–</p>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">EXPENSES</p>
+    <div id="list"></div>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  function fmtDate(d) {
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function fmtMoney(n) { return '$' + Number(n).toFixed(2); }
+
+  async function load() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const { data: expenses, error } = await sb.from('expenses').select('*').order('spent_on', { ascending: false });
+    const list = document.getElementById('list');
+
+    if (error) {
+      list.innerHTML = '<p class="muted">Could not load: ' + error.message + '</p>';
+      return;
+    }
+
+    if (!expenses || !expenses.length) {
+      list.innerHTML = '<p class="muted">No expenses logged yet.</p>';
+      document.getElementById('total').textContent = fmtMoney(0);
+      return;
+    }
+
+    const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    document.getElementById('total').textContent = fmtMoney(total);
+
+    list.innerHTML = '';
+    for (const e of expenses) {
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      row.innerHTML =
+        '<span>' + fmtDate(e.spent_on) + ' · ' + escapeHtml(e.vendor || '(no vendor)') + ' <span class="muted">(' + escapeHtml(e.category) + ')</span></span>' +
+        '<span>' + fmtMoney(e.amount) + (e.receipt_path ? ' 📎' : '') + '</span>';
+
+      if (e.receipt_path) {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', async () => {
+          const { data, error: urlError } = await sb.storage.from('receipts').createSignedUrl(e.receipt_path, 60);
+          if (!urlError) window.open(data.signedUrl, '_blank');
+        });
+      }
+      list.appendChild(row);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  load();
+</script>
+</body>
+</html>
