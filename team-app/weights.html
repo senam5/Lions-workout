@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log Weight Room</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="weights.html" class="active">Weights</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
+  <h1>Log weight room</h1>
+
+  <div class="card">
+    <label>Group</label>
+    <input id="group" type="text" placeholder="e.g. Group A">
+
+    <label>Phase</label>
+    <input id="phase" type="text" placeholder="e.g. Strength">
+
+    <label>Week</label>
+    <input id="week" type="number" min="1" placeholder="e.g. 3">
+
+    <label>Day</label>
+    <input id="day" type="number" min="1" placeholder="e.g. 2">
+
+    <button id="save-btn">Save</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  requireSession();
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+
+    const row = {
+      player_id: session.user.id,
+      group_name: document.getElementById('group').value.trim() || null,
+      phase: document.getElementById('phase').value.trim() || null,
+      week: parseInt(document.getElementById('week').value, 10) || null,
+      day: parseInt(document.getElementById('day').value, 10) || null
+    };
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('team_weights').insert(row);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
+  });
+</script>
+</body>
+</html>

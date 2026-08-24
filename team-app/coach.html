@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coach Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="weights.html">Weights</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="coach.html" class="active">Coach</a>
+  </nav>
+  <h1>Coach dashboard</h1>
+  <p class="muted" id="gate-msg"></p>
+
+  <div id="coach-only" style="display:none;width:100%;max-width:420px;">
+    <div class="card">
+      <p class="muted" style="margin:0 0 8px;">SEASON SETTINGS</p>
+      <label>Weekly shot goal (makes)</label>
+      <input id="shot-goal" type="number" min="0">
+      <label>Boost goal (makes)</label>
+      <input id="boost-goal" type="number" min="0">
+      <label>Weekly run goal (sessions)</label>
+      <input id="run-goal" type="number" min="0">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+        <input id="shutdown" type="checkbox" style="width:auto;">
+        <span style="margin:0;">Season shutdown (locks logging for everyone)</span>
+      </label>
+      <button id="save-settings-btn">Save settings</button>
+      <p class="muted" id="settings-status" style="margin-top:12px;"></p>
+    </div>
+
+    <div class="card">
+      <p class="muted" style="margin:0 0 10px;">ATTENDANCE</p>
+      <label>Practice date</label>
+      <input id="practice-date" type="date">
+      <div id="roster-list" style="margin-top:14px;"></div>
+      <button id="save-attendance-btn">Save attendance</button>
+      <p class="muted" id="attendance-status" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  document.getElementById('practice-date').valueAsDate = new Date();
+
+  async function loadSettings() {
+    const { data } = await sb.from('team_season_settings').select('*').eq('id', 1).single();
+    if (!data) return;
+    document.getElementById('shot-goal').value = data.shot_goal;
+    document.getElementById('boost-goal').value = data.boost_goal;
+    document.getElementById('run-goal').value = data.run_goal;
+    document.getElementById('shutdown').checked = data.shutdown;
+  }
+
+  document.getElementById('save-settings-btn').addEventListener('click', async () => {
+    const status = document.getElementById('settings-status');
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('team_season_settings').update({
+      shot_goal: parseInt(document.getElementById('shot-goal').value, 10) || 300,
+      boost_goal: parseInt(document.getElementById('boost-goal').value, 10) || 400,
+      run_goal: parseInt(document.getElementById('run-goal').value, 10) || 1,
+      shutdown: document.getElementById('shutdown').checked,
+      updated_at: new Date().toISOString()
+    }).eq('id', 1);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
+  });
+
+  let roster = [];
+
+  async function loadRoster() {
+    const { data } = await sb.from('team_profiles').select('*').eq('active', true).order('full_name');
+    roster = data || [];
+    const list = document.getElementById('roster-list');
+    list.innerHTML = roster.map((p) =>
+      '<label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);">' +
+        '<input type="checkbox" class="present-check" data-id="' + p.id + '" checked style="width:auto;">' +
+        '<span style="margin:0;">' + p.full_name + '</span>' +
+      '</label>'
+    ).join('');
+  }
+
+  document.getElementById('practice-date').addEventListener('change', loadExistingAttendance);
+
+  async function loadExistingAttendance() {
+    const date = document.getElementById('practice-date').value;
+    const { data } = await sb.from('team_attendance').select('*').eq('practice_date', date);
+    const byPlayer = {};
+    (data || []).forEach((a) => { byPlayer[a.player_id] = a.present; });
+    document.querySelectorAll('.present-check').forEach((el) => {
+      if (el.dataset.id in byPlayer) el.checked = byPlayer[el.dataset.id];
+    });
+  }
+
+  document.getElementById('save-attendance-btn').addEventListener('click', async () => {
+    const status = document.getElementById('attendance-status');
+    const { data: { session } } = await sb.auth.getSession();
+    const date = document.getElementById('practice-date').value;
+
+    const rows = Array.from(document.querySelectorAll('.present-check')).map((el) => ({
+      player_id: el.dataset.id,
+      practice_date: date,
+      present: el.checked,
+      marked_by: session.user.id
+    }));
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('team_attendance').upsert(rows, { onConflict: 'player_id,practice_date' });
+    status.textContent = error ? 'Could not save: ' + error.message : 'Attendance saved.';
+  });
+
+  async function init() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const profile = await getMyProfile();
+    if (!profile || profile.role !== 'coach') {
+      document.getElementById('gate-msg').textContent = 'This page is for coaches only.';
+      return;
+    }
+
+    document.getElementById('coach-only').style.display = '';
+    await loadSettings();
+    await loadRoster();
+    await loadExistingAttendance();
+  }
+
+  init();
+</script>
+</body>
+</html>
