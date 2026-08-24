@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shoot + Run</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>🏀 Shoot + Run</h1>
+
+  <div class="card" id="signed-out">
+    <p class="muted">Sign in to log a shooting session or a run, and see your history from any device.</p>
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+    <button id="signin-btn">Sign in</button>
+    <button class="secondary" id="signup-btn">Create account</button>
+    <p class="muted" id="auth-status" style="margin-top:12px;"></p>
+
+    <p class="muted" style="margin-top:20px;">
+      "Sign in with Apple" will replace this once it's enabled in
+      Supabase (Authentication &gt; Providers &gt; Apple) and you have
+      an Apple Developer account.
+    </p>
+  </div>
+
+  <div class="card" id="signed-in" style="display:none;">
+    <p>Signed in as <strong id="who"></strong></p>
+    <button onclick="location.href='shoot.html'">Log a shooting session</button>
+    <button onclick="location.href='run.html'">Log a run</button>
+    <button onclick="location.href='history.html'">View history</button>
+    <button class="secondary" id="signout-btn">Sign out</button>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  async function refresh() {
+    const { data: { session } } = await supabase.auth.getSession();
+    document.getElementById('signed-out').style.display = session ? 'none' : '';
+    document.getElementById('signed-in').style.display = session ? '' : 'none';
+    if (session) document.getElementById('who').textContent = session.user.email || session.user.id;
+  }
+
+  function creds() {
+    return {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value
+    };
+  }
+
+  document.getElementById('signin-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Signing in…';
+    const { error } = await supabase.auth.signInWithPassword(creds());
+    status.textContent = error ? error.message : '';
+  });
+
+  document.getElementById('signup-btn').addEventListener('click', async () => {
+    const status = document.getElementById('auth-status');
+    status.textContent = 'Creating account…';
+    const { error } = await supabase.auth.signUp(creds());
+    status.textContent = error ? error.message : 'Account created — check your email if confirmation is required, otherwise sign in above.';
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', signOut);
+
+  supabase.auth.onAuthStateChange(refresh);
+  refresh();
+</script>
+</body>
+</html>

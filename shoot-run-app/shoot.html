@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log Shots</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html" class="active">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="history.html">History</a>
+  </nav>
+  <h1>Log a shooting session</h1>
+
+  <div class="card">
+    <label>3-pointers</label>
+    <div class="row">
+      <input id="threes-makes" type="number" min="0" placeholder="makes">
+      <input id="threes-attempts" type="number" min="0" placeholder="attempts">
+    </div>
+
+    <label>Mid-range</label>
+    <div class="row">
+      <input id="mid-makes" type="number" min="0" placeholder="makes">
+      <input id="mid-attempts" type="number" min="0" placeholder="attempts">
+    </div>
+
+    <label>Free throws</label>
+    <div class="row">
+      <input id="ft-makes" type="number" min="0" placeholder="makes">
+      <input id="ft-attempts" type="number" min="0" placeholder="attempts">
+    </div>
+
+    <button id="save-btn">Save session</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  requireSession();
+
+  function n(id) { return Math.max(0, parseInt(document.getElementById(id).value, 10) || 0); }
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const row = {
+      user_id: session.user.id,
+      threes_makes: n('threes-makes'),
+      threes_attempts: n('threes-attempts'),
+      mid_makes: n('mid-makes'),
+      mid_attempts: n('mid-attempts'),
+      ft_makes: n('ft-makes'),
+      ft_attempts: n('ft-attempts')
+    };
+
+    status.textContent = 'Saving…';
+    const { error } = await supabase.from('shots').insert(row);
+    status.textContent = error ? 'Could not save: ' + error.message : 'Saved.';
+    if (!error) setTimeout(() => { location.href = 'history.html'; }, 600);
+  });
+</script>
+</body>
+</html>
