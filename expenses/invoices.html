@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice Queue</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="add.html">Add</a>
+    <a href="history.html">History</a>
+    <a href="invoices.html" class="active">Invoices</a>
+  </nav>
+  <h1>Submitted invoices</h1>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">SHARE THIS LINK WITH COACHES/VENDORS</p>
+    <p style="font-size:13px;word-break:break-all;" id="submit-link"></p>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">PENDING</p>
+    <div id="pending-list"></div>
+  </div>
+
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px;">DECIDED</p>
+    <div id="decided-list"></div>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  function fmtMoney(n) { return '$' + Number(n).toFixed(2); }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  document.getElementById('submit-link').textContent = window.location.origin + window.location.pathname.replace('invoices.html', 'submit.html');
+
+  async function approve(inv) {
+    const { data: { session } } = await sb.auth.getSession();
+
+    let receiptPath = null;
+    if (inv.attachment_path) {
+      // Attachments land in the invoice-attachments bucket; expenses' receipt
+      // photos live in the receipts bucket, so copy it across on approval.
+      receiptPath = session.user.id + '/' + inv.attachment_path.split('/').pop();
+      const { error: copyError } = await sb.storage.from('invoice-attachments')
+        .copy(inv.attachment_path, receiptPath, { destinationBucket: 'receipts' });
+      if (copyError) {
+        alert('Could not copy attachment to receipts: ' + copyError.message);
+        receiptPath = null;
+      }
+    }
+
+    const { error: expenseError } = await sb.from('expenses').insert({
+      user_id: session.user.id,
+      spent_on: new Date(inv.created_at).toISOString().slice(0, 10),
+      vendor: inv.submitter_name,
+      category: inv.category,
+      amount: inv.amount,
+      note: inv.description + (inv.email ? ' (submitted by ' + inv.email + ')' : ''),
+      receipt_path: receiptPath
+    });
+
+    if (expenseError) {
+      alert('Could not log expense: ' + expenseError.message);
+      return;
+    }
+
+    await sb.from('invoice_submissions').update({ status: 'approved' }).eq('id', inv.id);
+    load();
+  }
+
+  async function reject(inv) {
+    await sb.from('invoice_submissions').update({ status: 'rejected' }).eq('id', inv.id);
+    load();
+  }
+
+  async function viewAttachment(path) {
+    const { data, error } = await sb.storage.from('invoice-attachments').createSignedUrl(path, 60);
+    if (!error) window.open(data.signedUrl, '_blank');
+  }
+
+  async function load() {
+    await requireSession();
+
+    const { data: invoices, error } = await sb.from('invoice_submissions').select('*').order('created_at', { ascending: false });
+    const pendingList = document.getElementById('pending-list');
+    const decidedList = document.getElementById('decided-list');
+
+    if (error) {
+      pendingList.innerHTML = '<p class="muted">Could not load: ' + error.message + '</p>';
+      return;
+    }
+
+    const pending = (invoices || []).filter((i) => i.status === 'pending');
+    const decided = (invoices || []).filter((i) => i.status !== 'pending');
+
+    pendingList.innerHTML = pending.length ? '' : '<p class="muted">Nothing pending.</p>';
+    for (const inv of pending) {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:12px 0;border-bottom:1px solid var(--line);';
+      row.innerHTML =
+        '<div style="display:flex;justify-content:space-between;">' +
+          '<strong>' + escapeHtml(inv.submitter_name) + '</strong><span>' + fmtMoney(inv.amount) + '</span>' +
+        '</div>' +
+        '<div class="muted" style="margin:4px 0;">' + escapeHtml(inv.description) + ' · ' + escapeHtml(inv.category) + '</div>' +
+        (inv.attachment_path ? '<button class="secondary view-btn" style="margin:4px 0;">View attachment</button>' : '') +
+        '<div class="row" style="margin-top:8px;"><button class="approve-btn">Approve</button><button class="secondary reject-btn">Reject</button></div>';
+
+      row.querySelector('.approve-btn').addEventListener('click', () => approve(inv));
+      row.querySelector('.reject-btn').addEventListener('click', () => reject(inv));
+      const viewBtn = row.querySelector('.view-btn');
+      if (viewBtn) viewBtn.addEventListener('click', () => viewAttachment(inv.attachment_path));
+
+      pendingList.appendChild(row);
+    }
+
+    decidedList.innerHTML = decided.length ? '' : '<p class="muted">None yet.</p>';
+    for (const inv of decided) {
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      row.innerHTML =
+        '<span>' + escapeHtml(inv.submitter_name) + ' · ' + escapeHtml(inv.description) + '</span>' +
+        '<span>' + fmtMoney(inv.amount) + ' · ' + inv.status + '</span>';
+      decidedList.appendChild(row);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

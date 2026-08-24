@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit an Invoice</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <h1>🧾 Submit an invoice</h1>
+
+  <div class="card" id="form-card">
+    <p class="muted">Fill this out and it'll be reviewed for payment. No account needed.</p>
+
+    <label>Your name</label>
+    <input id="name" type="text" placeholder="e.g. Coach Felix">
+
+    <label>Email (optional, so we can reach you)</label>
+    <input id="email" type="email" placeholder="you@example.com">
+
+    <label>Amount ($)</label>
+    <input id="amount" type="number" min="0" step="0.01" placeholder="0.00">
+
+    <label>What's this for?</label>
+    <input id="description" type="text" placeholder="e.g. Coaching sessions, weeks 1-4">
+
+    <label>Category</label>
+    <select id="category">
+      <option>Salaires</option>
+      <option>Contenu / Média</option>
+      <option>Équipement</option>
+      <option>Tournois</option>
+      <option>Autre</option>
+    </select>
+
+    <label>Attach invoice/receipt (optional)</label>
+    <input id="attachment" type="file" accept="image/*,.pdf">
+
+    <button id="submit-btn">Submit invoice</button>
+    <p class="muted" id="status" style="margin-top:12px;"></p>
+  </div>
+
+  <div class="card" id="done-card" style="display:none;">
+    <p>✅ Invoice submitted — you'll be paid once it's reviewed.</p>
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  document.getElementById('submit-btn').addEventListener('click', async () => {
+    const status = document.getElementById('status');
+    const name = document.getElementById('name').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+
+    if (!name || amount <= 0) {
+      status.textContent = 'Please enter your name and a valid amount.';
+      return;
+    }
+
+    status.textContent = 'Submitting…';
+
+    const file = document.getElementById('attachment').files[0];
+    let attachmentPath = null;
+
+    if (file) {
+      attachmentPath = 'submissions/' + Date.now() + '-' + file.name;
+      const { error: uploadError } = await sb.storage.from('invoice-attachments').upload(attachmentPath, file);
+      if (uploadError) {
+        status.textContent = 'Could not upload attachment: ' + uploadError.message;
+        return;
+      }
+    }
+
+    const row = {
+      submitter_name: name,
+      email: document.getElementById('email').value.trim() || null,
+      amount,
+      description: document.getElementById('description').value.trim(),
+      category: document.getElementById('category').value,
+      attachment_path: attachmentPath
+    };
+
+    const { error } = await sb.from('invoice_submissions').insert(row);
+    if (error) {
+      status.textContent = 'Could not submit: ' + error.message;
+      return;
+    }
+
+    document.getElementById('form-card').style.display = 'none';
+    document.getElementById('done-card').style.display = '';
+  });
+</script>
+</body>
+</html>

@@ -11,7 +11,16 @@ email/password.
   optional receipt photo
 - `history.html` — list of all expenses + running total; tap a row with a
   📎 to view its receipt photo
+- `submit.html` — **public, no login required.** Share this link with
+  coaches/vendors so they can submit an invoice for payment.
+- `invoices.html` — your review queue (requires sign-in). Approve a
+  submission and it's automatically logged into `expenses`; reject to
+  discard it. Also shows the exact link to share for `submit.html`.
 - `supabase/schema.sql` — the `expenses` table + storage policies
+- `supabase/invoices_schema.sql` — the `invoice_submissions` table +
+  storage policies for the invoice-attachments bucket
+- `supabase/migrate_notion_invoices.sql` — one-time import of the old
+  Notion expense tracker (already run)
 
 ## One-time setup (in addition to what shoot-run-app already needs)
 
@@ -21,6 +30,11 @@ email/password.
 3. The `schema.sql` file also creates storage policies so each account can
    only see its own uploaded receipts — run the whole file, not just the
    `expenses` table part.
+4. Run `supabase/invoices_schema.sql` for the invoice submission portal.
+5. In **Storage**, create a second bucket named `invoice-attachments` —
+   also **private**. This one intentionally allows anonymous uploads
+   (anyone with the `submit.html` link can attach a file), but only your
+   signed-in account can read from it.
 
 ## Explicitly not in V1
 
