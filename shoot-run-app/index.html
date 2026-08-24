@@ -66,6 +66,7 @@
     try {
       const { error } = await withTimeout(sb.auth.signInWithPassword(creds()), 10000);
       status.textContent = error ? error.message : '';
+      if (!error) await refresh();
     } catch (err) {
       status.textContent = err.message;
       console.error(err);
@@ -78,6 +79,7 @@
     try {
       const { error } = await withTimeout(sb.auth.signUp(creds()), 10000);
       status.textContent = error ? error.message : 'Account created — check your email if confirmation is required, otherwise sign in above.';
+      if (!error) await refresh();
     } catch (err) {
       status.textContent = err.message;
       console.error(err);
