@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nutrition Guide</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="shoot.html">Shoot</a>
+    <a href="run.html">Run</a>
+    <a href="weights.html">Weights</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="nutrition.html" class="active">Nutrition</a>
+  </nav>
+  <h1>Nutrition guide</h1>
+  <p class="muted" id="empty-msg" style="display:none;">Nothing here yet — check back soon.</p>
+
+  <div class="card" id="add-card" style="display:none;">
+    <p class="muted" style="margin:0 0 8px;">ADD A QUESTION</p>
+    <label>Question</label>
+    <input id="new-question" type="text" placeholder="e.g. How much protein do I need to grow?">
+    <label>Answer</label>
+    <textarea id="new-answer" rows="3" placeholder="e.g. Aim for ~1g per lb of bodyweight/day..." style="width:100%;padding:10px 12px;background:#0f0f11;border:1px solid var(--line);border-radius:8px;color:var(--white);font-size:15px;font-family:inherit;resize:vertical;"></textarea>
+    <button id="add-btn">Add question</button>
+    <p class="muted" id="add-status" style="margin-top:12px;"></p>
+  </div>
+
+  <div id="faq-list" style="width:100%;max-width:420px;"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  let isCoach = false;
+  let faqs = [];
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function render() {
+    document.getElementById('empty-msg').style.display = faqs.length ? 'none' : '';
+    document.getElementById('faq-list').innerHTML = faqs.map((f) =>
+      '<div class="card" data-id="' + f.id + '">' +
+        '<p style="font-weight:600;margin:0 0 8px;">' + escapeHtml(f.question) + '</p>' +
+        '<p class="muted" style="font-size:14px;line-height:1.5;white-space:pre-wrap;">' + escapeHtml(f.answer) + '</p>' +
+        (isCoach
+          ? '<button class="secondary delete-btn" data-id="' + f.id + '" style="margin-top:14px;width:auto;padding:8px 14px;font-size:12px;">Delete</button>'
+          : '') +
+      '</div>'
+    ).join('');
+
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this question?')) return;
+        const id = btn.dataset.id;
+        const { error } = await sb.from('team_nutrition_faq').delete().eq('id', id);
+        if (!error) {
+          faqs = faqs.filter((f) => f.id !== id);
+          render();
+        }
+      });
+    });
+  }
+
+  async function loadFaqs() {
+    const { data } = await sb.from('team_nutrition_faq').select('*').order('sort_order').order('created_at');
+    faqs = data || [];
+    render();
+  }
+
+  document.getElementById('add-btn').addEventListener('click', async () => {
+    const status = document.getElementById('add-status');
+    const { data: { session } } = await sb.auth.getSession();
+    const question = document.getElementById('new-question').value.trim();
+    const answer = document.getElementById('new-answer').value.trim();
+    if (!question || !answer) {
+      status.textContent = 'Fill in both the question and the answer.';
+      return;
+    }
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('team_nutrition_faq').insert({
+      question,
+      answer,
+      created_by: session.user.id
+    });
+
+    if (error) {
+      status.textContent = 'Could not save: ' + error.message;
+      return;
+    }
+
+    document.getElementById('new-question').value = '';
+    document.getElementById('new-answer').value = '';
+    status.textContent = 'Added.';
+    await loadFaqs();
+  });
+
+  async function init() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const profile = await getMyProfile();
+    isCoach = !!profile && profile.role === 'coach';
+    document.getElementById('add-card').style.display = isCoach ? '' : 'none';
+
+    await loadFaqs();
+  }
+
+  init();
+</script>
+</body>
+</html>

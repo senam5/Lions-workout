@@ -27,6 +27,10 @@ pages get built on top of it.
   their own record, not everyone else's.
 - **`season_settings`** — singleton row with the weekly goals + the
   season shutdown flag. Everyone reads it, only the coach can edit it.
+- **`nutrition_faq`** (`supabase/schema_nutrition.sql`) — growing list
+  of nutrition Q&A entries. Everyone reads it, only a coach can add or
+  remove questions. Built to save Ash from re-answering the same
+  "how do I eat better to grow" questions one player at a time.
 
 Milestones (500 / 1500 / 3000 / 4800 / 6500 makes) aren't a table —
 same as before, they're pure logic computed from `shots` totals, so
