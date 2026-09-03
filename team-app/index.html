@@ -33,6 +33,7 @@
     <button onclick="location.href='weights.html'">Log weight room</button>
     <button onclick="location.href='leaderboard.html'">Leaderboard</button>
     <button onclick="location.href='nutrition.html'">Nutrition guide</button>
+    <button id="goals-btn" style="display:none;" onclick="location.href='goals.html'">Season goals</button>
     <button id="coach-btn" style="display:none;" onclick="location.href='coach.html'">Coach dashboard</button>
     <button class="secondary" id="signout-btn">Sign out</button>
   </div>
@@ -66,6 +67,7 @@
       document.getElementById('who').textContent = profile.full_name;
       document.getElementById('role-badge').textContent = profile.role === 'coach' ? '(coach)' : '';
       document.getElementById('coach-btn').style.display = profile.role === 'coach' ? '' : 'none';
+      document.getElementById('goals-btn').style.display = profile.role === 'coach' ? '' : 'none';
     }
   }
 

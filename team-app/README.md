@@ -31,6 +31,16 @@ pages get built on top of it.
   of nutrition Q&A entries. Everyone reads it, only a coach can add or
   remove questions. Built to save Ash from re-answering the same
   "how do I eat better to grow" questions one player at a time.
+- **`goals`** / **`goal_updates`** (`supabase/schema_goals.sql`) — the
+  season→month→week→day goal tree, plus a running log any coach can
+  add to. Everyone reads it, only coaches write it (any coach can edit
+  any goal — no head-coach/assistant split). `goals.html` also shows a
+  countdown to the nearest season-level goal's due date. This is a
+  foundation meant to be used for real and adjusted from there, not a
+  finished design — it does not yet auto-generate a week's day-by-day
+  plan from a coach's one-line description of what that week needs;
+  for now a coach writes the week goal and adds day goals underneath
+  by hand.
 
 Milestones (500 / 1500 / 3000 / 4800 / 6500 makes) aren't a table —
 same as before, they're pure logic computed from `shots` totals, so

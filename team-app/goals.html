@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Season Goals</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+</head>
+<body>
+  <nav>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="nutrition.html">Nutrition</a>
+    <a href="goals.html" class="active">Goals</a>
+    <a href="coach.html">Coach</a>
+  </nav>
+  <h1>Season goals</h1>
+  <p class="muted" id="gate-msg"></p>
+
+  <div id="coach-only" style="display:none; width:100%; max-width:420px;">
+
+    <div class="card" id="countdown-card" style="display:none; text-align:center;"></div>
+
+    <div id="goal-tree"></div>
+    <p class="muted" id="empty-msg" style="display:none;">No goals yet — add the season goal below to start the tree.</p>
+
+    <div class="card">
+      <p class="muted" style="margin:0 0 8px;">ADD A GOAL</p>
+      <label>Level</label>
+      <select id="new-level">
+        <option value="season">Season</option>
+        <option value="month">Month</option>
+        <option value="week" selected>Week</option>
+        <option value="day">Day</option>
+      </select>
+      <label>Parent goal</label>
+      <select id="new-parent">
+        <option value="">No parent (top-level)</option>
+      </select>
+      <label>Title</label>
+      <input id="new-title" type="text" placeholder="e.g. Lock in transition defense this week">
+      <div class="row">
+        <div>
+          <label>Target (optional)</label>
+          <input id="new-target" type="number" min="0" placeholder="e.g. 75">
+        </div>
+        <div>
+          <label>Unit</label>
+          <input id="new-unit" type="text" placeholder="e.g. makes">
+        </div>
+      </div>
+      <label>Due date (optional)</label>
+      <input id="new-due" type="date">
+      <button id="add-goal-btn">Add goal</button>
+      <p class="muted" id="add-status" style="margin-top:12px;"></p>
+    </div>
+
+  </div>
+
+<script src="js/supabaseClient.js"></script>
+<script>
+  const LEVELS = ['season', 'month', 'week', 'day'];
+  const LEVEL_LABEL = { season: 'SEASON', month: 'MONTH', week: 'WEEK', day: 'DAY' };
+  const LEVEL_COLOR = { season: 'var(--lion)', month: 'var(--blue)', week: 'var(--grey)', day: 'var(--green)' };
+  const STATUS_LABEL = { on_track: 'ON TRACK', behind: 'BEHIND', at_risk: 'AT RISK', done: 'DONE' };
+  const PLACEHOLDER = {
+    season: 'e.g. Compete for a regional title',
+    month: 'e.g. Install the Princeton offense',
+    week: 'e.g. Lock in transition defense this week',
+    day: 'e.g. Live wedge entry reps vs token D'
+  };
+
+  let roster = {};
+  let goals = [];
+  let updatesByGoal = {};
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s == null ? '' : String(s);
+    return div.innerHTML;
+  }
+
+  function fmtDate(d) {
+    if (!d) return '';
+    return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function fmtWhen(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' +
+      d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function coachName(id) {
+    return (roster[id] && roster[id].full_name) || 'A coach';
+  }
+
+  function renderCountdown() {
+    const card = document.getElementById('countdown-card');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const upcoming = goals
+      .filter((g) => g.level === 'season' && g.due_date)
+      .map((g) => ({ g, days: Math.ceil((new Date(g.due_date + 'T00:00:00') - today) / 86400000) }))
+      .filter((x) => x.days >= 0)
+      .sort((a, b) => a.days - b.days);
+
+    if (!upcoming.length) {
+      card.style.display = 'none';
+      return;
+    }
+    const { g, days } = upcoming[0];
+    const weeks = Math.ceil(days / 7);
+    card.style.display = '';
+    card.innerHTML =
+      '<div class="muted" style="font-size:11px; letter-spacing:1px;">COUNTDOWN</div>' +
+      '<div style="font-size:20px; font-weight:700; margin:6px 0 2px;">' + weeks + ' week' + (weeks === 1 ? '' : 's') + ' left</div>' +
+      '<div class="muted" style="font-size:13px;">until "' + escapeHtml(g.title) + '" &middot; ' + fmtDate(g.due_date) + '</div>';
+  }
+
+  function goalCard(g, depth) {
+    const updates = updatesByGoal[g.id] || [];
+    const latest = updates[0];
+    const pct = g.target_value ? Math.min(100, Math.round((g.progress_value / g.target_value) * 100)) : null;
+
+    let html = '<div class="card goal-card" style="margin-left:' + (depth * 16) + 'px; border-left-color:' + LEVEL_COLOR[g.level] + ';" data-id="' + g.id + '">';
+    html += '<div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">';
+    html += '<span class="pill pill-' + g.level + '">' + LEVEL_LABEL[g.level] + '</span>';
+    html += '<span class="pill pill-' + g.status + '">' + STATUS_LABEL[g.status] + '</span>';
+    html += '</div>';
+    html += '<div style="font-weight:600; margin-bottom:6px;">' + escapeHtml(g.title) + '</div>';
+
+    if (pct !== null) {
+      html += '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%;"></div></div>';
+      html += '<div class="muted" style="font-size:12px;">' + g.progress_value + ' / ' + g.target_value + (g.unit ? ' ' + escapeHtml(g.unit) : '') + '</div>';
+    } else if (g.due_date) {
+      html += '<div class="muted" style="font-size:12px;">Due ' + fmtDate(g.due_date) + '</div>';
+    }
+
+    if (latest) {
+      html += '<div style="border-top:1px solid var(--line); margin-top:10px; padding-top:10px; font-size:13px;">';
+      html += '<strong>' + escapeHtml(coachName(latest.coach_id)) + '</strong> <span class="muted" style="font-size:11px;">&middot; ' + fmtWhen(latest.created_at) + '</span>';
+      if (latest.note) html += '<div style="margin-top:2px; color:#c8c8cc;">' + escapeHtml(latest.note) + '</div>';
+      html += '</div>';
+    }
+
+    html += '<div class="goal-actions">';
+    html += '<button class="secondary update-toggle-btn" data-id="' + g.id + '">Update</button>';
+    if (updates.length) html += '<button class="secondary log-toggle-btn" data-id="' + g.id + '">Log (' + updates.length + ')</button>';
+    html += '<button class="secondary sub-goal-btn" data-id="' + g.id + '" data-level="' + g.level + '">+ Sub-goal</button>';
+    html += '<button class="secondary delete-goal-btn" data-id="' + g.id + '">Delete</button>';
+    html += '</div>';
+
+    html += '<div class="update-form" id="update-form-' + g.id + '" style="display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:14px;">';
+    html += '<label>Status</label>';
+    html += '<select class="update-status" data-id="' + g.id + '">';
+    Object.keys(STATUS_LABEL).forEach((s) => {
+      html += '<option value="' + s + '"' + (s === g.status ? ' selected' : '') + '>' + STATUS_LABEL[s] + '</option>';
+    });
+    html += '</select>';
+    if (g.target_value) {
+      html += '<label>Progress (' + (g.unit || 'units') + ')</label>';
+      html += '<input type="number" class="update-progress" data-id="' + g.id + '" value="' + g.progress_value + '">';
+    }
+    html += '<label>Note</label>';
+    html += '<textarea class="update-note" data-id="' + g.id + '" rows="2" style="width:100%; padding:10px 12px; background:#0f0f11; border:1px solid var(--line); border-radius:8px; color:var(--white); font-size:15px; font-family:inherit; resize:vertical;" placeholder="What happened, and where do things stand?"></textarea>';
+    html += '<button class="save-update-btn" data-id="' + g.id + '">Save update</button>';
+    html += '</div>';
+
+    html += '<div class="goal-log" id="goal-log-' + g.id + '" style="display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:10px;">';
+    updates.forEach((u) => {
+      html += '<div class="log-item">';
+      html += '<div style="display:flex; justify-content:space-between;"><strong>' + escapeHtml(coachName(u.coach_id)) + '</strong><span class="muted">' + fmtWhen(u.created_at) + '</span></div>';
+      html += '<div class="muted">' + STATUS_LABEL[u.status] + '</div>';
+      if (u.note) html += '<div style="margin-top:2px;">' + escapeHtml(u.note) + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  function render() {
+    renderCountdown();
+
+    const byParent = {};
+    goals.forEach((g) => {
+      const key = g.parent_id || 'root';
+      (byParent[key] = byParent[key] || []).push(g);
+    });
+
+    let html = '';
+    function walk(parentKey, depth) {
+      (byParent[parentKey] || []).forEach((g) => {
+        html += goalCard(g, depth);
+        walk(g.id, depth + 1);
+      });
+    }
+    walk('root', 0);
+
+    document.getElementById('goal-tree').innerHTML = html;
+    document.getElementById('empty-msg').style.display = goals.length ? 'none' : '';
+
+    // parent select for the add-goal form
+    const parentSelect = document.getElementById('new-parent');
+    let opts = '<option value="">No parent (top-level)</option>';
+    function walkOptions(parentKey, depth) {
+      (byParent[parentKey] || []).forEach((g) => {
+        opts += '<option value="' + g.id + '">' + '&mdash; '.repeat(depth) + LEVEL_LABEL[g.level] + ': ' + escapeHtml(g.title) + '</option>';
+        walkOptions(g.id, depth + 1);
+      });
+    }
+    walkOptions('root', 0);
+    parentSelect.innerHTML = opts;
+
+    wireGoalActions();
+  }
+
+  function wireGoalActions() {
+    document.querySelectorAll('.update-toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const el = document.getElementById('update-form-' + btn.dataset.id);
+        el.style.display = el.style.display === 'none' ? '' : 'none';
+      });
+    });
+
+    document.querySelectorAll('.log-toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const el = document.getElementById('goal-log-' + btn.dataset.id);
+        el.style.display = el.style.display === 'none' ? '' : 'none';
+      });
+    });
+
+    document.querySelectorAll('.sub-goal-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const nextLevel = LEVELS[Math.min(LEVELS.indexOf(btn.dataset.level) + 1, LEVELS.length - 1)];
+        document.getElementById('new-parent').value = btn.dataset.id;
+        document.getElementById('new-level').value = nextLevel;
+        document.getElementById('new-title').placeholder = PLACEHOLDER[nextLevel];
+        document.getElementById('new-title').focus();
+        document.getElementById('new-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+
+    document.querySelectorAll('.delete-goal-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this goal and everything under it?')) return;
+        const { error } = await sb.from('team_goals').delete().eq('id', btn.dataset.id);
+        if (!error) await loadAll();
+      });
+    });
+
+    document.querySelectorAll('.save-update-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const { data: { session } } = await sb.auth.getSession();
+        const status = document.querySelector('.update-status[data-id="' + id + '"]').value;
+        const progressEl = document.querySelector('.update-progress[data-id="' + id + '"]');
+        const progress = progressEl ? parseFloat(progressEl.value) || 0 : null;
+        const note = document.querySelector('.update-note[data-id="' + id + '"]').value.trim();
+
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        await sb.from('team_goal_updates').insert({
+          goal_id: id,
+          coach_id: session.user.id,
+          status,
+          progress_value: progress,
+          note: note || null
+        });
+
+        const patch = { status };
+        if (progress !== null) patch.progress_value = progress;
+        await sb.from('team_goals').update(patch).eq('id', id);
+
+        await loadAll();
+      });
+    });
+  }
+
+  document.getElementById('new-level').addEventListener('change', (e) => {
+    document.getElementById('new-title').placeholder = PLACEHOLDER[e.target.value];
+  });
+
+  document.getElementById('add-goal-btn').addEventListener('click', async () => {
+    const status = document.getElementById('add-status');
+    const { data: { session } } = await sb.auth.getSession();
+    const title = document.getElementById('new-title').value.trim();
+    if (!title) {
+      status.textContent = 'Give the goal a title.';
+      return;
+    }
+
+    status.textContent = 'Saving…';
+    const { error } = await sb.from('team_goals').insert({
+      level: document.getElementById('new-level').value,
+      parent_id: document.getElementById('new-parent').value || null,
+      title,
+      target_value: parseFloat(document.getElementById('new-target').value) || null,
+      unit: document.getElementById('new-unit').value.trim() || null,
+      due_date: document.getElementById('new-due').value || null,
+      created_by: session.user.id
+    });
+
+    if (error) {
+      status.textContent = 'Could not save: ' + error.message;
+      return;
+    }
+
+    document.getElementById('new-title').value = '';
+    document.getElementById('new-target').value = '';
+    document.getElementById('new-unit').value = '';
+    document.getElementById('new-due').value = '';
+    status.textContent = 'Added.';
+    await loadAll();
+  });
+
+  async function loadAll() {
+    const [profilesRes, goalsRes, updatesRes] = await Promise.all([
+      sb.from('team_profiles').select('*'),
+      sb.from('team_goals').select('*').order('created_at'),
+      sb.from('team_goal_updates').select('*').order('created_at', { ascending: false })
+    ]);
+
+    roster = {};
+    (profilesRes.data || []).forEach((p) => { roster[p.id] = p; });
+
+    goals = goalsRes.data || [];
+
+    updatesByGoal = {};
+    (updatesRes.data || []).forEach((u) => {
+      (updatesByGoal[u.goal_id] = updatesByGoal[u.goal_id] || []).push(u);
+    });
+
+    render();
+  }
+
+  async function init() {
+    const session = await requireSession();
+    if (!session) return;
+
+    const profile = await getMyProfile();
+    if (!profile || profile.role !== 'coach') {
+      document.getElementById('gate-msg').textContent = 'This page is for coaches only.';
+      return;
+    }
+
+    document.getElementById('coach-only').style.display = '';
+    await loadAll();
+  }
+
+  init();
+</script>
+</body>
+</html>
