@@ -749,6 +749,34 @@ let globalSpeed = 0.5;
 
 /* ---------- DOM ---------- */
 const $ = (id) => document.getElementById(id);
+
+/* Why folder access might be blocked even in Chrome/Edge. The picker only
+   exists on https:// pages or a file opened straight off disk, and browsers
+   refuse it inside a page embedded in another site (Google Sites, Notion,
+   etc.) — in those cases the old "use Chrome or Edge" note was wrong. */
+function folderAccessBlockedReason() {
+  let embedded = false;
+  try { embedded = window.top !== window.self; } catch (e) { embedded = true; }
+  if (embedded) return "This page is embedded inside another site, and browsers don't allow folder access from there. Open the toolkit in its own tab (or download the .html file and double-click it) and it will work.";
+  if (!window.isSecureContext) return "This page was opened over http:// instead of https://, and the browser only allows folder access on secure pages. Open the https:// link (or download the .html file and double-click it).";
+  if (typeof window.showDirectoryPicker !== "function") return "This browser can't access folders directly — use Chrome or Edge on a computer.";
+  return "";
+}
+/* Picker errors used to be swallowed as "cancelled", so when the browser
+   blocked a folder (Edge refuses system folders like Downloads, Desktop or
+   Documents themselves — pick a subfolder inside them instead), or a work/
+   school policy blocked folder access, the button just silently did nothing.
+   Only a real cancel is ignored now; anything else is shown. */
+function folderPickerFailed(e) {
+  if (e && e.name === "AbortError") return; // closed the picker without choosing
+  const reason = folderAccessBlockedReason();
+  let msg;
+  if (reason) msg = reason;
+  else if (e && (e.name === "SecurityError" || e.name === "NotAllowedError")) msg = "The browser blocked access to that folder. Edge/Chrome won't open system folders like Downloads, Desktop or Documents themselves — make a subfolder inside one (e.g. Desktop\\Lions Clips) and pick that instead. If every folder is blocked, folder access may be turned off by a work/school policy on this computer.\n\n(" + e.name + ": " + e.message + ")";
+  else msg = "Something went wrong with that folder: " + (e && e.message ? e.message : e);
+  console.error(e);
+  alert(msg);
+}
 function appendLogLine(el, cls, text) {
   const div = document.createElement("div");
   if (cls) div.className = cls;
@@ -1491,6 +1519,7 @@ async function getSharedAudioCtx() {
 
 if (!processFsaSupported) {
   $("processUnsupportedNote").style.display = "block";
+  if (folderAccessBlockedReason()) $("processUnsupportedNote").textContent = folderAccessBlockedReason();
   chooseOutputBtn.style.display = "none";
 }
 
@@ -1499,7 +1528,7 @@ chooseOutputBtn.addEventListener("click", async () => {
     outputDirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
     outputFolderLabel.textContent = outputDirHandle.name;
     updateProcessButton();
-  } catch (e) { /* cancelled */ }
+  } catch (e) { folderPickerFailed(e); }
 });
 
 /* iOS's native player (Photos app) has no real support for VP9 or Opus — it
@@ -1851,6 +1880,7 @@ const reviewFsaSupported = typeof window.showDirectoryPicker === "function";
 if (!reviewFsaSupported) {
   $("reviewPickBtn").disabled = true;
   $("reviewUnsupportedNote").style.display = "block";
+  if (folderAccessBlockedReason()) $("reviewUnsupportedNote").textContent = folderAccessBlockedReason();
 }
 
 let reviewDir = null;
@@ -2034,7 +2064,7 @@ $("reviewPickBtn").addEventListener("click", async () => {
   try {
     const dir = await window.showDirectoryPicker({ mode: "readwrite" });
     await loadReviewFolder(dir);
-  } catch (e) { /* cancelled */ }
+  } catch (e) { folderPickerFailed(e); }
 });
 
 $("reviewKeepBtn").addEventListener("click", async () => {
@@ -2152,14 +2182,14 @@ $("pickSourceBtn").addEventListener("click", async () => {
     sortSourceDir = await window.showDirectoryPicker({ mode: "readwrite" });
     $("sourcePathLabel").textContent = sortSourceDir.name;
     await refreshSortPreview();
-  } catch (e) { /* cancelled */ }
+  } catch (e) { folderPickerFailed(e); }
 });
 $("pickDestBtn").addEventListener("click", async () => {
   try {
     sortDestDir = await window.showDirectoryPicker({ mode: "readwrite" });
     $("destPathLabel").textContent = sortDestDir.name;
     updateSortButton();
-  } catch (e) { /* cancelled */ }
+  } catch (e) { folderPickerFailed(e); }
 });
 
 /* Pulled out of the button handler so the Review tab can trigger the same
@@ -2478,6 +2508,7 @@ let cleanupEntries = []; // { name, handle, relDir, checked } — relDir is "" f
 if (typeof window.showDirectoryPicker !== "function") {
   cleanupPickBtn.disabled = true;
   cleanupUnsupportedNote.style.display = "block";
+  if (folderAccessBlockedReason()) $("cleanupUnsupportedNote").textContent = folderAccessBlockedReason();
 }
 
 async function scanCleanupFolder(dir, relDir) {
@@ -2541,7 +2572,7 @@ cleanupPickBtn.addEventListener("click", async () => {
   try {
     const dir = await window.showDirectoryPicker({ mode: "readwrite" });
     await loadCleanupFolder(dir);
-  } catch (e) { /* cancelled */ }
+  } catch (e) { folderPickerFailed(e); }
 });
 cleanupRefreshBtn.addEventListener("click", () => { if (cleanupDir) loadCleanupFolder(cleanupDir); });
 cleanupSelectAllBtn.addEventListener("click", () => { cleanupEntries.forEach(e => e.checked = true); renderCleanupList(); });
@@ -2633,6 +2664,7 @@ const driveSubfolderCache = new Map(); // subfolder name -> Drive folder id
 if (typeof window.showDirectoryPicker !== "function") {
   drivePickBtn.disabled = true;
   driveUnsupportedNote.style.display = "block";
+  if (folderAccessBlockedReason()) $("driveUnsupportedNote").textContent = folderAccessBlockedReason();
 }
 
 async function scanDoneFolder(dir, relDir) {
@@ -2684,7 +2716,7 @@ drivePickBtn.addEventListener("click", async () => {
   try {
     const dir = await window.showDirectoryPicker({ mode: "read" });
     await loadDoneFolder(dir);
-  } catch (e) { /* cancelled */ }
+  } catch (e) { folderPickerFailed(e); }
 });
 driveRefreshBtn.addEventListener("click", () => { if (doneDir) loadDoneFolder(doneDir); });
 
