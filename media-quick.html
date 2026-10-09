@@ -2891,5 +2891,28 @@ function autoChainDriveToCleanup(succeeded) {
 renderQueue();
 loadDefaultWatermark();
 </script>
+<script>
+/* Black picture but sound playing = the clip is iPhone/iPad "High Efficiency"
+   (HEVC) video and this browser has no HEVC decoder (Edge/Chrome on Windows
+   without the HEVC Video Extensions). The browser then reports a 0-wide video,
+   so catch that on any player in the page and say what's going on. */
+(function () {
+  let shown = false;
+  document.addEventListener("loadedmetadata", (e) => {
+    const v = e.target;
+    if (shown || !(v instanceof HTMLVideoElement) || v.videoWidth) return;
+    shown = true;
+    const box = document.createElement("div");
+    box.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:640px;margin:0 auto;background:#122A4D;border:1px solid #E8B84B;border-radius:12px;padding:14px 40px 14px 16px;color:#F5F3EE;font:14px/1.45 Barlow,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.5);";
+    box.innerHTML = '<strong style="color:#E8B84B">Black video but sound plays?</strong> This clip is in the iPhone/iPad "High Efficiency" (HEVC) format, which this browser can\'t show. Fix it either way: install <strong>HEVC Video Extensions</strong> from the Microsoft Store (then restart Edge), or shrink the clips first with the <a href="media-compress.html" style="color:#E8B84B">Compress</a> tool on your iPad — it saves them as normal H.264 that plays everywhere. To stop it for future clips: iPad Settings → Camera → Formats → Most Compatible.';
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.style.cssText = "position:absolute;top:6px;right:8px;background:none;border:none;color:#93A0B8;font-size:22px;cursor:pointer;";
+    x.onclick = () => box.remove();
+    box.appendChild(x);
+    document.body.appendChild(box);
+  }, true);
+})();
+</script>
 </body>
 </html>

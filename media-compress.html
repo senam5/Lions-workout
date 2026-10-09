@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions Clip Compressor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B1B33; --navy2:#122A4D; --navy3:#0E2140;
+    --red:#C8102E; --gold:#E8B84B; --paper:#F5F3EE; --line:rgba(245,243,238,0.12); --gray:#93A0B8;
+    --green:#8FE0A8; --err:#FF8A80;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{ margin:0; background:var(--navy); font-family:'Barlow',sans-serif; color:var(--paper); min-height:100vh; }
+  .wrap{ max-width:640px; margin:0 auto; padding:24px 16px 90px; }
+  header{ border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:18px; }
+  .eyebrow{ font-family:'Barlow Condensed'; text-transform:uppercase; letter-spacing:.15em; color:var(--gold); font-size:12px; font-weight:600;}
+  h1{ font-family:'Bebas Neue'; font-size:clamp(28px,7vw,40px); margin:2px 0 4px; letter-spacing:.02em;}
+  .sub{ color:var(--gray); font-size:14px; line-height:1.5; margin:0; }
+  .sub a{ color:var(--gold); }
+
+  section{ margin-bottom:18px; }
+  .panel{ background:var(--navy2); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .panel h2{ font-family:'Barlow Condensed'; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--gold); margin:0 0 12px; font-weight:700;}
+
+  button{ font-family:'Barlow Condensed'; cursor:pointer; }
+  .btn{
+    text-transform:uppercase; letter-spacing:.05em; font-weight:700; font-size:15px;
+    border:1px solid var(--line); background:var(--navy3); color:var(--paper);
+    padding:14px 16px; border-radius:9px; width:100%; text-decoration:none; display:block; text-align:center;
+  }
+  .btn.gold{ background:var(--gold); color:var(--navy); border-color:var(--gold); }
+  .btn.small{ width:auto; padding:8px 12px; font-size:13px; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .btn{ flex:1; }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray); margin-bottom:8px; font-weight:600;}
+  select{ font-family:'Barlow',sans-serif; background:var(--navy3); border:1px solid var(--line); border-radius:7px; color:var(--paper); padding:12px 10px; font-size:16px; width:100%; }
+  .toggle-row{ display:flex; align-items:center; gap:9px; margin-bottom:12px; }
+  .toggle-row input{ width:18px; height:18px; }
+  .toggle-row label{ font-size:14px; }
+
+  .hint{ font-size:12.5px; color:var(--gray); margin-top:6px; line-height:1.45; }
+  .warn{ color:var(--gold); }
+
+  .clip{ display:flex; flex-direction:column; gap:8px; background:var(--navy3); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .clip-top{ display:flex; align-items:center; gap:10px; }
+  .clip-name{ flex:1; min-width:0; font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .clip-meta{ font-size:12.5px; color:var(--gray); }
+  .clip-status{ font-size:12.5px; }
+  .clip-status.ok{ color:var(--green); }
+  .clip-status.bad{ color:var(--err); }
+  .remove{ background:none; border:none; color:var(--gray); font-size:20px; line-height:1; padding:2px 6px; }
+
+  progress{ width:100%; height:8px; border-radius:6px; overflow:hidden; appearance:none; -webkit-appearance:none; }
+  progress::-webkit-progress-bar{ background:var(--navy); border-radius:6px; }
+  progress::-webkit-progress-value{ background:var(--gold); border-radius:6px; }
+  .empty-state{ text-align:center; color:var(--gray); font-size:13px; padding:24px 10px; }
+  .total{ font-family:'Barlow Condensed'; font-size:15px; letter-spacing:.04em; margin:6px 0 12px; }
+  video.work{ position:fixed; left:-9999px; top:0; width:2px; height:2px; opacity:0; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Lions Media Toolkit — Compress</span>
+    <h1>COMPRESS CLIPS</h1>
+    <p class="sub">Shrink videos right on your iPad, iPhone or computer — nothing to install, nothing uploads. Pick clips, pick a size, hit Compress, then save them back to Photos. Back to the <a href="media.html">main toolkit</a>.</p>
+  </header>
+
+  <section class="panel">
+    <h2>1. Pick Clips</h2>
+    <button class="btn gold" id="pickBtn">Choose Videos</button>
+    <input type="file" id="fileInput" accept="video/*" multiple style="display:none;">
+    <p class="hint warn" id="unsupportedNote" style="display:none;">This browser can't record video in the page. On iPad/iPhone, update iPadOS/iOS and use Safari; on a computer, use Chrome or Edge.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Size</h2>
+    <div class="field">
+      <label>Quality</label>
+      <select id="preset">
+        <option value="720|3500000">Small — 720p (about 26 MB per minute)</option>
+        <option value="1080|6000000" selected>Balanced — 1080p (about 45 MB per minute)</option>
+        <option value="1080|10000000">High — 1080p (about 75 MB per minute)</option>
+        <option value="540|1800000">Tiny — 540p, for texting (about 14 MB per minute)</option>
+      </select>
+      <p class="hint">iPad/iPhone 4K video is roughly 170–400 MB per minute, so even "High" is a big saving. Output is H.264 MP4, which opens everywhere — Photos, Drive, Windows and Edge.</p>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="keepAudio" checked>
+      <label for="keepAudio">Keep sound</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3. Compress</h2>
+    <div id="clipList"><div class="empty-state">No clips yet — tap Choose Videos.</div></div>
+    <div class="total" id="totalLine"></div>
+    <button class="btn gold" id="compressBtn" disabled>Compress</button>
+    <p class="hint warn" id="realtimeNote">It plays each clip through once to re-record it smaller, so a 1-minute clip takes about 1 minute. Keep this page open and on screen until it finishes — switching apps or locking the iPad pauses it.</p>
+    <div class="btn-row" id="saveAllRow" style="display:none; margin-top:12px;">
+      <button class="btn gold" id="saveAllBtn">Save All</button>
+    </div>
+    <p class="hint" id="saveHint" style="display:none;"></p>
+  </section>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const pickBtn = $("pickBtn"), fileInput = $("fileInput"), clipList = $("clipList");
+const compressBtn = $("compressBtn"), preset = $("preset"), keepAudio = $("keepAudio");
+const totalLine = $("totalLine"), saveAllRow = $("saveAllRow"), saveAllBtn = $("saveAllBtn"), saveHint = $("saveHint");
+
+const supported = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+if (!supported) { $("unsupportedNote").style.display = "block"; pickBtn.disabled = true; }
+
+/* Same rule as the desktop toolkit: insist on a real H.264 codec string so
+   Chrome can't hand back VP9 inside an .mp4 label. Safari's bare "video/mp4"
+   is always H.264 (it has no other MP4 video encoder), so it's allowed there
+   — that's the string iPad Safari actually answers to. */
+const IS_CHROMIUM = /Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+function bestRecorderMime() {
+  const candidates = [
+    "video/mp4;codecs=avc1.640028,mp4a.40.2",
+    "video/mp4;codecs=avc1.64001f,mp4a.40.2",
+    "video/mp4;codecs=avc1.4d401f,mp4a.40.2",
+    "video/mp4;codecs=avc1.42001f,mp4a.40.2",
+    "video/mp4;codecs=avc1.640028",
+    "video/mp4;codecs=avc1.64001f",
+    "video/mp4;codecs=avc1.42001f",
+    "video/mp4;codecs=avc1",
+  ];
+  if (!IS_CHROMIUM) candidates.push("video/mp4");
+  candidates.push("video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm");
+  for (const c of candidates) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return "";
+}
+
+function fmtMB(bytes) { return (bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0) + " MB"; }
+function fmtTime(s) {
+  if (!isFinite(s)) return "?";
+  const m = Math.floor(s / 60), r = Math.round(s % 60);
+  return m + ":" + String(r).padStart(2, "0");
+}
+
+let clips = []; // { id, file, duration, width, height, el, status, blob, outName, outUrl }
+let nextId = 1;
+let busy = false;
+
+pickBtn.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => {
+  for (const file of e.target.files) addClip(file);
+  fileInput.value = "";
+});
+
+function addClip(file) {
+  const clip = { id: nextId++, file, duration: NaN, width: 0, height: 0, status: "ready", blob: null };
+  clips.push(clip);
+  renderClip(clip);
+  probe(clip);
+  refresh();
+}
+
+/* Read duration/size up front so the list can show how long the batch will
+   take, and catch clips this browser can only play as sound (HEVC in an
+   Edge/Chrome without the HEVC extension) before wasting a run on them. */
+function probe(clip) {
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.preload = "metadata";
+  const url = URL.createObjectURL(clip.file);
+  v.onloadedmetadata = () => {
+    clip.duration = v.duration; clip.width = v.videoWidth; clip.height = v.videoHeight;
+    if (!clip.width) { clip.status = "noVideo"; }
+    URL.revokeObjectURL(url); updateClip(clip); refresh();
+  };
+  v.onerror = () => { clip.status = "unreadable"; URL.revokeObjectURL(url); updateClip(clip); refresh(); };
+  v.src = url;
+}
+
+function renderClip(clip) {
+  if (clipList.querySelector(".empty-state")) clipList.innerHTML = "";
+  const el = document.createElement("div");
+  el.className = "clip";
+  el.innerHTML = `
+    <div class="clip-top">
+      <div class="clip-name"></div>
+      <button class="remove" title="Remove">×</button>
+    </div>
+    <div class="clip-meta"></div>
+    <progress max="1" value="0" style="display:none;"></progress>
+    <div class="clip-status"></div>
+    <div class="btn-row clip-actions" style="display:none;">
+      <button class="btn gold small save">Save</button>
+      <a class="btn small preview" target="_blank" rel="noopener">Preview</a>
+    </div>`;
+  el.querySelector(".clip-name").textContent = clip.file.name;
+  el.querySelector(".remove").addEventListener("click", () => {
+    if (busy) return;
+    if (clip.outUrl) URL.revokeObjectURL(clip.outUrl);
+    clips = clips.filter(c => c !== clip);
+    el.remove();
+    if (!clips.length) clipList.innerHTML = '<div class="empty-state">No clips yet — tap Choose Videos.</div>';
+    refresh();
+  });
+  el.querySelector(".save").addEventListener("click", () => saveClips([clip]));
+  clip.el = el;
+  clipList.appendChild(el);
+  updateClip(clip);
+}
+
+function updateClip(clip, progress) {
+  const el = clip.el;
+  const dims = clip.width ? ` · ${clip.width}×${clip.height}` : "";
+  el.querySelector(".clip-meta").textContent = `${fmtMB(clip.file.size)} · ${fmtTime(clip.duration)}${dims}`;
+  const st = el.querySelector(".clip-status");
+  const bar = el.querySelector("progress");
+  st.className = "clip-status";
+  bar.style.display = clip.status === "working" ? "block" : "none";
+  if (progress != null) bar.value = progress;
+  el.querySelector(".clip-actions").style.display = clip.status === "done" ? "flex" : "none";
+  switch (clip.status) {
+    case "ready": st.textContent = ""; break;
+    case "working": st.textContent = "Compressing… keep this page on screen"; break;
+    case "done": {
+      const pct = Math.round((1 - clip.blob.size / clip.file.size) * 100);
+      st.className = "clip-status ok";
+      st.textContent = pct > 0
+        ? `✓ ${fmtMB(clip.blob.size)} — ${pct}% smaller`
+        : `✓ ${fmtMB(clip.blob.size)} — already small; this one didn't shrink (keep the original)`;
+      el.querySelector(".preview").href = clip.outUrl;
+      break;
+    }
+    case "noVideo":
+      st.className = "clip-status bad";
+      st.textContent = "This browser can play this clip's sound but not its picture — it's in the iPhone/iPad \"High Efficiency\" (HEVC) format. On Windows, install \"HEVC Video Extensions\" from the Microsoft Store, or compress it on the iPad instead.";
+      break;
+    case "unreadable":
+      st.className = "clip-status bad";
+      st.textContent = "This browser can't open this file.";
+      break;
+    default:
+      st.className = "clip-status bad";
+      st.textContent = "Failed: " + clip.status;
+  }
+}
+
+function refresh() {
+  const todo = clips.filter(c => c.status === "ready");
+  compressBtn.disabled = busy || !todo.length;
+  const secs = todo.reduce((s, c) => s + (isFinite(c.duration) ? c.duration : 0), 0);
+  totalLine.textContent = todo.length
+    ? `${todo.length} clip${todo.length > 1 ? "s" : ""} to compress · takes about ${fmtTime(secs)}`
+    : "";
+  const done = clips.filter(c => c.status === "done");
+  saveAllRow.style.display = done.length > 1 ? "flex" : "none";
+  if (done.length) {
+    saveHint.style.display = "block";
+    saveHint.textContent = canShareFiles()
+      ? "Save opens the share sheet — tap \"Save Video\" (or \"Save N Videos\") to put them in Photos, or \"Save to Files\"."
+      : "Save downloads the file. On iPad it lands in Files → Downloads; on a computer, in your Downloads folder.";
+  } else saveHint.style.display = "none";
+}
+
+/* One AudioContext, created on the Compress tap itself and reused for every
+   clip — iPad Safari only lets audio start inside the tap, and a context made
+   later (clip 2, 3…) can stay silently suspended and hang the run. */
+let audioCtx = null;
+function unlockAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!audioCtx || audioCtx.state === "closed") audioCtx = new AC();
+  if (audioCtx.state !== "running") audioCtx.resume();
+  return audioCtx;
+}
+
+/* Silent audio clock, same as the rest of the toolkit: redraws keep firing
+   at a steady rate even when requestAnimationFrame gets throttled. */
+function startHeartbeat(ctx, onTick) {
+  const node = ctx.createScriptProcessor(1024, 1, 1);
+  const silence = ctx.createGain();
+  silence.gain.value = 0;
+  node.onaudioprocess = onTick;
+  node.connect(silence);
+  silence.connect(ctx.destination);
+  return { stop() { node.onaudioprocess = null; node.disconnect(); silence.disconnect(); } };
+}
+
+let wakeLock = null;
+async function holdScreenOn() {
+  try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { wakeLock = null; }
+}
+function releaseScreen() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+document.addEventListener("visibilitychange", () => { if (busy && document.visibilityState === "visible") holdScreenOn(); });
+
+compressBtn.addEventListener("click", async () => {
+  if (busy) return;
+  const ctx = unlockAudio(); // must happen synchronously in the tap
+  busy = true; refresh();
+  pickBtn.disabled = true; preset.disabled = true; keepAudio.disabled = true;
+  await holdScreenOn();
+  try {
+    for (const clip of clips.filter(c => c.status === "ready")) {
+      clip.status = "working"; updateClip(clip, 0);
+      try {
+        await compressOne(clip, ctx);
+        clip.status = "done";
+      } catch (err) {
+        clip.status = (err && err.message) || String(err);
+      }
+      updateClip(clip);
+    }
+  } finally {
+    busy = false;
+    releaseScreen();
+    pickBtn.disabled = !supported; preset.disabled = false; keepAudio.disabled = false;
+    refresh();
+  }
+});
+
+async function compressOne(clip, ctx) {
+  const [capStr, bitsStr] = preset.value.split("|");
+  const cap = parseInt(capStr, 10), videoBitsPerSecond = parseInt(bitsStr, 10);
+  const wantAudio = keepAudio.checked;
+
+  // A fresh element per clip: createMediaElementSource can only ever be
+  // called once on a given <video>.
+  const video = document.createElement("video");
+  video.className = "work";
+  video.playsInline = true;
+  video.setAttribute("playsinline", "");
+  video.preload = "auto";
+  document.body.appendChild(video);
+  const srcUrl = URL.createObjectURL(clip.file);
+  let source = null, recorder = null;
+  try {
+    video.src = srcUrl;
+    // loadedmetadata, not loadeddata: iPad Safari often won't decode a
+    // frame until play() is called, so loadeddata can never arrive.
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error("couldn't open this file"));
+    });
+    if (!video.videoWidth) throw new Error("this browser can't show this clip's picture (HEVC) — see note above");
+
+    // Cap the SHORT edge so portrait and landscape clips both land at 720p/1080p.
+    const shortEdge = Math.min(video.videoWidth, video.videoHeight);
+    const scale = shortEdge > cap ? cap / shortEdge : 1;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale / 2) * 2;
+    canvas.height = Math.round(video.videoHeight * scale / 2) * 2;
+    const g = canvas.getContext("2d", { alpha: false });
+    g.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const canvasStream = canvas.captureStream();
+    let stream = canvasStream;
+    if (wantAudio) {
+      source = ctx.createMediaElementSource(video);
+      const dest = ctx.createMediaStreamDestination();
+      source.connect(dest);
+      stream = new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    } else {
+      video.muted = true;
+    }
+
+    const mimeType = bestRecorderMime();
+    const opts = { videoBitsPerSecond, audioBitsPerSecond: 128000 };
+    if (mimeType) opts.mimeType = mimeType;
+    recorder = new MediaRecorder(stream, opts);
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise((resolve) => { recorder.onstop = resolve; });
+
+    const duration = video.duration;
+    const finished = new Promise((resolve, reject) => {
+      let over = false;
+      const end = () => { if (over) return; over = true; hb.stop(); video.pause(); resolve(); };
+      const hb = startHeartbeat(ctx, () => {
+        if (over) return;
+        if (video.ended || video.currentTime >= duration - 0.02) return end();
+        g.drawImage(video, 0, 0, canvas.width, canvas.height);
+        updateClip(clip, duration ? video.currentTime / duration : 0);
+      });
+      video.addEventListener("ended", end, { once: true });
+      video.addEventListener("error", () => { if (!over) { over = true; hb.stop(); reject(new Error("playback error")); } }, { once: true });
+    });
+
+    // Start recording only once playback is really running, so the file
+    // doesn't open on a black frame.
+    await video.play();
+    g.drawImage(video, 0, 0, canvas.width, canvas.height);
+    recorder.start(1000);
+    await finished;
+    recorder.stop();
+    await stopped;
+
+    const type = (recorder.mimeType || mimeType || "video/webm").split(";")[0];
+    const ext = type.includes("mp4") ? "mp4" : "webm";
+    clip.blob = new Blob(chunks, { type });
+    clip.outName = clip.file.name.replace(/\.[^.]+$/, "") + "_small." + ext;
+    clip.outUrl = URL.createObjectURL(clip.blob);
+  } finally {
+    if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch (e) {} }
+    if (source) source.disconnect();
+    video.removeAttribute("src"); video.load(); video.remove();
+    URL.revokeObjectURL(srcUrl);
+  }
+}
+
+function canShareFiles() {
+  try {
+    const probeFile = new File([new Blob(["x"], { type: "video/mp4" })], "x.mp4", { type: "video/mp4" });
+    return !!(navigator.canShare && navigator.canShare({ files: [probeFile] }));
+  } catch (e) { return false; }
+}
+
+/* On iPad/iPhone the share sheet is the only way to land a video straight in
+   Photos ("Save Video"); a plain download only reaches the Files app. */
+async function saveClips(list) {
+  const files = list.map(c => new File([c.blob], c.outName, { type: c.blob.type }));
+  if (canShareFiles() && navigator.canShare({ files })) {
+    try { await navigator.share({ files }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  for (const c of list) {
+    const a = document.createElement("a");
+    a.href = c.outUrl; a.download = c.outName;
+    document.body.appendChild(a); a.click(); a.remove();
+    await new Promise(r => setTimeout(r, 400));
+  }
+}
+saveAllBtn.addEventListener("click", () => saveClips(clips.filter(c => c.status === "done")));
+</script>
+</body>
+</html>
