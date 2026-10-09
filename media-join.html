@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions Highlight Joiner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B1B33; --navy2:#122A4D; --navy3:#0E2140;
+    --red:#C8102E; --gold:#E8B84B; --paper:#F5F3EE; --line:rgba(245,243,238,0.12); --gray:#93A0B8;
+    --green:#8FE0A8; --err:#FF8A80;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{ margin:0; background:var(--navy); font-family:'Barlow',sans-serif; color:var(--paper); min-height:100vh; }
+  .wrap{ max-width:680px; margin:0 auto; padding:24px 16px 90px; }
+  header{ border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:18px; }
+  .eyebrow{ font-family:'Barlow Condensed'; text-transform:uppercase; letter-spacing:.15em; color:var(--gold); font-size:12px; font-weight:600;}
+  h1{ font-family:'Bebas Neue'; font-size:clamp(28px,7vw,40px); margin:2px 0 4px; letter-spacing:.02em;}
+  .sub{ color:var(--gray); font-size:14px; line-height:1.5; margin:0; }
+  .sub a{ color:var(--gold); }
+
+  section{ margin-bottom:18px; }
+  .panel{ background:var(--navy2); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .panel h2{ font-family:'Barlow Condensed'; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--gold); margin:0 0 12px; font-weight:700;}
+
+  button{ font-family:'Barlow Condensed'; cursor:pointer; }
+  .btn{
+    text-transform:uppercase; letter-spacing:.05em; font-weight:700; font-size:15px;
+    border:1px solid var(--line); background:var(--navy3); color:var(--paper);
+    padding:14px 16px; border-radius:9px; width:100%; display:block; text-align:center; text-decoration:none;
+  }
+  .btn.gold{ background:var(--gold); color:var(--navy); border-color:var(--gold); }
+  .btn.small{ width:auto; padding:9px 12px; font-size:13px; display:inline-block; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .hint{ font-size:12.5px; color:var(--gray); margin-top:6px; line-height:1.45; }
+  .warn{ color:var(--gold); }
+  .bad{ color:var(--err); }
+  .ok{ color:var(--green); }
+
+  .clip{ background:var(--navy3); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:12px; }
+  .clip-top{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .clip-num{ font-family:'Bebas Neue'; font-size:22px; color:var(--gold); width:22px; }
+  .clip-name{ flex:1; min-width:0; font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .icon-btn{ background:var(--navy2); border:1px solid var(--line); color:var(--paper); border-radius:7px; font-size:16px; width:36px; height:34px; }
+  .icon-btn:disabled{ opacity:.3; }
+  .clip video{ width:100%; max-height:260px; background:#000; border-radius:8px; display:block; }
+  .trim{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+  .trim label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray); margin-bottom:6px; font-weight:600; }
+  .trim-row{ display:flex; gap:6px; }
+  .trim input{ flex:1; min-width:0; width:100%; font-family:'Barlow',sans-serif; background:var(--navy2); border:1px solid var(--line); border-radius:7px; color:var(--paper); padding:9px; font-size:16px; }
+  .clip-meta{ font-size:12.5px; color:var(--gray); margin-top:8px; }
+
+  .total{ font-family:'Barlow Condensed'; font-size:16px; letter-spacing:.04em; margin:4px 0 12px; }
+  .empty-state{ text-align:center; color:var(--gray); font-size:13px; padding:24px 10px; }
+  progress{ width:100%; height:8px; border-radius:6px; overflow:hidden; appearance:none; -webkit-appearance:none; margin-top:12px; }
+  progress::-webkit-progress-bar{ background:var(--navy3); border-radius:6px; }
+  progress::-webkit-progress-value{ background:var(--gold); border-radius:6px; }
+  #resultVideo{ width:100%; max-height:420px; background:#000; border-radius:10px; display:block; margin:12px 0; }
+  video.work{ position:fixed; left:-9999px; top:0; width:2px; height:2px; opacity:0; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Lions Media Toolkit — Join</span>
+    <h1>JOIN CLIPS INTO ONE</h1>
+    <p class="sub">For posting during the game: pick a few clips, trim them, put them in order, and get one video back — usually in seconds, at the camera's full quality. Works on iPad, iPhone or computer. Back to the <a href="media.html">main toolkit</a>.</p>
+  </header>
+
+  <section class="panel">
+    <h2>1. Add Clips</h2>
+    <button class="btn gold" id="addBtn">Add Clips</button>
+    <input type="file" id="fileInput" accept="video/*,.mp4,.mov" multiple style="display:none;">
+    <p class="hint">They join in the order shown — use ▲ ▼ to reorder. Trim each one with the Start/End boxes (or play it and tap "here").</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Order &amp; Trim</h2>
+    <div id="clipList"><div class="empty-state">No clips yet.</div></div>
+    <div class="total" id="totalLine"></div>
+  </section>
+
+  <section class="panel">
+    <h2>3. Join</h2>
+    <button class="btn gold" id="joinBtn" disabled>Join Clips</button>
+    <progress id="joinProgress" max="1" value="0" style="display:none;"></progress>
+    <p class="hint" id="joinStatus"></p>
+    <div id="resultBox" style="display:none;">
+      <video id="resultVideo" controls playsinline></video>
+      <button class="btn gold" id="saveBtn">Save Video</button>
+      <p class="hint" id="saveHint"></p>
+    </div>
+  </section>
+</div>
+
+<!-- Vendored copies first so the page works on the website with no CDN;
+     fall back to the CDN if this file was downloaded on its own. -->
+<script src="vendor/mp4box.all.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js'"></script>
+<script src="vendor/mp4-muxer.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js'"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const addBtn = $("addBtn"), fileInput = $("fileInput"), clipList = $("clipList"), totalLine = $("totalLine");
+const joinBtn = $("joinBtn"), joinProgress = $("joinProgress"), joinStatus = $("joinStatus");
+const resultBox = $("resultBox"), resultVideo = $("resultVideo"), saveBtn = $("saveBtn"), saveHint = $("saveHint");
+
+let clips = []; // { id, file, url, el, parsed, parseError, duration, start, end }
+let nextId = 1;
+let busy = false;
+let result = null; // { blob, url, name }
+
+function fmt(s) {
+  if (!isFinite(s)) return "?";
+  const m = Math.floor(s / 60), r = s - m * 60;
+  return m + ":" + r.toFixed(1).padStart(4, "0");
+}
+function fmtMB(b) { return (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + " MB"; }
+
+/* ===================== Reading the camera's MP4 =====================
+   Only the 'moov' box (the index: codec settings + where every frame sits
+   in the file) is read up front. Action-cam files keep it at the end, so we
+   hop box-to-box with tiny reads instead of loading a multi-GB file. */
+async function readBytes(file, start, len) {
+  return new Uint8Array(await file.slice(start, start + len).arrayBuffer());
+}
+async function findBoxes(file) {
+  const found = {};
+  let pos = 0;
+  while (pos + 8 <= file.size) {
+    const h = await readBytes(file, pos, 16);
+    const dv = new DataView(h.buffer);
+    let size = dv.getUint32(0), hdr = 8;
+    const type = String.fromCharCode(h[4], h[5], h[6], h[7]);
+    if (size === 1) { size = dv.getUint32(8) * 4294967296 + dv.getUint32(12); hdr = 16; }
+    else if (size === 0) size = file.size - pos;
+    if (size < hdr) throw new Error("not an MP4/MOV file");
+    if (type === "ftyp" || type === "moov") found[type] = { start: pos, size };
+    if (found.ftyp && found.moov) return found;
+    pos += size;
+  }
+  if (!found.moov) throw new Error("no index (moov) found — file may be incomplete");
+  return found;
+}
+function boxPayload(box) {
+  const ds = new DataStream(undefined, 0, DataStream.BIG_ENDIAN);
+  box.write(ds);
+  return new Uint8Array(ds.buffer, 8); // drop the box's own 8-byte header
+}
+function bytesEqual(a, b) {
+  if (!a || !b || a.length !== b.length) return a === b;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+async function parseClip(file) {
+  // Hand mp4box just the header + index glued together. Frame positions are
+  // absolute offsets stored inside the index, so they still point at the
+  // right bytes in the original file.
+  const { ftyp, moov } = await findBoxes(file);
+  const parts = [];
+  if (ftyp) parts.push(file.slice(ftyp.start, ftyp.start + ftyp.size));
+  parts.push(file.slice(moov.start, moov.start + moov.size));
+  const buf = await new Blob(parts).arrayBuffer();
+  buf.fileStart = 0;
+  const mp = MP4Box.createFile();
+  let info = null, err = null;
+  mp.onReady = (i) => { info = i; };
+  mp.onError = (e) => { err = e; };
+  mp.appendBuffer(buf);
+  mp.flush();
+  if (err || !info) throw new Error("couldn't read this file's index");
+
+  const vt = info.videoTracks[0];
+  if (!vt) throw new Error("no video track");
+  const vtrak = mp.getTrackById(vt.id);
+  const ventry = vtrak.mdia.minf.stbl.stsd.entries[0];
+  const vtype = ventry.type;
+  const vcodec = /^avc/.test(vtype) ? "avc" : /^(hvc|hev)/.test(vtype) ? "hevc" : null;
+  const cfgBox = ventry.avcC || ventry.hvcC;
+  const video = {
+    codec: vcodec, codecString: vt.codec, type: vtype,
+    width: ventry.width, height: ventry.height,
+    description: cfgBox ? boxPayload(cfgBox) : null,
+    timescale: vt.timescale,
+    samples: vtrak.samples,
+    rotation: matrixRotation(vt.matrix),
+  };
+
+  let audio = null;
+  const at = info.audioTracks[0];
+  if (at) {
+    const atrak = mp.getTrackById(at.id);
+    const aentry = atrak.mdia.minf.stbl.stsd.entries[0];
+    let asc = null;
+    try { asc = aentry.esds.esd.descs[0].descs[0].data; } catch (e) { asc = null; }
+    audio = {
+      codec: /^mp4a/.test(aentry.type) && asc ? "aac" : null, codecString: at.codec,
+      channels: at.audio.channel_count, sampleRate: at.audio.sample_rate,
+      description: asc ? new Uint8Array(asc) : null,
+      timescale: at.timescale, samples: atrak.samples,
+    };
+  }
+
+  const s = video.samples;
+  let minCts = Infinity, maxEnd = 0;
+  for (const x of s) { minCts = Math.min(minCts, x.cts); maxEnd = Math.max(maxEnd, x.cts + x.duration); }
+  video.minCts = minCts;
+  return { video, audio, duration: (maxEnd - minCts) / video.timescale };
+}
+
+function matrixRotation(m) {
+  if (!m) return 0;
+  const a = m[0] / 65536, b = m[1] / 65536;
+  const deg = ((Math.round(Math.atan2(b, a) * 180 / Math.PI / 90) * 90) % 360 + 360) % 360;
+  return [0, 90, 180, 270].includes(deg) ? deg : 0;
+}
+
+/* Lossless cuts can only start on a keyframe (and end just before one), so
+   the real cut is snapped outward to the nearest keyframes — on action cams
+   that's within about a second. Returns sample index range + timing. */
+function segmentFor(clip) {
+  const v = clip.parsed.video, s = v.samples, ts = v.timescale;
+  const t = (x) => (x.cts - v.minCts) / ts;
+  let k = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i].is_sync && t(s[i]) <= clip.start + 0.001) k = i;
+    if (t(s[i]) > clip.start + 0.001 && s[i].is_sync && i > k) break;
+  }
+  let e = s.length;
+  for (let i = k + 1; i < s.length; i++) {
+    if (s[i].is_sync && t(s[i]) >= clip.end - 0.001) { e = i; break; }
+  }
+  const key = s[k];
+  let endCts = key.cts;
+  for (let i = k; i < e; i++) if (s[i].cts >= key.cts) endCts = Math.max(endCts, s[i].cts + s[i].duration);
+  return { k, e, keyCts: key.cts, endCts, startSec: t(key), endSec: (endCts - v.minCts) / ts };
+}
+
+/* ========================= Clip list UI ========================= */
+addBtn.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => {
+  for (const f of e.target.files) addClip(f);
+  fileInput.value = "";
+});
+
+function addClip(file) {
+  const clip = { id: nextId++, file, url: URL.createObjectURL(file), parsed: null, parseError: null, duration: NaN, start: 0, end: NaN };
+  clips.push(clip);
+  buildClipEl(clip);
+  renderList();
+  parseClip(file).then((p) => {
+    clip.parsed = p;
+    clip.duration = p.duration;
+    if (!isFinite(clip.end)) clip.end = p.duration;
+  }).catch((err) => {
+    clip.parseError = err.message || String(err);
+  }).finally(() => { updateClipEl(clip); renderTotal(); });
+  invalidateResult();
+}
+
+function buildClipEl(clip) {
+  const el = document.createElement("div");
+  el.className = "clip";
+  el.innerHTML = `
+    <div class="clip-top">
+      <div class="clip-num"></div>
+      <div class="clip-name"></div>
+      <button class="icon-btn up" title="Move up">▲</button>
+      <button class="icon-btn down" title="Move down">▼</button>
+      <button class="icon-btn rm" title="Remove">×</button>
+    </div>
+    <video controls playsinline preload="metadata"></video>
+    <div class="trim">
+      <div><label>Start (sec)</label><div class="trim-row"><input type="number" class="start" min="0" step="0.1" inputmode="decimal"><button class="btn small set-start">here</button></div></div>
+      <div><label>End (sec)</label><div class="trim-row"><input type="number" class="end" min="0" step="0.1" inputmode="decimal"><button class="btn small set-end">here</button></div></div>
+    </div>
+    <div class="clip-meta"></div>`;
+  el.querySelector(".clip-name").textContent = clip.file.name;
+  const v = el.querySelector("video");
+  v.src = clip.url;
+  v.addEventListener("loadedmetadata", () => {
+    if (!isFinite(clip.duration)) { clip.duration = v.duration; if (!isFinite(clip.end)) clip.end = v.duration; updateClipEl(clip); renderTotal(); }
+  });
+  const startIn = el.querySelector(".start"), endIn = el.querySelector(".end");
+  const setStart = (x) => { clip.start = Math.max(0, Math.min(x, (clip.end || x) - 0.1)); updateClipEl(clip); renderTotal(); invalidateResult(); };
+  const setEnd = (x) => { clip.end = Math.min(clip.duration || x, Math.max(x, clip.start + 0.1)); updateClipEl(clip); renderTotal(); invalidateResult(); };
+  startIn.addEventListener("change", () => setStart(parseFloat(startIn.value) || 0));
+  endIn.addEventListener("change", () => setEnd(parseFloat(endIn.value) || clip.duration));
+  el.querySelector(".set-start").addEventListener("click", () => setStart(v.currentTime));
+  el.querySelector(".set-end").addEventListener("click", () => setEnd(v.currentTime));
+  el.querySelector(".up").addEventListener("click", () => move(clip, -1));
+  el.querySelector(".down").addEventListener("click", () => move(clip, 1));
+  el.querySelector(".rm").addEventListener("click", () => {
+    if (busy) return;
+    URL.revokeObjectURL(clip.url);
+    clips = clips.filter(c => c !== clip);
+    renderList(); invalidateResult();
+  });
+  clip.el = el;
+  updateClipEl(clip);
+}
+
+function move(clip, dir) {
+  if (busy) return;
+  const i = clips.indexOf(clip), j = i + dir;
+  if (j < 0 || j >= clips.length) return;
+  [clips[i], clips[j]] = [clips[j], clips[i]];
+  renderList(); invalidateResult();
+}
+
+function updateClipEl(clip) {
+  const el = clip.el;
+  const startIn = el.querySelector(".start"), endIn = el.querySelector(".end");
+  if (document.activeElement !== startIn) startIn.value = clip.start.toFixed(1);
+  if (document.activeElement !== endIn && isFinite(clip.end)) endIn.value = clip.end.toFixed(1);
+  const meta = el.querySelector(".clip-meta");
+  meta.className = "clip-meta";
+  if (clip.parseError) {
+    meta.className = "clip-meta warn";
+    meta.textContent = `${fmtMB(clip.file.size)} · can't be joined instantly (${clip.parseError}) — the whole set will be re-recorded instead.`;
+  } else if (clip.parsed) {
+    const seg = segmentFor(clip);
+    const v = clip.parsed.video;
+    meta.textContent = `${fmtMB(clip.file.size)} · ${v.width}×${v.height} ${v.codec ? v.codec.toUpperCase() : v.type} · uses ${seg.startSec.toFixed(1)}s → ${seg.endSec.toFixed(1)}s (cuts land on the nearest keyframe)`;
+  } else {
+    meta.textContent = `${fmtMB(clip.file.size)} · reading…`;
+  }
+}
+
+function renderList() {
+  clipList.innerHTML = "";
+  if (!clips.length) clipList.innerHTML = '<div class="empty-state">No clips yet.</div>';
+  clips.forEach((c, i) => {
+    c.el.querySelector(".clip-num").textContent = i + 1;
+    c.el.querySelector(".up").disabled = i === 0;
+    c.el.querySelector(".down").disabled = i === clips.length - 1;
+    clipList.appendChild(c.el);
+  });
+  renderTotal();
+}
+
+function clipLength(c) {
+  if (c.parsed) { const s = segmentFor(c); return s.endSec - s.startSec; }
+  return isFinite(c.end) ? c.end - c.start : 0;
+}
+function renderTotal() {
+  const ready = clips.length && clips.every(c => c.parsed || c.parseError || isFinite(c.duration));
+  joinBtn.disabled = busy || !ready;
+  if (!clips.length) { totalLine.textContent = ""; return; }
+  const total = clips.reduce((s, c) => s + clipLength(c), 0);
+  totalLine.textContent = `${clips.length} clip${clips.length > 1 ? "s" : ""} · total ${fmt(total)}`;
+  totalLine.className = "total" + (total > 60 ? " warn" : "");
+}
+
+function invalidateResult() {
+  if (result) { URL.revokeObjectURL(result.url); result = null; }
+  resultBox.style.display = "none";
+  joinStatus.textContent = "";
+}
+
+/* ===================== Fast path: lossless join =====================
+   Copies the camera's own compressed frames into one new MP4 — no decoding
+   or re-encoding, so it runs at file-copy speed and keeps full quality.
+   Needs every clip shot with the same camera settings (same codec,
+   resolution and encoder setup); otherwise we fall back to re-recording. */
+function fastJoinProblem() {
+  if (typeof MP4Box === "undefined" || typeof Mp4Muxer === "undefined") return "the joining library didn't load (check the internet connection)";
+  if (clips.some(c => !c.parsed)) return "one of the clips couldn't be read directly";
+  const a = clips[0].parsed;
+  if (!a.video.codec || !a.video.description) return "unsupported video format";
+  for (const c of clips) {
+    const v = c.parsed.video;
+    if (v.codec !== a.video.codec || v.width !== a.video.width || v.height !== a.video.height || v.rotation !== a.video.rotation || !bytesEqual(v.description, a.video.description))
+      return "clips were shot with different camera settings (resolution/frame rate/codec)";
+    const x = c.parsed.audio, y = a.audio;
+    if (!!(x && x.codec) !== !!(y && y.codec)) return "some clips have sound and some don't";
+    if (x && x.codec && (x.channels !== y.channels || x.sampleRate !== y.sampleRate || !bytesEqual(x.description, y.description)))
+      return "clips have different sound settings";
+  }
+  return null;
+}
+
+/* Collects the muxer's output. StreamTarget writes mostly in order but goes
+   back to patch a few header bytes at the end; those patches are applied to
+   the piece already stored, so the finished file is assembled from pieces
+   without ever needing one giant buffer. */
+function makePieceWriter() {
+  const pieces = []; let end = 0;
+  return {
+    write(data, pos) {
+      data = data.slice();
+      if (pos >= end) {
+        if (pos > end) pieces.push({ pos: end, data: new Uint8Array(pos - end) });
+        pieces.push({ pos, data }); end = pos + data.length; return;
+      }
+      // Patch bytes that overlap pieces already written.
+      for (const p of pieces) {
+        const s = Math.max(pos, p.pos), e = Math.min(pos + data.length, p.pos + p.data.length);
+        if (s < e) p.data.set(data.subarray(s - pos, e - pos), s - p.pos);
+      }
+      if (pos + data.length > end) {
+        const tail = data.subarray(end - pos);
+        pieces.push({ pos: end, data: tail.slice() }); end += tail.length;
+      }
+    },
+    blob() { return new Blob(pieces.map(p => p.data), { type: "video/mp4" }); },
+  };
+}
+
+async function fastJoin(onProgress) {
+  const first = clips[0].parsed;
+  const v0 = first.video, a0 = first.audio && first.audio.codec ? first.audio : null;
+  const out = makePieceWriter();
+  const muxer = new Mp4Muxer.Muxer({
+    target: new Mp4Muxer.StreamTarget({ onData: (d, p) => out.write(d, p) }),
+    video: { codec: v0.codec, width: v0.width, height: v0.height, rotation: v0.rotation },
+    audio: a0 ? { codec: "aac", numberOfChannels: a0.channels, sampleRate: a0.sampleRate } : undefined,
+    fastStart: false,
+    firstTimestampBehavior: "cross-track-offset",
+  });
+  const vMeta = { decoderConfig: { codec: v0.codecString, codedWidth: v0.width, codedHeight: v0.height, description: v0.description } };
+  const aMeta = a0 ? { decoderConfig: { codec: a0.codecString, numberOfChannels: a0.channels, sampleRate: a0.sampleRate, description: a0.description } } : null;
+
+  /* Build every frame/audio packet with new timestamps (µs). Timing is
+     rebuilt per segment rather than copied: frames are re-spaced in decode
+     order by their own durations, and one constant reorder delay G (needed
+     because B-frames decode before they're shown) is applied to the whole
+     timeline, so segments butt up exactly with no gap, overlap or
+     out-of-order timestamps at the joins. */
+  const segs = [];
+  let G = 0;
+  for (const c of clips) {
+    const v = c.parsed.video, s = v.samples, vk = 1e6 / v.timescale;
+    const seg = segmentFor(c);
+    const key = s[seg.k];
+    const frames = [];
+    let cum = 0, ptsSpan = 0;
+    for (let i = seg.k; i < seg.e; i++) {
+      const x = s[i];
+      // Frames shown before the keyframe belong to the previous GOP and
+      // can't be decoded without it ("open GOP" leading frames) — drop them.
+      if (x.cts < key.cts) continue;
+      const ptsRel = (x.cts - key.cts) * vk, dur = x.duration * vk;
+      frames.push({ x, dtsRel: cum, ptsRel, dur });
+      G = Math.max(G, cum - ptsRel);
+      cum += dur;
+      ptsSpan = Math.max(ptsSpan, ptsRel + dur);
+    }
+    segs.push({ c, seg, frames, len: Math.max(cum, ptsSpan) });
+  }
+
+  // End-of-sequence NAL appended after the last frame of each joined segment
+  // (except the final one), so the decoder restarts cleanly at the next
+  // clip's keyframe instead of expecting frames from the previous clip.
+  const desc = v0.description;
+  const lenSize = ((v0.codec === "hevc" ? desc[21] : desc[4]) & 3) + 1;
+  const eosNal = v0.codec === "hevc" ? [0x48, 0x01] : [0x0A];
+  const eos = new Uint8Array(lenSize + eosNal.length);
+  for (let i = 0; i < lenSize; i++) eos[i] = i === lenSize - 1 ? eosNal.length : 0;
+  eos.set(eosNal, lenSize);
+
+  const items = [];
+  let outOff = 0;
+  segs.forEach(({ c, seg, frames, len }, si) => {
+    frames.forEach((f, fi) => {
+      const dts = outOff + f.dtsRel, pts = outOff + G + f.ptsRel;
+      items.push({ kind: "v", file: c.file, off: f.x.offset, size: f.x.size, dts, cto: pts - dts, dur: f.dur, key: f.x.is_sync,
+                   eos: fi === frames.length - 1 && si < segs.length - 1 });
+    });
+    if (a0) {
+      const v = c.parsed.video, vk = 1e6 / v.timescale;
+      const a = c.parsed.audio, ak = 1e6 / a.timescale;
+      const segStartUs = seg.keyCts * vk, segEndUs = segStartUs + len;
+      for (const x of a.samples) {
+        const t = x.cts * ak, d = x.duration * ak;
+        if (t < segStartUs - 1 || t + d > segEndUs + 1) continue;
+        items.push({ kind: "a", file: c.file, off: x.offset, size: x.size, dts: outOff + G + (t - segStartUs), dur: d });
+      }
+    }
+    outOff += len;
+  });
+  // Interleave by time so the output plays smoothly from the start.
+  items.sort((p, q) => p.dts - q.dts || (p.kind === "v" ? -1 : 1));
+
+  let cache = { file: null, start: 0, buf: null };
+  async function sampleData(file, off, size) {
+    if (cache.file !== file || off < cache.start || off + size > cache.start + cache.buf.length) {
+      const len = Math.min(Math.max(size, 8 * 1048576), file.size - off);
+      cache = { file, start: off, buf: await readBytes(file, off, len) };
+    }
+    return cache.buf.slice(off - cache.start, off - cache.start + size);
+  }
+
+  let vFirst = true, aFirst = true, lastV = -1, lastA = -1;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    let data = await sampleData(it.file, it.off, it.size);
+    if (it.eos) { const d2 = new Uint8Array(data.length + eos.length); d2.set(data); d2.set(eos, data.length); data = d2; }
+    if (it.kind === "v") {
+      const dts = Math.max(it.dts, lastV + 1); lastV = dts;
+      muxer.addVideoChunkRaw(data, it.key ? "key" : "delta", dts + it.cto, it.dur, vFirst ? vMeta : undefined, it.cto);
+      vFirst = false;
+    } else {
+      const ts = Math.max(it.dts, lastA + 1); lastA = ts;
+      muxer.addAudioChunkRaw(data, "key", ts, it.dur, aFirst ? aMeta : undefined);
+      aFirst = false;
+    }
+    if (i % 200 === 0) { onProgress(i / items.length); await new Promise(r => setTimeout(r, 0)); }
+  }
+  muxer.finalize();
+  return out.blob();
+}
+
+/* ============ Fallback: re-record (when clips don't match) ============
+   Plays each trimmed clip through a canvas + MediaRecorder, same engine as
+   the rest of the toolkit. Takes as long as the finished video. */
+function bestRecorderMime() {
+  const chromium = /Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+  const c = ["video/mp4;codecs=avc1.640028,mp4a.40.2", "video/mp4;codecs=avc1.64001f,mp4a.40.2", "video/mp4;codecs=avc1.42001f,mp4a.40.2", "video/mp4;codecs=avc1"];
+  if (!chromium) c.push("video/mp4");
+  c.push("video/webm;codecs=vp9,opus", "video/webm");
+  for (const m of c) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+  return "";
+}
+function startHeartbeat(ctx, onTick) {
+  const node = ctx.createScriptProcessor(1024, 1, 1);
+  const silence = ctx.createGain(); silence.gain.value = 0;
+  node.onaudioprocess = onTick; node.connect(silence); silence.connect(ctx.destination);
+  return { stop() { node.onaudioprocess = null; node.disconnect(); silence.disconnect(); } };
+}
+
+async function slowJoin(ctx, onProgress) {
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) throw new Error("this browser can't re-record video");
+  // Canvas sized from the first clip, short edge capped at 1080 to keep it fast.
+  const probe = await openVideo(clips[0]);
+  const sw = probe.videoWidth, sh = probe.videoHeight;
+  closeVideo(probe);
+  if (!sw) throw new Error("this browser can't show this clip's picture (HEVC) — install HEVC Video Extensions, or join on the iPad");
+  const scale = Math.min(1, 1080 / Math.min(sw, sh));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(sw * scale / 2) * 2; canvas.height = Math.round(sh * scale / 2) * 2;
+  const g = canvas.getContext("2d", { alpha: false });
+  g.fillStyle = "#000"; g.fillRect(0, 0, canvas.width, canvas.height);
+
+  const dest = ctx.createMediaStreamDestination();
+  const stream = new MediaStream([...canvas.captureStream().getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  const mime = bestRecorderMime();
+  const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 12000000 } : { videoBitsPerSecond: 12000000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(r => { rec.onstop = r; });
+
+  const total = clips.reduce((s, c) => s + (c.end - c.start), 0);
+  let doneSecs = 0, started = false;
+  for (const c of clips) {
+    const v = await openVideo(c);
+    if (!v.videoWidth) { closeVideo(v); throw new Error(`"${c.file.name}" shows no picture in this browser (HEVC)`); }
+    const src = ctx.createMediaElementSource(v); src.connect(dest);
+    v.currentTime = c.start;
+    await new Promise(r => v.addEventListener("seeked", r, { once: true }));
+    const draw = () => {
+      const k = Math.min(canvas.width / v.videoWidth, canvas.height / v.videoHeight);
+      const w = v.videoWidth * k, h = v.videoHeight * k;
+      g.fillRect(0, 0, canvas.width, canvas.height);
+      g.drawImage(v, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+    };
+    draw();
+    await v.play();
+    if (!started) { rec.start(1000); started = true; } else rec.resume();
+    await new Promise((resolve) => {
+      let over = false;
+      const hasVfc = typeof v.requestVideoFrameCallback === "function";
+      const finish = () => { if (over) return; over = true; hb.stop(); v.pause(); resolve(); };
+      if (hasVfc) { const f = () => { if (over) return; draw(); v.requestVideoFrameCallback(f); }; v.requestVideoFrameCallback(f); }
+      const hb = startHeartbeat(ctx, () => {
+        if (over) return;
+        if (v.ended || v.currentTime >= c.end - 0.02) return finish();
+        if (!hasVfc || document.hidden) draw();
+        onProgress((doneSecs + v.currentTime - c.start) / total);
+      });
+      v.addEventListener("ended", finish, { once: true });
+    });
+    rec.pause();
+    src.disconnect(); closeVideo(v);
+    doneSecs += c.end - c.start;
+  }
+  rec.stop();
+  await stopped;
+  return new Blob(chunks, { type: (rec.mimeType || mime || "video/webm").split(";")[0] });
+}
+async function openVideo(c) {
+  const v = document.createElement("video");
+  v.className = "work"; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
+  document.body.appendChild(v);
+  v.src = c.url;
+  await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error(`couldn't open "${c.file.name}"`)); });
+  return v;
+}
+function closeVideo(v) { v.pause(); v.removeAttribute("src"); v.load(); v.remove(); }
+
+/* ============================ Join ============================ */
+let audioCtx = null;
+joinBtn.addEventListener("click", async () => {
+  if (busy || !clips.length) return;
+  // Unlock audio inside the tap in case the slow path is needed (iPad rule).
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!audioCtx || audioCtx.state === "closed") audioCtx = new AC();
+  if (audioCtx.state !== "running") audioCtx.resume();
+
+  invalidateResult();
+  busy = true; renderTotal(); addBtn.disabled = true;
+  joinProgress.style.display = "block"; joinProgress.value = 0;
+  const onProgress = (p) => { joinProgress.value = Math.max(0, Math.min(1, p)); };
+  const t0 = performance.now();
+  try {
+    let blob, how;
+    const problem = fastJoinProblem();
+    if (!problem) {
+      joinStatus.className = "hint"; joinStatus.textContent = "Joining (no re-encoding)…";
+      try { blob = await fastJoin(onProgress); how = "fast"; }
+      catch (e) { console.error(e); joinStatus.textContent = "Instant join failed (" + e.message + ") — re-recording instead, this takes as long as the video…"; }
+    } else {
+      joinStatus.className = "hint warn";
+      joinStatus.textContent = "Can't join instantly: " + problem + ". Re-recording instead — takes as long as the video, keep this page on screen…";
+    }
+    if (!blob) { blob = await slowJoin(audioCtx, onProgress); how = "slow"; }
+
+    const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+    const d = new Date(), pad = (n) => String(n).padStart(2, "0");
+    const name = `Highlight_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+    result = { blob, url: URL.createObjectURL(blob), name };
+    resultVideo.src = result.url;
+    resultBox.style.display = "block";
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    joinStatus.className = "hint ok";
+    joinStatus.textContent = how === "fast"
+      ? `✓ Done in ${secs}s — ${fmtMB(blob.size)}, full camera quality. Check it below, then Save.`
+      : `✓ Done (re-recorded) — ${fmtMB(blob.size)}. Check it below, then Save.`;
+    saveHint.textContent = canShareFiles()
+      ? "Save opens the share sheet — tap \"Save Video\" for Photos, or post straight to an app from there."
+      : "Save downloads the file to your Downloads folder.";
+  } catch (e) {
+    console.error(e);
+    joinStatus.className = "hint bad";
+    joinStatus.textContent = "Failed: " + (e.message || e);
+  } finally {
+    busy = false; addBtn.disabled = false; renderTotal();
+    joinProgress.style.display = "none";
+  }
+});
+
+function canShareFiles() {
+  try {
+    const f = new File([new Blob(["x"], { type: "video/mp4" })], "x.mp4", { type: "video/mp4" });
+    return !!(navigator.canShare && navigator.canShare({ files: [f] }));
+  } catch (e) { return false; }
+}
+saveBtn.addEventListener("click", async () => {
+  if (!result) return;
+  const file = new File([result.blob], result.name, { type: result.blob.type });
+  if (canShareFiles() && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a");
+  a.href = result.url; a.download = result.name;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+</script>
+<script>
+/* Same black-picture (HEVC) warning as the other toolkit pages. Joining
+   still works without it — only the previews are black. */
+(function () {
+  let shown = false;
+  document.addEventListener("loadedmetadata", (e) => {
+    const v = e.target;
+    if (shown || !(v instanceof HTMLVideoElement) || v.videoWidth || v.classList.contains("work")) return;
+    shown = true;
+    const box = document.createElement("div");
+    box.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:640px;margin:0 auto;background:#122A4D;border:1px solid #E8B84B;border-radius:12px;padding:14px 40px 14px 16px;color:#F5F3EE;font:14px/1.45 Barlow,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.5);";
+    box.innerHTML = '<strong style="color:#E8B84B">Previews black but sound plays?</strong> These clips are HEVC (H.265), which this browser can\'t show without <strong>HEVC Video Extensions</strong> from the Microsoft Store. Joining still works — you just can\'t see the previews here. To avoid it: set the Action 4 Codec Format to H.264.';
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.style.cssText = "position:absolute;top:6px;right:8px;background:none;border:none;color:#93A0B8;font-size:22px;cursor:pointer;";
+    x.onclick = () => box.remove();
+    box.appendChild(x);
+    document.body.appendChild(box);
+  }, true);
+})();
+</script>
+</body>
+</html>
