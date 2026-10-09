@@ -90,7 +90,7 @@
         <option value="1080|10000000">High — 1080p (about 75 MB per minute)</option>
         <option value="540|1800000">Tiny — 540p, for texting (about 14 MB per minute)</option>
       </select>
-      <p class="hint">How much it shrinks depends on what you start with: 4K clips (roughly 170–400 MB per minute) easily drop 5–15×, but a clip that's already 1080p "High Efficiency" (about 60 MB per minute) only has room for 2–4× before it looks blocky. "Max" works out the right setting per clip. Output is H.264 MP4, which opens everywhere — Photos, Drive, Windows and Edge.</p>
+      <p class="hint">How much it shrinks depends on what you start with: action-cam clips (DJI Osmo Action 4 at 4K is roughly 500 MB–1 GB per minute) easily drop 10× or more, but a clip that's already small (1080p, under about 60 MB per minute) only has room for 2–4× before it looks blocky. 120 fps clips come out at the screen's frame rate (usually 60). "Max" works out the right setting per clip. Output is H.264 MP4, which opens everywhere — Photos, Drive, Windows and Edge.</p>
     </div>
     <div class="toggle-row">
       <input type="checkbox" id="keepAudio" checked>
@@ -242,7 +242,7 @@ function updateClip(clip, progress) {
     }
     case "noVideo":
       st.className = "clip-status bad";
-      st.textContent = "This browser can play this clip's sound but not its picture — it's in the iPhone/iPad \"High Efficiency\" (HEVC) format. On Windows, install \"HEVC Video Extensions\" from the Microsoft Store, or compress it on the iPad instead.";
+      st.textContent = "This browser can play this clip's sound but not its picture — it's in the HEVC (H.265) format that the DJI Action 4 and iPhone/iPad use. On Windows, install \"HEVC Video Extensions\" from the Microsoft Store, or compress it on the iPad instead.";
       break;
     case "unreadable":
       st.className = "clip-status bad";
@@ -394,10 +394,23 @@ async function compressOne(clip, ctx) {
     const finished = new Promise((resolve, reject) => {
       let over = false;
       const end = () => { if (over) return; over = true; hb.stop(); video.pause(); resolve(); };
+      /* Action-cam clips are often 60–120 fps, faster than the ~47 Hz audio
+         clock, which made the output stutter. Draw on every decoded frame
+         via requestVideoFrameCallback while the page is on screen; the audio
+         clock only draws as a fallback (no rVFC, or the tab is hidden). */
+      const hasVfc = typeof video.requestVideoFrameCallback === "function";
+      if (hasVfc) {
+        const onFrame = () => {
+          if (over) return;
+          g.drawImage(video, 0, 0, canvas.width, canvas.height);
+          video.requestVideoFrameCallback(onFrame);
+        };
+        video.requestVideoFrameCallback(onFrame);
+      }
       const hb = startHeartbeat(ctx, () => {
         if (over) return;
         if (video.ended || video.currentTime >= duration - 0.02) return end();
-        g.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (!hasVfc || document.hidden) g.drawImage(video, 0, 0, canvas.width, canvas.height);
         updateClip(clip, duration ? video.currentTime / duration : 0);
       });
       video.addEventListener("ended", end, { once: true });
