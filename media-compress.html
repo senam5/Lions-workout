@@ -84,12 +84,13 @@
     <div class="field">
       <label>Quality</label>
       <select id="preset">
+        <option value="auto10">Max — aim for 10× smaller (like the old ffmpeg script)</option>
         <option value="720|3500000">Small — 720p (about 26 MB per minute)</option>
         <option value="1080|6000000" selected>Balanced — 1080p (about 45 MB per minute)</option>
         <option value="1080|10000000">High — 1080p (about 75 MB per minute)</option>
         <option value="540|1800000">Tiny — 540p, for texting (about 14 MB per minute)</option>
       </select>
-      <p class="hint">iPad/iPhone 4K video is roughly 170–400 MB per minute, so even "High" is a big saving. Output is H.264 MP4, which opens everywhere — Photos, Drive, Windows and Edge.</p>
+      <p class="hint">How much it shrinks depends on what you start with: 4K clips (roughly 170–400 MB per minute) easily drop 5–15×, but a clip that's already 1080p "High Efficiency" (about 60 MB per minute) only has room for 2–4× before it looks blocky. "Max" works out the right setting per clip. Output is H.264 MP4, which opens everywhere — Photos, Drive, Windows and Edge.</p>
     </div>
     <div class="toggle-row">
       <input type="checkbox" id="keepAudio" checked>
@@ -325,8 +326,18 @@ compressBtn.addEventListener("click", async () => {
 });
 
 async function compressOne(clip, ctx) {
-  const [capStr, bitsStr] = preset.value.split("|");
-  const cap = parseInt(capStr, 10), videoBitsPerSecond = parseInt(bitsStr, 10);
+  let cap, videoBitsPerSecond;
+  if (preset.value === "auto10") {
+    /* Target a tenth of the source's own bitrate, then pick the resolution
+       that bitrate can carry cleanly. A floor keeps already-small clips
+       watchable — those just won't hit 10x. */
+    const srcBits = clip.file.size * 8 / (clip.duration || 1);
+    videoBitsPerSecond = Math.max(1200000, Math.min(8000000, Math.round(srcBits / 10)));
+    cap = videoBitsPerSecond >= 4500000 ? 1080 : videoBitsPerSecond >= 2200000 ? 720 : 540;
+  } else {
+    const [capStr, bitsStr] = preset.value.split("|");
+    cap = parseInt(capStr, 10); videoBitsPerSecond = parseInt(bitsStr, 10);
+  }
   const wantAudio = keepAudio.checked;
 
   // A fresh element per clip: createMediaElementSource can only ever be
