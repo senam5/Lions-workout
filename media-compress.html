@@ -84,9 +84,9 @@
     <div class="field">
       <label>Quality</label>
       <select id="preset">
-        <option value="auto10">Max — aim for 10× smaller (like the old ffmpeg script)</option>
+        <option value="auto10" selected>Max — aim for 10× smaller (like the old ffmpeg script)</option>
         <option value="720|3500000">Small — 720p (about 26 MB per minute)</option>
-        <option value="1080|6000000" selected>Balanced — 1080p (about 45 MB per minute)</option>
+        <option value="1080|6000000">Balanced — 1080p (about 45 MB per minute)</option>
         <option value="1080|10000000">High — 1080p (about 75 MB per minute)</option>
         <option value="540|1800000">Tiny — 540p, for texting (about 14 MB per minute)</option>
       </select>
@@ -108,6 +108,7 @@
       <button class="btn gold" id="saveAllBtn">Save All</button>
     </div>
     <p class="hint" id="saveHint" style="display:none;"></p>
+    <p class="hint warn" id="freeUpHint" style="display:none;">To actually free up space: once the small copies are in Photos, delete the originals, then empty Photos → Albums → Recently Deleted (deleted videos sit there for 30 days still using space).</p>
   </section>
 </div>
 
@@ -268,6 +269,7 @@ function refresh() {
       ? "Save opens the share sheet — tap \"Save Video\" (or \"Save N Videos\") to put them in Photos, or \"Save to Files\"."
       : "Save downloads the file. On iPad it lands in Files → Downloads; on a computer, in your Downloads folder.";
   } else saveHint.style.display = "none";
+  $("freeUpHint").style.display = done.length ? "block" : "none";
 }
 
 /* One AudioContext, created on the Compress tap itself and reused for every
