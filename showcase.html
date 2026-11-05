@@ -32,6 +32,9 @@
   .consent input { margin-top: 3px; accent-color: var(--lion); width: 18px; height: 18px; flex-shrink: 0; }
   .consent span.fr { display: block; color: var(--grey); font-size: 12px; margin-top: 4px; }
   .hp { position: absolute; left: -9999px; }
+  .input.missing { border-color: var(--lion) !important; box-shadow: 0 0 0 2px var(--lion-glow); }
+  .choices.missing, .consent.missing { outline: 2px solid var(--lion); outline-offset: 6px; border-radius: var(--radius-sm); }
+  .missing input[type="checkbox"] { outline: 2px solid var(--lion); }
   .status { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1px; text-align: center; margin-top: 12px; min-height: 14px; }
   .done { text-align: center; padding: 34px 18px; }
   .done .big { font-family: 'Bebas Neue', sans-serif; font-size: 44px; line-height: 1; margin: 8px 0 12px; }
@@ -74,12 +77,12 @@
         <input class="input" id="email" type="email" required maxlength="120" autocomplete="email">
       </div>
       <div class="field">
-        <label for="phone">Phone</label><span class="fr">Téléphone</span>
-        <input class="input" id="phone" type="tel" required maxlength="30" autocomplete="tel">
+        <label for="phone">Phone <span class="opt">(optional)</span></label><span class="fr">Téléphone (optionnel)</span>
+        <input class="input" id="phone" type="tel" maxlength="30" autocomplete="tel" inputmode="tel" placeholder="418-555-1234">
       </div>
       <div class="field">
-        <label for="dob">Date of birth</label><span class="fr">Date de naissance</span>
-        <input class="input" id="dob" type="date" required>
+        <label for="age">Age</label><span class="fr">Âge</span>
+        <input class="input" id="age" type="number" required min="10" max="99" step="1" inputmode="numeric">
       </div>
       <div class="field">
         <label for="school">Current school or team</label><span class="fr">École ou équipe actuelle</span>
@@ -149,24 +152,48 @@
         <input class="input" id="emergency" required maxlength="120">
       </div>
 
-      <div class="field">
+      <div id="minor" class="hidden">
+        <div class="field">
+          <label for="pname">Parent or guardian full name</label><span class="fr">Nom complet du parent ou tuteur</span>
+          <input class="input" id="pname" maxlength="80">
+        </div>
+        <div class="field">
+          <label for="pphone">Parent or guardian phone</label><span class="fr">Téléphone du parent ou tuteur</span>
+          <input class="input" id="pphone" type="tel" maxlength="30" inputmode="tel" placeholder="418-555-1234">
+        </div>
+        <div class="field">
+          <label for="pemail">Parent or guardian email</label><span class="fr">Courriel du parent ou tuteur</span>
+          <input class="input" id="pemail" type="email" maxlength="120">
+        </div>
+        <div class="field">
+          <label class="consent"><input type="checkbox" id="pconsent">
+            <span>I am the parent or guardian. I agree that this player takes part in the Showcase at his own risk and that he may be photographed or filmed, and that the Lions may post photos or videos on their social media.
+            <span class="fr">Je suis le parent ou tuteur. J'accepte que ce joueur participe au Showcase à ses propres risques, qu'il soit photographié ou filmé, et que les Lions publient des photos ou vidéos sur leurs réseaux sociaux.</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="adult">
         <label class="consent"><input type="checkbox" id="consent">
-          <span>I understand that I take part at my own risk and that photos/videos may be taken during the Showcase.
-          <span class="fr">Je comprends que je participe à mes propres risques et que des photos/vidéos peuvent être prises pendant le Showcase.</span></span>
+          <span>I understand that I take part at my own risk and that photos/videos may be taken during the Showcase, and that the Lions may post photos or videos on their social media.
+          <span class="fr">Je comprends que je participe à mes propres risques et que des photos/vidéos peuvent être prises pendant le Showcase, et que les Lions peuvent publier des photos ou vidéos sur leurs réseaux sociaux.</span></span>
         </label>
       </div>
 
+      <p class="note" style="margin:0 0 14px">We use this information only to organize the Showcase and to contact you. We do not sell or share it. Questions? DM @stlaw_bbmensd2.<br>Nous utilisons ces renseignements seulement pour organiser le Showcase et vous joindre. Nous ne les vendons pas et ne les partageons pas. Questions? Écrivez-nous en DM @stlaw_bbmensd2.</p>
+
       <button class="btn-primary" type="submit" id="go" style="width:100%">REGISTER · S'INSCRIRE →</button>
       <div class="status" id="status"></div>
-      <p class="note">Pay the $25 in cash or by Interac e-Transfer to <b>senam583@gmail.com</b> (put your full name in the message). Your spot is confirmed once payment is received. When the 20 spots are full, new sign-ups go on the waitlist.<br>Paiement de 25 $ comptant ou par virement Interac à <b>senam583@gmail.com</b> (votre nom complet dans le message). Votre place est confirmée à la réception du paiement.<br>Questions? DM us on Instagram <a href="https://www.instagram.com/stlaw_bbmensd2/">@stlaw_bbmensd2</a></p>
+      <p class="note">Pay the $25 in cash or by Interac e-Transfer to <b>senam583@gmail.com</b> (put your full name in the message). Put your code in the e-Transfer message. Your spot is confirmed once payment is received. When the 20 spots are full, new sign-ups go on the waitlist.<br>Paiement de 25 $ comptant ou par virement Interac à <b>senam583@gmail.com</b> (votre nom complet dans le message). Mettez votre code dans le message du virement. Votre place est confirmée à la réception du paiement.<br>Questions? DM us on Instagram <a href="https://www.instagram.com/stlaw_bbmensd2/">@stlaw_bbmensd2</a></p>
     </form>
   </div>
 
   <div class="card done hidden" id="done">
     <div style="font-size:46px">🦁</div>
     <div class="big">YOU'RE REGISTERED</div>
-    <p>Pay the $25 in cash or by Interac e-Transfer to <b>senam583@gmail.com</b> (put your full name in the message). Your spot is confirmed once payment is received.</p>
-    <p class="fr">Vous êtes inscrit! Paiement de 25 $ comptant ou par virement Interac à <b>senam583@gmail.com</b> (votre nom complet dans le message). Votre place est confirmée à la réception du paiement.</p>
+    <div id="code-box" class="hidden" style="margin:0 0 16px"><small style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--grey)">YOUR CODE · VOTRE CODE</small><div class="big" id="code-out" style="color:var(--lion);margin:4px 0 0"></div></div>
+    <p>Pay the $25 in cash or by Interac e-Transfer to <b>senam583@gmail.com</b> (put your full name in the message). Put your code in the e-Transfer message. Your spot is confirmed once payment is received.</p>
+    <p class="fr">Vous êtes inscrit! Paiement de 25 $ comptant ou par virement Interac à <b>senam583@gmail.com</b> (votre nom complet dans le message). Mettez votre code dans le message du virement. Votre place est confirmée à la réception du paiement.</p>
   </div>
 
 </div>
@@ -198,39 +225,99 @@ function picked(name) {
     .map(function (i) { return i.value; }).join(', ');
 }
 
+// Under 18: show the parent/guardian block instead of the player's own consent.
+function isMinor() { var a = parseInt(val('age'), 10); return a >= 10 && a < 18; }
+document.getElementById('age').addEventListener('input', function () {
+  var m = isMinor();
+  document.getElementById('minor').classList.toggle('hidden', !m);
+  document.getElementById('adult').classList.toggle('hidden', m);
+});
+
+// Missing fields get a red outline; it goes away as soon as the player fixes that field.
+function el(x) { return typeof x === 'string' ? document.getElementById(x) : x; }
+function group(name) { return document.querySelector('input[name="' + name + '"]').closest('.choices'); }
+function box(id) { return document.getElementById(id).closest('.consent'); }
+function mark(x, on) { el(x).classList.toggle('missing', !!on); }
+document.getElementById('f').addEventListener('input', function (e) {
+  var t = e.target, wrap = t.closest('.choices, .consent');
+  t.classList.remove('missing');
+  if (wrap) wrap.classList.remove('missing');
+});
+
+// Phone numbers get their hyphens on their own: 4185551234 -> 418-555-1234 (longer numbers are left as typed).
+['phone', 'pphone'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', function () {
+    var dg = this.value.replace(/\D/g, '');
+    if (dg.length > 10) return;
+    this.value = dg.slice(0, 3) + (dg.length > 3 ? '-' + dg.slice(3, 6) : '') + (dg.length > 6 ? '-' + dg.slice(6) : '');
+  });
+});
+
+var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 document.getElementById('f').addEventListener('submit', function (e) {
   e.preventDefault();
   var status = document.getElementById('status'), btn = document.getElementById('go');
+  var minor = isMinor(), age = parseInt(val('age'), 10);
   var d = {
     type: 'showcase', website: val('website'),
-    name: val('name'), email: val('email'), phone: val('phone'), dob: val('dob'),
+    name: val('name'), email: val('email'), phone: val('phone'), age: val('age'),
     school: val('school'), level: picked('level'), position: picked('position'),
     height: val('height'), start: picked('start'), video: val('video'),
     instagram: val('instagram'), heard: picked('heard'), emergency: val('emergency'),
-    consent: document.getElementById('consent').checked
+    parentName: minor ? val('pname') : '', parentPhone: minor ? val('pphone') : '',
+    parentEmail: minor ? val('pemail') : '',
+    parentConsent: minor && document.getElementById('pconsent').checked,
+    consent: !minor && document.getElementById('consent').checked
   };
-  var missing = [];
-  if (d.name.length < 2) missing.push('name');
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) missing.push('email');
-  if (!d.phone) missing.push('phone');
-  if (!d.dob) missing.push('date of birth');
-  if (!d.school) missing.push('school/team');
-  if (!d.level) missing.push('level');
-  if (!d.position) missing.push('position');
-  if (!d.height) missing.push('height');
-  if (!d.start) missing.push('start date');
-  if (!d.emergency) missing.push('emergency contact');
-  if (!d.consent) missing.push('consent');
-  if (missing.length) {
+  // [is it missing?, element to outline in red, English, French]
+  var checks = [
+    [d.name.length < 2, 'name', 'name', 'nom'],
+    [!EMAIL_RE.test(d.email), 'email', 'email', 'courriel'],
+    [!(age >= 10 && age <= 99), 'age', 'age', 'âge'],
+    [!d.school, 'school', 'school/team', 'école/équipe'],
+    [!d.level, group('level'), 'level', 'niveau'],
+    [!d.position, group('position'), 'position', 'position'],
+    [!d.height, 'height', 'height', 'taille'],
+    [!d.start, group('start'), 'start date', 'début'],
+    [!d.emergency, 'emergency', 'emergency contact', "contact d'urgence"]
+  ].concat(minor ? [
+    [d.parentName.length < 2, 'pname', 'parent name', 'nom du parent'],
+    [!d.parentPhone, 'pphone', 'parent phone', 'téléphone du parent'],
+    [!EMAIL_RE.test(d.parentEmail), 'pemail', 'parent email', 'courriel du parent'],
+    [!d.parentConsent, box('pconsent'), 'parent consent', 'consentement du parent']
+  ] : [
+    [!d.consent, box('consent'), 'consent', 'consentement']
+  ]);
+  var miss = checks.filter(function (c) { return c[0]; });
+  checks.forEach(function (c) { mark(c[1], c[0]); });
+  if (miss.length) {
     status.style.color = 'var(--lion)';
-    status.textContent = 'MISSING: ' + missing.join(', ').toUpperCase();
+    status.innerHTML = 'MISSING: ' + miss.map(function (c) { return c[2]; }).join(', ').toUpperCase() +
+      '<br>MANQUANT : ' + miss.map(function (c) { return c[3]; }).join(', ').toUpperCase();
+    var first = el(miss[0][1]);
+    first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var inp = first.matches('input') ? first : first.querySelector('input');
+    if (inp) inp.focus({ preventScroll: true });
     return;
   }
   btn.disabled = true;
   status.style.color = 'var(--grey)';
   status.textContent = 'SENDING…';
-  fetch(ENDPOINT, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) })
-    .then(function () {
+  // text/plain keeps it a "simple" request (no CORS preflight), so the reply with the code can be read.
+  // Sending the same email again returns the same code, so a retry after a network error is safe.
+  fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res || !res.ok) {
+        btn.disabled = false;
+        status.style.color = 'var(--lion)';
+        status.textContent = 'SOMETHING IS MISSING. CHECK THE FORM AND TRY AGAIN.';
+        return;
+      }
+      if (res.code) {
+        document.getElementById('code-out').textContent = res.code;
+        document.getElementById('code-box').classList.remove('hidden');
+      }
       document.getElementById('form-card').classList.add('hidden');
       document.getElementById('done').classList.remove('hidden');
       window.scrollTo(0, 0);
