@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lions Showcase · Register</title>
+<meta name="description" content="Lions St-Lawrence Showcase, Saturday Nov 28, 16:30–18:30 at Cégep Champlain St-Lawrence. Register here.">
+<link rel="stylesheet" href="lions.css">
+<style>
+  body { background: var(--navy); min-height: 100vh; }
+  .accent-bar { height: 3px; background: linear-gradient(90deg, var(--lion), transparent); }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 32px 16px 48px; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 12vw, 64px); line-height: 0.92; letter-spacing: 1px; margin: 10px 0 14px; }
+  .hero h1 span { color: var(--lion); }
+  .hero p { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
+  .hero p.fr { font-size: 13px; color: var(--grey); margin-top: -8px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 26px; }
+  .fact { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; }
+  .fact b { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.5px; font-weight: 400; }
+  .fact small { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--grey); letter-spacing: 1px; text-transform: uppercase; }
+  .fact.wide { grid-column: span 2; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 18px; }
+  .field { margin-bottom: 16px; }
+  .field > label, .field > .q { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .field .fr { display: block; font-size: 12px; color: var(--grey); font-weight: 400; margin-bottom: 7px; }
+  .field .opt { color: var(--grey); font-weight: 400; font-size: 12px; }
+  .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+  .choices label { display: flex; align-items: center; gap: 7px; background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px; font-size: 13px; cursor: pointer; }
+  .choices input { accent-color: var(--lion); }
+  .choices label:has(input:checked) { border-color: var(--lion); background: var(--lion-glow); }
+  .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; }
+  .consent input { margin-top: 3px; accent-color: var(--lion); width: 18px; height: 18px; flex-shrink: 0; }
+  .consent span.fr { display: block; color: var(--grey); font-size: 12px; margin-top: 4px; }
+  .hp { position: absolute; left: -9999px; }
+  .status { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1px; text-align: center; margin-top: 12px; min-height: 14px; }
+  .done { text-align: center; padding: 34px 18px; }
+  .done .big { font-family: 'Bebas Neue', sans-serif; font-size: 44px; line-height: 1; margin: 8px 0 12px; }
+  .done p { font-size: 14px; line-height: 1.6; color: var(--white); }
+  .done p.fr { color: var(--grey); font-size: 13px; margin-top: 8px; }
+  .note { font-size: 12px; color: var(--grey); line-height: 1.6; margin-top: 14px; text-align: center; }
+  .note a { color: var(--white); }
+  footer { text-align: center; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 2px; text-transform: uppercase; padding: 20px 16px 28px; }
+</style>
+</head>
+<body>
+<div class="accent-bar"></div>
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">Lions St-Lawrence · Men's D2 Basketball</div>
+    <h1>LIONS<br><span>SHOWCASE</span></h1>
+    <p>Want to play for the Lions? Come show our coaching staff what you can do.</p>
+    <p class="fr">Vous voulez jouer pour les Lions? Venez montrer à notre personnel d'entraîneurs ce que vous savez faire.</p>
+  </section>
+
+  <div class="facts">
+    <div class="fact"><b>SAT, NOV 28</b><small>Date</small></div>
+    <div class="fact"><b>16:30–18:30</b><small>Time · Heure</small></div>
+    <div class="fact wide"><b>CÉGEP CHAMPLAIN ST-LAWRENCE</b><small>Location · Lieu</small></div>
+    <div class="fact"><b>$25</b><small>Cash or Interac · Comptant ou Interac</small></div>
+    <div class="fact" id="spots-fact"><b id="spots-big">20 SPOTS</b><small id="spots-small">Places</small></div>
+  </div>
+
+  <div class="card" id="form-card">
+    <form id="f" novalidate>
+      <input class="hp" type="text" name="website" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <div class="field">
+        <label for="name">Full name</label><span class="fr">Nom complet</span>
+        <input class="input" id="name" required maxlength="80" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="email">Email</label><span class="fr">Courriel</span>
+        <input class="input" id="email" type="email" required maxlength="120" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="phone">Phone</label><span class="fr">Téléphone</span>
+        <input class="input" id="phone" type="tel" required maxlength="30" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="dob">Date of birth</label><span class="fr">Date de naissance</span>
+        <input class="input" id="dob" type="date" required>
+      </div>
+      <div class="field">
+        <label for="school">Current school or team</label><span class="fr">École ou équipe actuelle</span>
+        <input class="input" id="school" required maxlength="80">
+      </div>
+
+      <div class="field">
+        <div class="q">Highest level played</div><span class="fr">Plus haut niveau joué</span>
+        <div class="choices" data-name="level" data-type="radio">
+          <label><input type="radio" name="level" value="High school">High school / Secondaire</label>
+          <label><input type="radio" name="level" value="Juvenile">Juvenile</label>
+          <label><input type="radio" name="level" value="Cégep D3">Cégep D3</label>
+          <label><input type="radio" name="level" value="Cégep D2">Cégep D2</label>
+          <label><input type="radio" name="level" value="Cégep D1">Cégep D1</label>
+          <label><input type="radio" name="level" value="Other">Other / Autre</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="q">Position <span class="opt">(pick all that fit)</span></div><span class="fr">Choisissez tout ce qui s'applique</span>
+        <div class="choices">
+          <label><input type="checkbox" name="position" value="PG">PG (1)</label>
+          <label><input type="checkbox" name="position" value="SG">SG (2)</label>
+          <label><input type="checkbox" name="position" value="SF">SF (3)</label>
+          <label><input type="checkbox" name="position" value="PF">PF (4)</label>
+          <label><input type="checkbox" name="position" value="C">C (5)</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="height">Height</label><span class="fr">Taille (ex. 6'1 ou 185 cm)</span>
+        <input class="input" id="height" required maxlength="20">
+      </div>
+
+      <div class="field">
+        <div class="q">When would you start at Champlain St-Lawrence?</div><span class="fr">Quand commenceriez-vous à Champlain St-Lawrence?</span>
+        <div class="choices">
+          <label><input type="radio" name="start" value="Already a student">Already a student / Déjà étudiant</label>
+          <label><input type="radio" name="start" value="Winter 2027">Winter 2027 / Hiver 2027</label>
+          <label><input type="radio" name="start" value="Fall 2027">Fall 2027 / Automne 2027</label>
+          <label><input type="radio" name="start" value="Not sure">Not sure yet / Pas encore sûr</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="video">Highlight video link <span class="opt">(optional)</span></label><span class="fr">Lien vidéo (optionnel)</span>
+        <input class="input" id="video" type="url" maxlength="200" placeholder="https://">
+      </div>
+      <div class="field">
+        <label for="instagram">Instagram <span class="opt">(optional)</span></label><span class="fr">(optionnel)</span>
+        <input class="input" id="instagram" maxlength="60" placeholder="@">
+      </div>
+
+      <div class="field">
+        <div class="q">How did you hear about the Showcase?</div><span class="fr">Comment avez-vous entendu parler du Showcase?</span>
+        <div class="choices">
+          <label><input type="radio" name="heard" value="Instagram">Instagram</label>
+          <label><input type="radio" name="heard" value="Facebook">Facebook</label>
+          <label><input type="radio" name="heard" value="Friend / teammate">Friend / Ami</label>
+          <label><input type="radio" name="heard" value="Coach">Coach</label>
+          <label><input type="radio" name="heard" value="Other">Other / Autre</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="emergency">Emergency contact (name + phone)</label><span class="fr">Contact d'urgence (nom + téléphone)</span>
+        <input class="input" id="emergency" required maxlength="120">
+      </div>
+
+      <div class="field">
+        <label class="consent"><input type="checkbox" id="consent">
+          <span>I understand that I take part at my own risk and that photos/videos may be taken during the Showcase.
+          <span class="fr">Je comprends que je participe à mes propres risques et que des photos/vidéos peuvent être prises pendant le Showcase.</span></span>
+        </label>
+      </div>
+
+      <button class="btn-primary" type="submit" id="go" style="width:100%">REGISTER · S'INSCRIRE →</button>
+      <div class="status" id="status"></div>
+      <p class="note">Pay the $25 in cash or by Interac e-Transfer. We'll send you the e-Transfer details after you register. Your spot is confirmed once payment is received. When the 20 spots are full, new sign-ups go on the waitlist.<br>Paiement de 25 $ comptant ou par virement Interac. Votre place est confirmée à la réception du paiement.<br>Questions? DM us on Instagram <a href="https://www.instagram.com/stlaw_bbmensd2/">@stlaw_bbmensd2</a></p>
+    </form>
+  </div>
+
+  <div class="card done hidden" id="done">
+    <div style="font-size:46px">🦁</div>
+    <div class="big">YOU'RE REGISTERED</div>
+    <p>Pay the $25 in cash or by Interac e-Transfer. We'll contact you by email or Instagram DM with the e-Transfer details. Your spot is confirmed once payment is received.</p>
+    <p class="fr">Vous êtes inscrit! Paiement de 25 $ comptant ou par virement Interac. On vous contacte par courriel ou DM Instagram avec les détails. Votre place est confirmée à la réception du paiement.</p>
+  </div>
+
+</div>
+<footer>Lions St-Lawrence · Cégep Champlain St-Lawrence · 2026</footer>
+
+<script>
+'use strict';
+// Web App URL of APPS-SCRIPT-SHOWCASE.gs (Deploy → Web app → /exec)
+var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwYWu1ljrSSJ3Qxuc67CPUWuq7MOp40cD4vU2A8AD86A6DaVwzjszrJDtoJJ8qsa3R2/exec';
+
+// Live spots: counts only the rows marked Paid in the sheet. If it can't load, the page keeps "20 SPOTS".
+fetch(ENDPOINT + '?action=spots').then(function (r) { return r.json(); }).then(function (d) {
+  if (!d || !d.ok || typeof d.left !== 'number') return;
+  var big = document.getElementById('spots-big'), small = document.getElementById('spots-small');
+  if (d.left <= 0) {
+    big.textContent = 'FULL · WAITLIST';
+    big.style.color = 'var(--lion)';
+    small.textContent = 'Waitlist open · Liste d'attente';
+  } else {
+    big.innerHTML = d.left + ' <span style="color:var(--grey)">/ ' + d.spots + '</span> LEFT';
+    if (d.left <= 5) big.style.color = 'var(--lion)';
+    small.textContent = 'Spots left · Places restantes';
+  }
+}).catch(function () {});
+
+function val(id) { return document.getElementById(id).value.trim(); }
+function picked(name) {
+  return Array.prototype.slice.call(document.querySelectorAll('input[name="' + name + '"]:checked'))
+    .map(function (i) { return i.value; }).join(', ');
+}
+
+document.getElementById('f').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var status = document.getElementById('status'), btn = document.getElementById('go');
+  var d = {
+    type: 'showcase', website: val('website'),
+    name: val('name'), email: val('email'), phone: val('phone'), dob: val('dob'),
+    school: val('school'), level: picked('level'), position: picked('position'),
+    height: val('height'), start: picked('start'), video: val('video'),
+    instagram: val('instagram'), heard: picked('heard'), emergency: val('emergency'),
+    consent: document.getElementById('consent').checked
+  };
+  var missing = [];
+  if (d.name.length < 2) missing.push('name');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) missing.push('email');
+  if (!d.phone) missing.push('phone');
+  if (!d.dob) missing.push('date of birth');
+  if (!d.school) missing.push('school/team');
+  if (!d.level) missing.push('level');
+  if (!d.position) missing.push('position');
+  if (!d.height) missing.push('height');
+  if (!d.start) missing.push('start date');
+  if (!d.emergency) missing.push('emergency contact');
+  if (!d.consent) missing.push('consent');
+  if (missing.length) {
+    status.style.color = 'var(--lion)';
+    status.textContent = 'MISSING: ' + missing.join(', ').toUpperCase();
+    return;
+  }
+  btn.disabled = true;
+  status.style.color = 'var(--grey)';
+  status.textContent = 'SENDING…';
+  fetch(ENDPOINT, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) })
+    .then(function () {
+      document.getElementById('form-card').classList.add('hidden');
+      document.getElementById('done').classList.remove('hidden');
+      window.scrollTo(0, 0);
+    })
+    .catch(function () {
+      btn.disabled = false;
+      status.style.color = 'var(--lion)';
+      status.textContent = 'COULD NOT SEND. CHECK YOUR CONNECTION AND TRY AGAIN.';
+    });
+});
+</script>
+</body>
+</html>
