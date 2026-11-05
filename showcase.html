@@ -184,7 +184,7 @@ fetch(ENDPOINT + '?action=spots').then(function (r) { return r.json(); }).then(f
   if (d.left <= 0) {
     big.textContent = 'FULL · WAITLIST';
     big.style.color = 'var(--lion)';
-    small.textContent = 'Waitlist open · Liste d'attente';
+    small.textContent = "Waitlist open · Liste d'attente";
   } else {
     big.innerHTML = d.left + ' <span style="color:var(--grey)">/ ' + d.spots + '</span> LEFT';
     if (d.left <= 5) big.style.color = 'var(--lion)';
